@@ -1,0 +1,222 @@
+import { useEffect, useRef, useState, useCallback } from 'react'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { useTodoStore } from '../stores/todoStore'
+import { useListStore } from '../stores/listStore'
+import { useSpaceStore } from '../stores/spaceStore'
+import { storage } from '../lib/storage'
+
+const TABLES = ['todos', 'lists', 'spaces']
+const LAST_SYNC_KEY = 'last_sync'
+
+// Map local camelCase keys to DB snake_case
+const toSnake = (obj) => {
+  const map = {
+    listId: 'list_id',
+    spaceId: 'space_id',
+    dueDate: 'due_date',
+    snoozedUntil: 'snoozed_until',
+    completionCount: 'completion_count',
+    lastCompletedAt: 'last_completed_at',
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
+    userId: 'user_id',
+  }
+  const out = {}
+  for (const [k, v] of Object.entries(obj)) {
+    out[map[k] || k] = v
+  }
+  return out
+}
+
+const toCamel = (obj) => {
+  const map = {
+    list_id: 'listId',
+    space_id: 'spaceId',
+    due_date: 'dueDate',
+    snoozed_until: 'snoozedUntil',
+    completion_count: 'completionCount',
+    last_completed_at: 'lastCompletedAt',
+    created_at: 'createdAt',
+    updated_at: 'updatedAt',
+    user_id: 'userId',
+  }
+  const out = {}
+  for (const [k, v] of Object.entries(obj)) {
+    out[map[k] || k] = v
+  }
+  return out
+}
+
+export function useSync(userId) {
+  const [syncing, setSyncing] = useState(false)
+  const [lastSynced, setLastSynced] = useState(storage.get(LAST_SYNC_KEY))
+  const [error, setError] = useState(null)
+  const channelRef = useRef(null)
+
+  // Store references
+  const todoStore = useTodoStore
+  const listStore = useListStore
+  const spaceStore = useSpaceStore
+
+  const storeMap = {
+    todos: {
+      getState: () => todoStore.getState().todos,
+      setState: (items) => {
+        todoStore.setState({ todos: items })
+        storage.set('todos', items)
+      },
+    },
+    lists: {
+      getState: () => listStore.getState().lists,
+      setState: (items) => {
+        listStore.setState({ lists: items })
+        storage.set('lists', items)
+      },
+    },
+    spaces: {
+      getState: () => spaceStore.getState().spaces,
+      setState: (items) => {
+        spaceStore.setState({ spaces: items })
+        storage.set('spaces', items)
+      },
+    },
+  }
+
+  // Push all local data to Supabase (upsert)
+  const pushAll = useCallback(async () => {
+    if (!isSupabaseConfigured() || !userId) return
+
+    for (const table of TABLES) {
+      const localItems = storeMap[table].getState()
+      if (localItems.length === 0) continue
+
+      const rows = localItems.map((item) => toSnake({ ...item, userId }))
+      const { error: err } = await supabase
+        .from(table)
+        .upsert(rows, { onConflict: 'id' })
+
+      if (err) {
+        console.error(`Push ${table} error:`, err.message)
+        setError(err.message)
+      }
+    }
+  }, [userId])
+
+  // Pull remote data and reconcile with local (last-write-wins)
+  const pullAll = useCallback(async () => {
+    if (!isSupabaseConfigured() || !userId) return
+
+    for (const table of TABLES) {
+      const { data: remoteItems, error: err } = await supabase
+        .from(table)
+        .select('*')
+        .eq('user_id', userId)
+
+      if (err) {
+        console.error(`Pull ${table} error:`, err.message)
+        setError(err.message)
+        continue
+      }
+
+      const localItems = storeMap[table].getState()
+      const merged = reconcile(localItems, (remoteItems || []).map(toCamel))
+      storeMap[table].setState(merged)
+    }
+  }, [userId])
+
+  // Full sync: push local, then pull remote
+  const sync = useCallback(async () => {
+    if (!isSupabaseConfigured() || !userId) return
+
+    setSyncing(true)
+    setError(null)
+    try {
+      await pushAll()
+      await pullAll()
+      const now = new Date().toISOString()
+      setLastSynced(now)
+      storage.set(LAST_SYNC_KEY, now)
+    } catch (e) {
+      console.error('Sync error:', e)
+      setError(e.message)
+    } finally {
+      setSyncing(false)
+    }
+  }, [userId, pushAll, pullAll])
+
+  // Subscribe to real-time changes
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !userId) return
+
+    // Initial sync on mount
+    sync()
+
+    // Real-time subscription
+    const channel = supabase
+      .channel('db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'todos', filter: `user_id=eq.${userId}` }, (payload) => {
+        handleRealtimeChange('todos', payload)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'lists', filter: `user_id=eq.${userId}` }, (payload) => {
+        handleRealtimeChange('lists', payload)
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'spaces', filter: `user_id=eq.${userId}` }, (payload) => {
+        handleRealtimeChange('spaces', payload)
+      })
+      .subscribe()
+
+    channelRef.current = channel
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+      }
+    }
+  }, [userId])
+
+  const handleRealtimeChange = (table, payload) => {
+    const { eventType, new: newRow, old: oldRow } = payload
+    const localItems = storeMap[table].getState()
+
+    if (eventType === 'DELETE') {
+      storeMap[table].setState(localItems.filter((item) => item.id !== oldRow.id))
+      return
+    }
+
+    const incoming = toCamel(newRow)
+    const idx = localItems.findIndex((item) => item.id === incoming.id)
+
+    if (idx === -1) {
+      // New item from another device
+      storeMap[table].setState([...localItems, incoming])
+    } else {
+      // Update — last-write-wins
+      const local = localItems[idx]
+      if (new Date(incoming.updatedAt) > new Date(local.updatedAt)) {
+        const updated = [...localItems]
+        updated[idx] = incoming
+        storeMap[table].setState(updated)
+      }
+    }
+  }
+
+  return { syncing, lastSynced, error, sync }
+}
+
+// Last-write-wins reconciliation
+function reconcile(local, remote) {
+  const map = new Map()
+
+  for (const item of local) {
+    map.set(item.id, item)
+  }
+
+  for (const item of remote) {
+    const existing = map.get(item.id)
+    if (!existing || new Date(item.updatedAt) > new Date(existing.updatedAt)) {
+      map.set(item.id, item)
+    }
+  }
+
+  return Array.from(map.values())
+}
