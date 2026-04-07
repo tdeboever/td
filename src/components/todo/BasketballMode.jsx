@@ -251,9 +251,9 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
     <div className="absolute pointer-events-none" style={{
       left: px.current - BALL_SIZE / 2, top: py.current - BALL_SIZE / 2,
       width: BALL_SIZE, height: BALL_SIZE, borderRadius: '50%',
-      border: '2.5px solid var(--color-border-light)',
-      background: isSwish ? 'var(--color-accent)' : 'rgba(255,255,255,0.04)',
-      boxShadow: `0 4px 20px rgba(0,0,0,0.4)${isSwish ? ', 0 0 20px var(--color-accent-glow)' : ''}`,
+      border: '2px solid rgba(255,255,255,0.1)',
+      background: isSwish ? 'linear-gradient(135deg, #ff6b35, #ffaa40)' : 'radial-gradient(circle at 40% 35%, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
+      boxShadow: `0 4px 16px rgba(0,0,0,0.4)${isSwish ? ', 0 0 20px rgba(255,107,53,0.3)' : ''}`,
       transform: `scaleX(${sqX.current}) scaleY(${sqY.current}) rotate(${spin.current}deg)`,
       transition: isSwish ? 'background 200ms, border-color 200ms' : 'none',
       borderColor: isSwish ? 'var(--color-accent)' : undefined,

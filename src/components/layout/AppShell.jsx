@@ -26,15 +26,14 @@ export default function AppShell({ children }) {
   })
 
   return (
-    <div className="h-full flex justify-center bg-bg">
-      <div className="w-full max-w-[640px] h-full flex flex-col relative overflow-hidden">
+    <div className="h-full flex justify-center">
+      <div className="app-shell w-full max-w-[480px] h-full flex flex-col relative overflow-hidden" style={{ backgroundColor: '#060608' }}>
         <Sidebar />
         <Header />
         <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar" {...swipeHandlers}>
           {children}
         </main>
-        {/* Unified bottom area: input + nav as one block */}
-        <div className="border-t border-border">
+        <div className="border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
           <TodoInput />
           {!inputFocused && <BottomNav />}
         </div>

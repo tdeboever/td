@@ -17,7 +17,6 @@ export default function Sidebar() {
   const lists = useListStore((s) => s.lists)
   const addList = useListStore((s) => s.addList)
   const todos = useTodoStore((s) => s.todos)
-
   const [newSpaceName, setNewSpaceName] = useState('')
   const [addingListForSpace, setAddingListForSpace] = useState(null)
   const [newListName, setNewListName] = useState('')
@@ -37,47 +36,31 @@ export default function Sidebar() {
   return (
     <>
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/60 z-40 animate-fade-in" style={{ backdropFilter: 'blur(8px)' }} onClick={closeSidebar} />
+        <div className="fixed inset-0 z-40 animate-fade-in" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }} onClick={closeSidebar} />
       )}
-
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-50 bg-surface
-          transform transition-transform duration-[350ms] ease-[cubic-bezier(0.16,1,0.3,1)]
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          flex flex-col border-r border-border`}
-        style={{ width: '80%', maxWidth: 320 }}
-      >
+        className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col
+          transform transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{ width: '80%', maxWidth: 320, background: 'rgba(6,6,8,0.95)', backdropFilter: 'blur(24px)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
         <nav className="flex-1 overflow-y-auto no-scrollbar" style={{ paddingTop: 48 }}>
-          {/* Smart Views */}
-          <p className="text-[12px] font-medium text-text-dim uppercase"
-            style={{ padding: '0 20px 12px', letterSpacing: '0.12em' }}>
-            Views
-          </p>
+          <p style={{ padding: '0 20px 12px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-text-secondary)' }}>Views</p>
           {SMART_VIEWS.map((v) => {
             const isActive = activeView === v.id
-            const count = smartCounts[v.id]
             return (
               <button key={v.id} onClick={() => navigate(v.id)}
-                className={`w-full flex items-center gap-4 text-[15px] text-left transition-colors
-                  ${isActive ? 'text-accent font-semibold' : 'text-text hover:bg-surface-hover'}`}
-                style={{ height: 48, padding: '0 20px', borderLeft: isActive ? '3px solid var(--color-accent)' : '3px solid transparent' }}
-              >
-                <span className="w-5 text-center opacity-60">{v.icon}</span>
+                className="w-full flex items-center gap-4 text-left transition-colors"
+                style={{ height: 48, padding: '0 20px', fontSize: 15, borderLeft: `3px solid ${isActive ? 'var(--accent-flame)' : 'transparent'}`, color: isActive ? 'var(--accent-flame)' : 'var(--color-text)', fontWeight: isActive ? 600 : 400 }}>
+                <span className="w-5 text-center" style={{ opacity: 0.6 }}>{v.icon}</span>
                 <span className="flex-1">{v.label}</span>
-                {count > 0 && <span className="text-[12px] text-text-dim tabular-nums">{count}</span>}
+                {smartCounts[v.id] > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-secondary)' }}>{smartCounts[v.id]}</span>}
               </button>
             )
           })}
 
-          {/* Divider */}
-          <div style={{ height: 1, margin: '20px 20px', background: 'linear-gradient(to right, var(--color-accent), transparent)' }} />
+          <div style={{ height: 1, margin: '20px 20px', background: 'linear-gradient(to right, var(--accent-flame), transparent)' }} />
 
-          {/* Spaces */}
-          <p className="text-[12px] font-medium text-text-dim uppercase"
-            style={{ padding: '0 20px 12px', letterSpacing: '0.12em' }}>
-            Spaces
-          </p>
-
+          <p style={{ padding: '0 20px 12px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-text-secondary)' }}>Spaces</p>
           {spaces.map((space) => {
             const spaceLists = lists.filter((l) => l.spaceId === space.id).sort((a, b) => a.position - b.position)
             const isActive = activeView === 'space' && activeSpaceId === space.id
@@ -85,64 +68,49 @@ export default function Sidebar() {
             return (
               <div key={space.id}>
                 <button onClick={() => navigate('space', { spaceId: space.id })}
-                  className={`w-full flex items-center gap-4 text-[15px] text-left transition-colors
-                    ${isActive ? 'text-accent font-semibold' : 'text-text hover:bg-surface-hover'}`}
-                  style={{ height: 48, padding: '0 20px', borderLeft: isActive ? '3px solid var(--color-accent)' : '3px solid transparent' }}
-                >
+                  className="w-full flex items-center gap-4 text-left transition-colors"
+                  style={{ height: 48, padding: '0 20px', fontSize: 15, borderLeft: `3px solid ${isActive ? 'var(--accent-flame)' : 'transparent'}`, color: isActive ? 'var(--accent-flame)' : 'var(--color-text)', fontWeight: isActive ? 600 : 400 }}>
                   <span className="w-5 text-center">{space.icon}</span>
                   <span className="flex-1">{space.name}</span>
-                  {sc > 0 && <span className="text-[12px] text-text-dim tabular-nums">{sc}</span>}
+                  {sc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-secondary)' }}>{sc}</span>}
                 </button>
-
                 {spaceLists.map((list) => {
                   const la = activeView === 'list' && activeListId === list.id
                   const lc = cnt((t) => t.listId === list.id)
                   return (
                     <button key={list.id} onClick={() => navigate('list', { spaceId: space.id, listId: list.id })}
-                      className={`w-full flex items-center text-[13px] text-left transition-colors
-                        ${la ? 'text-accent font-medium' : 'text-text-dim hover:text-text hover:bg-surface-hover'}`}
-                      style={{ height: 40, padding: '0 20px 0 52px' }}
-                    >
-                      <span className="flex-1">
-                        {list.name}
-                        {list.type === 'checklist' && <span className="ml-1.5 text-[10px] opacity-40">☑</span>}
-                      </span>
-                      {lc > 0 && <span className="text-[12px] text-text-dim tabular-nums">{lc}</span>}
+                      className="w-full flex items-center text-left transition-colors"
+                      style={{ height: 40, padding: '0 20px 0 52px', fontSize: 13, color: la ? 'var(--accent-flame)' : 'var(--color-text-secondary)', fontWeight: la ? 500 : 400 }}>
+                      <span className="flex-1">{list.name}{list.type === 'checklist' && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.4 }}>☑</span>}</span>
+                      {lc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-ghost)' }}>{lc}</span>}
                     </button>
                   )
                 })}
-
                 {addingListForSpace === space.id ? (
                   <form onSubmit={(e) => handleAddList(e, space.id)} style={{ padding: '4px 20px 4px 52px' }}>
                     <input autoFocus value={newListName} onChange={(e) => setNewListName(e.target.value)}
                       onBlur={() => { if (!newListName.trim()) setAddingListForSpace(null) }}
-                      placeholder="List name…"
-                      className="w-full bg-transparent text-[13px] text-text placeholder:text-text-dim outline-none border-b border-border"
-                      style={{ paddingBottom: 4 }} />
+                      placeholder="List name…" className="w-full bg-transparent outline-none" style={{ fontSize: 13, color: 'var(--color-text)', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 4 }} />
                     <div className="flex gap-3 mt-2">
                       <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setNewListType('tasks')}
-                        className={`text-[11px] transition-colors ${newListType === 'tasks' ? 'text-accent' : 'text-text-dim'}`}>Tasks</button>
+                        style={{ fontSize: 11, color: newListType === 'tasks' ? 'var(--accent-flame)' : 'var(--color-text-ghost)' }}>Tasks</button>
                       <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setNewListType('checklist')}
-                        className={`text-[11px] transition-colors ${newListType === 'checklist' ? 'text-accent' : 'text-text-dim'}`}>Checklist</button>
+                        style={{ fontSize: 11, color: newListType === 'checklist' ? 'var(--accent-flame)' : 'var(--color-text-ghost)' }}>Checklist</button>
                     </div>
                   </form>
                 ) : (
-                  <button onClick={() => setAddingListForSpace(space.id)}
-                    className="w-full text-left text-[12px] text-text-dim hover:text-accent transition-colors"
-                    style={{ padding: '6px 20px 6px 52px' }}>
-                    + Add list
+                  <button onClick={() => setAddingListForSpace(space.id)} className="w-full text-left transition-colors"
+                    style={{ padding: '6px 20px 6px 52px', fontSize: 12, color: 'var(--color-text-ghost)' }}>
+                    <span style={{ color: 'var(--accent-flame)' }}>+</span> Add list
                   </button>
                 )}
               </div>
             )
           })}
-
-          {/* Add space */}
           <form onSubmit={handleAddSpace} style={{ padding: '16px 20px' }}>
             <input value={newSpaceName} onChange={(e) => setNewSpaceName(e.target.value)}
-              placeholder="+ New space"
-              className="w-full bg-transparent text-[14px] text-text-dim placeholder:text-text-dim outline-none hover:text-accent focus:text-accent transition-colors"
-              style={{ padding: '8px 0' }} />
+              placeholder="+ New space" className="w-full bg-transparent outline-none transition-colors"
+              style={{ fontSize: 14, color: 'var(--color-text-ghost)', padding: '8px 0' }} />
           </form>
         </nav>
       </aside>

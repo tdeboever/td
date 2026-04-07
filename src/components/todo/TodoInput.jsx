@@ -26,56 +26,22 @@ export default function TodoInput() {
 
   const submit = useCallback(() => {
     if (!text.trim() || sending) return
-
-    // Haptic
     if (navigator.vibrate) navigator.vibrate(8)
-
-    // Animate: text flies up, input flashes
     setSending(true)
-
-    // Flash the input border accent
-    if (inputBoxRef.current) {
-      inputBoxRef.current.style.borderColor = 'var(--color-accent)'
-      inputBoxRef.current.style.boxShadow = '0 0 0 3px var(--color-accent-glow)'
-    }
-
-    // Add the task after a brief moment so animation is visible
     setTimeout(() => {
-      addTodo(text.trim(), {
-        listId: effectiveListId,
-        spaceId: effectiveSpaceId,
-        priority,
-        dueDate,
-      })
-      setText('')
-      setPriority(0)
-      setDueDate(null)
-      setSpaceId(null)
-      setSending(false)
-      setFocused(false)
-      inputRef.current?.blur()
-
-      if (inputBoxRef.current) {
-        inputBoxRef.current.style.borderColor = ''
-        inputBoxRef.current.style.boxShadow = ''
-      }
+      addTodo(text.trim(), { listId: effectiveListId, spaceId: effectiveSpaceId, priority, dueDate })
+      setText(''); setPriority(0); setDueDate(null); setSpaceId(null)
+      setSending(false); setFocused(false); inputRef.current?.blur()
     }, 250)
   }, [text, sending, effectiveListId, effectiveSpaceId, priority, dueDate, addTodo])
 
   const swipeHandlers = useSwipe({ onSwipeUp: submit })
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      submit()
-    }
-  }
+  const handleKeyDown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit() } }
 
   const handleBlur = () => {
     requestAnimationFrame(() => {
-      if (containerRef.current && !containerRef.current.contains(document.activeElement) && !text.trim()) {
-        setFocused(false)
-      }
+      if (containerRef.current && !containerRef.current.contains(document.activeElement) && !text.trim()) setFocused(false)
     })
   }
 
@@ -85,79 +51,63 @@ export default function TodoInput() {
     <div ref={containerRef} style={{ padding: '12px 20px 12px' }} {...swipeHandlers}>
       {/* Autocomplete */}
       {suggestions.length > 0 && focused && (
-        <div className="mb-3 flex gap-1.5 overflow-x-auto no-scrollbar animate-slide-down">
+        <div className="mb-3 flex gap-2 overflow-x-auto no-scrollbar animate-slide-down">
           {suggestions.map((s) => (
             <button key={s} onMouseDown={(e) => e.preventDefault()} onClick={() => { setText(s); inputRef.current?.focus() }}
-              className="rounded-full border border-border text-[12px] font-medium text-text-dim whitespace-nowrap hover:text-text hover:border-border-light transition-colors"
-              style={{ padding: '6px 14px' }}>
+              style={{ padding: '6px 14px', borderRadius: 9999, border: '1px solid rgba(255,255,255,0.08)', fontSize: 12, fontWeight: 500, color: 'var(--color-text-secondary)', whiteSpace: 'nowrap', flexShrink: 0, background: 'transparent' }}>
               {s}
             </button>
           ))}
         </div>
       )}
 
-      {/* Chip bar — frosted container */}
+      {/* Chip bar — glassmorphism */}
       {focused && (
-        <div className="mb-2 animate-slide-down" style={{ background: 'rgba(20,20,20,0.8)', backdropFilter: 'blur(8px)', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8px 0', borderRadius: 12 }}>
-          <ChipBar
-            spaceId={effectiveSpaceId}
-            dueDate={dueDate}
-            onSpaceChange={setSpaceId}
-            onDueDateChange={setDueDate}
-          />
+        <div className="mb-2 animate-slide-down" style={{
+          background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px) saturate(1.2)',
+          borderTop: '1px solid rgba(255,255,255,0.06)', padding: '10px 0', borderRadius: 14,
+        }}>
+          <ChipBar spaceId={effectiveSpaceId} dueDate={dueDate} onSpaceChange={setSpaceId} onDueDateChange={setDueDate} />
         </div>
       )}
 
       {/* Input field */}
-      <div
-        ref={inputBoxRef}
-        className="flex items-center gap-3 bg-surface border transition-all duration-200 overflow-hidden"
-        style={{
-          borderRadius: 12,
-          padding: '14px 16px',
-          borderColor: focused ? 'var(--color-accent)' : 'var(--color-border)',
-          boxShadow: focused
-            ? 'inset 0 1px 2px rgba(0,0,0,0.3), 0 0 0 3px rgba(255,107,53,0.15)'
-            : 'none',
-        }}
-      >
-        {/* + symbol — pulses once on focus */}
-        <span className={`text-[20px] leading-none font-medium select-none text-accent ${focused && !hasText ? 'animate-pulse-once' : ''} ${sending ? 'scale-110' : ''}`}
-          style={{ transition: 'transform 200ms' }}>
-          {sending ? '✓' : '+'}
+      <div ref={inputBoxRef} className="flex items-center gap-3 transition-all duration-250" style={{
+        borderRadius: 14, padding: '14px 16px',
+        background: 'rgba(255,255,255,0.06)',
+        boxShadow: focused
+          ? '0 0 0 1px rgba(255,140,90,0.4), 0 0 0 4px rgba(255,107,53,0.1), 0 4px 24px rgba(255,107,53,0.08)'
+          : '0 0 0 1px rgba(255,255,255,0.06)',
+      }}>
+        {/* Diamond icon */}
+        <span style={{
+          fontSize: 14, color: sending ? 'var(--accent-gold)' : 'var(--accent-flame)',
+          transition: 'all 300ms cubic-bezier(0.16,1,0.3,1)',
+          transform: focused && !hasText ? 'scale(1.15) rotate(45deg)' : 'scale(1) rotate(0deg)',
+          display: 'inline-block',
+        }}>
+          {sending ? '✓' : '◆'}
         </span>
 
-        {/* Input text */}
         <div className="flex-1 relative" style={{ minHeight: 20 }}>
-          <input
-            ref={inputRef}
-            type="search"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            onFocus={() => setFocused(true)}
-            onBlur={handleBlur}
-            placeholder="What needs doing?"
-            autoComplete="off"
-            enterKeyHint="done"
-            className="w-full bg-transparent text-[15px] text-text placeholder:text-text-dim outline-none transition-all duration-200"
-            style={sending ? { transform: 'translateY(-20px)', opacity: 0 } : {}}
+          <input ref={inputRef} type="search" value={text}
+            onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown}
+            onFocus={() => setFocused(true)} onBlur={handleBlur}
+            placeholder="What needs doing?" autoComplete="off" enterKeyHint="done"
+            className="w-full bg-transparent outline-none"
+            style={{ fontSize: 15, color: 'var(--color-text)', transition: 'all 200ms', ...(sending ? { transform: 'translateY(-20px)', opacity: 0 } : {}) }}
           />
         </div>
 
-        {/* Send arrow — fades in + slides up when text exists */}
         {hasText && !sending ? (
-          <button onClick={submit} className="text-accent text-[20px] leading-none flex-shrink-0 hover:opacity-70 animate-slide-up" style={{ animation: 'slideUp 200ms ease-out' }}>
-            ↑
-          </button>
+          <button onClick={submit} className="animate-slide-up" style={{ color: 'var(--accent-flame)', fontSize: 20, lineHeight: 1, flexShrink: 0 }}>↑</button>
         ) : focused && !sending ? (
-          <span className="text-text-dim text-[16px] leading-none select-none opacity-30">↑</span>
+          <span style={{ color: 'var(--color-text-ghost)', fontSize: 16, lineHeight: 1 }}>↑</span>
         ) : null}
       </div>
 
-      {/* Swipe hint — very subtle */}
       {hasText && (
-        <p className="text-center text-[11px] mt-2 animate-fade-in" style={{ color: 'var(--color-text-dim)', opacity: 0.25 }}>
+        <p className="text-center animate-fade-in" style={{ fontSize: 11, color: 'var(--color-text-ghost)', marginTop: 8, opacity: 0.6 }}>
           swipe up to send
         </p>
       )}

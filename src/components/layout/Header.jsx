@@ -30,39 +30,66 @@ export default function Header() {
     c((t) => t.listId === activeListId)
   }
 
-  // Hidden when input focused
   if (inputFocused) {
     return (
       <header className="flex items-center safe-top" style={{ padding: '8px 20px' }}>
-        <span className="text-[14px] font-semibold flex-1">{title}</span>
-        {activeCount > 0 && <span className="text-[12px] text-text-dim">{activeCount}</span>}
+        <span style={{ fontSize: 14, fontWeight: 600 }} className="flex-1">{title}</span>
+        {activeCount > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--color-text-secondary)' }}>{activeCount}</span>}
       </header>
     )
   }
 
   return (
     <header className="safe-top" style={{ padding: '48px 20px 0' }}>
-      <p className="animate-task-enter text-[12px] font-medium text-text-dim uppercase" style={{ letterSpacing: '0.12em', marginBottom: 6, animationDelay: '0ms' }}>
+      {/* Greeting */}
+      <p className="animate-task-enter" style={{
+        fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.14em',
+        color: 'var(--color-text-secondary)', marginBottom: 8, animationDelay: '0ms',
+      }}>
         {getGreeting()}
       </p>
-      <div className="flex items-center justify-between animate-task-enter" style={{ animationDelay: '80ms' }}>
-        <h1 className="text-[32px] font-bold text-text" style={{ textShadow: '0 0 40px rgba(255,107,53,0.1)' }}>{title}</h1>
+
+      {/* Title with gradient text */}
+      <div className="flex items-center justify-between animate-task-enter" style={{ animationDelay: '60ms' }}>
+        <div style={{ position: 'relative' }}>
+          {/* Shadow layer (can't apply text-shadow to clipped text) */}
+          <h1 aria-hidden="true" style={{
+            position: 'absolute', fontSize: 36, fontWeight: 900, letterSpacing: '-0.03em',
+            color: 'transparent', textShadow: '0 0 60px rgba(255,107,53,0.12), 0 0 120px rgba(255,107,53,0.04)',
+          }}>{title}</h1>
+          {/* Gradient text layer */}
+          <h1 style={{
+            fontSize: 36, fontWeight: 900, letterSpacing: '-0.03em',
+            background: 'linear-gradient(180deg, var(--color-text) 0%, rgba(240,236,230,0.7) 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>{title}</h1>
+        </div>
         {isChecklist && doneCount > 0 && (
           <button onClick={() => { resetList(activeListId); showUndo('List reset', () => {}) }}
-            className="text-[12px] text-text-dim hover:text-accent transition-colors">
+            style={{ fontSize: 12, color: 'var(--color-text-secondary)' }} className="hover:text-accent-flame">
             Reset
           </button>
         )}
       </div>
+
+      {/* Stats */}
       {(activeCount > 0 || doneCount > 0) && (
-        <p className="text-[13px] text-text-dim animate-task-enter" style={{ marginTop: 8, animationDelay: '160ms' }}>
+        <p className="animate-task-enter" style={{
+          fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em',
+          color: 'var(--color-text-secondary)', marginTop: 8, animationDelay: '120ms',
+        }}>
           {activeCount > 0 && <span>{activeCount} remaining</span>}
-          {activeCount > 0 && doneCount > 0 && <span className="mx-1.5 opacity-30">·</span>}
+          {activeCount > 0 && doneCount > 0 && <span style={{ margin: '0 6px', opacity: 0.3 }}>·</span>}
           {doneCount > 0 && <span>{doneCount} done</span>}
         </p>
       )}
-      {/* Accent gradient line */}
-      <div style={{ height: 1, marginTop: 20, background: 'linear-gradient(to right, var(--color-accent), transparent)' }} />
+
+      {/* Glowing accent line */}
+      <div className="animate-task-enter" style={{
+        height: 1, marginTop: 20, animationDelay: '180ms',
+        background: 'linear-gradient(90deg, transparent 0%, var(--accent-flame) 20%, var(--accent-sun) 50%, var(--accent-flame) 80%, transparent 100%)',
+        boxShadow: '0 0 12px rgba(255,107,53,0.3)',
+      }} />
     </header>
   )
 }

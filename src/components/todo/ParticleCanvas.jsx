@@ -47,8 +47,8 @@ class Particle {
   }
 }
 
-const COLORS = ['#ff6b35', '#ff8c5a', '#e8e4df', '#ff3b30', '#ff9f0a', '#fff']
-const SMOKE_COLORS = ['#333', '#444', '#555', '#666']
+const COLORS = ['#ff6b35', '#ffaa40', '#ffd175', '#ff8f6b', '#f0ece6', '#ff4545']
+const SMOKE_COLORS = ['#222', '#333', '#444', '#555']
 
 let particles = []
 let animating = false

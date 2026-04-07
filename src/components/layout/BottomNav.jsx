@@ -16,22 +16,31 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="bg-surface safe-bottom" style={{ minHeight: 64, borderTop: '1px solid rgba(255,107,53,0.1)' }}>
+    <nav className="safe-bottom" style={{
+      minHeight: 64,
+      background: 'rgba(6,6,8,0.85)',
+      backdropFilter: 'blur(20px) saturate(1.3)',
+      borderTop: '1px solid rgba(255,255,255,0.04)',
+    }}>
       <div className="flex items-center justify-around h-16" style={{ padding: '0 20px' }}>
         {TABS.map((tab) => {
           const active = tab.id !== 'spaces' && activeView === tab.id
           return (
-            <button
-              key={tab.id}
-              onClick={() => handleTap(tab.id)}
-              className={`flex flex-col items-center gap-1 flex-1 py-1 ${active ? 'text-accent' : 'text-text-dim'}`}
-            >
-              <span className="leading-none" style={{
-                fontSize: 22,
-                textShadow: active ? '0 0 8px rgba(255,107,53,0.3)' : 'none',
+            <button key={tab.id} onClick={() => handleTap(tab.id)}
+              className="flex flex-col items-center gap-1 flex-1 py-1"
+              style={{ color: active ? 'var(--accent-flame)' : 'var(--color-text-secondary)' }}>
+              <span style={{
+                fontSize: 20, lineHeight: 1,
+                textShadow: active ? '0 0 12px rgba(255,107,53,0.4)' : 'none',
               }}>{tab.icon}</span>
-              <span className="text-[11px] font-medium">{tab.label}</span>
-              {active && <div className="w-1 h-1 rounded-full bg-accent animate-breathe" />}
+              <span style={{ fontSize: 10, fontWeight: 500 }}>{tab.label}</span>
+              {active && (
+                <div style={{
+                  width: 20, height: 3, borderRadius: 9999,
+                  background: 'linear-gradient(135deg, #ff6b35, #ffaa40)',
+                  boxShadow: '0 0 8px rgba(255,107,53,0.4)',
+                }} />
+              )}
             </button>
           )
         })}

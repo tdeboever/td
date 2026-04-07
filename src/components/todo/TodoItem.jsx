@@ -5,9 +5,9 @@ import { formatRelativeDate, getSnoozeLaterToday, getSnoozeTomorrow } from '../.
 import FlingHandler from './FlingHandler'
 
 const DOTS = {
-  1: { bg: 'var(--color-urgent)', shadow: '0 0 6px rgba(255,59,48,0.4)' },
-  2: { bg: 'var(--color-high)', shadow: 'none' },
-  3: { bg: 'var(--color-normal)', shadow: 'none' },
+  1: { bg: 'radial-gradient(circle at 35% 35%, #ff7a7a, #ff4545)', shadow: '0 0 8px rgba(255,69,69,0.5)' },
+  2: { bg: 'radial-gradient(circle at 35% 35%, #ffc966, #ffb340)', shadow: 'none' },
+  3: { bg: 'radial-gradient(circle at 35% 35%, #7aecbe, #45dea0)', shadow: 'none' },
 }
 
 export default function TodoItem({ todo, isChecklist = false, isLast = false }) {
@@ -31,25 +31,26 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     isChecklist ? ghostTodo(todo.id) : completeTodo(todo.id)
     showUndo('Task completed', () => uncompleteTodo(todo.id))
   }
-
   const handleCheckbox = () => isDone ? uncompleteTodo(todo.id) : handleComplete()
-
   const handleSnooze = (until) => {
     snoozeTodo(todo.id, until)
     setShowActions(false)
     showUndo('Snoozed', () => snoozeTodo(todo.id, null))
   }
 
-  // Actions panel (long press or tap on completed items)
   if (showActions) {
     return (
-      <div className="animate-slide-up" style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-        <p className="text-[11px] text-text-dim mb-3 truncate">{todo.text}</p>
+      <div className="animate-slide-up" style={{
+        margin: '4px 20px', padding: '12px 16px', borderRadius: 14,
+        background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)',
+        boxShadow: '0 0 0 1px rgba(255,255,255,0.06)',
+      }}>
+        <p style={{ fontSize: 12, color: 'var(--color-text-ghost)', marginBottom: 10 }} className="truncate">{todo.text}</p>
         <div className="flex gap-5">
-          {!isDone && <button onClick={() => handleSnooze(getSnoozeLaterToday())} className="text-[13px] text-text-dim hover:text-text">Later today</button>}
-          {!isDone && <button onClick={() => handleSnooze(getSnoozeTomorrow())} className="text-[13px] text-text-dim hover:text-text">Tomorrow</button>}
-          <button onClick={() => { deleteTodo(todo.id); setShowActions(false) }} className="text-[13px] text-danger/60 hover:text-danger">Delete</button>
-          <button onClick={() => setShowActions(false)} className="text-[13px] text-text-faint hover:text-text-dim ml-auto">Cancel</button>
+          {!isDone && <button onClick={() => handleSnooze(getSnoozeLaterToday())} style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Later today</button>}
+          {!isDone && <button onClick={() => handleSnooze(getSnoozeTomorrow())} style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Tomorrow</button>}
+          <button onClick={() => { deleteTodo(todo.id); setShowActions(false) }} style={{ fontSize: 13, color: 'var(--color-danger)', opacity: 0.6 }}>Delete</button>
+          <button onClick={() => setShowActions(false)} style={{ fontSize: 13, color: 'var(--color-text-ghost)', marginLeft: 'auto' }}>Cancel</button>
         </div>
       </div>
     )
@@ -57,29 +58,31 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
   const taskContent = (
     <div
-      className={`flex items-center gap-3 transition-all duration-150 ${isDone ? 'opacity-35 hover:opacity-60' : 'hover:bg-[rgba(255,255,255,0.02)] active:bg-[rgba(255,255,255,0.04)] active:scale-[0.98]'}`}
+      className={`flex items-center gap-3 transition-all duration-200 ${isDone ? '' : 'hover:rounded-[14px] active:scale-[0.985]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
         borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.03)',
-        borderRadius: isDone ? 0 : 12,
+        opacity: isDone ? 0.3 : 1,
+        background: 'transparent',
       }}
+      onMouseEnter={(e) => { if (!isDone) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.04)' }}
+      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
       onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
     >
       {/* Checkbox */}
       <button
         onClick={handleCheckbox}
-        className="flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-200"
+        className="flex items-center justify-center flex-shrink-0 rounded-full"
         style={{
-          width: 22, height: 22,
-          border: isDone ? '2px solid #2a2a2a' : '2px solid var(--color-border-light)',
-          background: isDone ? '#2a2a2a' : 'transparent',
-          boxShadow: isDone ? 'none' : undefined,
+          width: 22, height: 22, transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
+          border: isDone ? '2px solid rgba(255,255,255,0.08)' : '2px solid rgba(255,255,255,0.12)',
+          background: isDone ? 'rgba(255,255,255,0.08)' : 'transparent',
         }}
-        onMouseEnter={(e) => { if (!isDone) e.currentTarget.style.boxShadow = '0 0 0 4px rgba(255,107,53,0.1)'; e.currentTarget.style.borderColor = 'var(--color-accent)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; if (!isDone) e.currentTarget.style.borderColor = 'var(--color-border-light)' }}
+        onMouseEnter={(e) => { if (!isDone) { e.currentTarget.style.borderColor = 'var(--accent-flame)'; e.currentTarget.style.boxShadow = '0 0 0 4px var(--accent-ember)' } }}
+        onMouseLeave={(e) => { if (!isDone) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = 'none' } }}
       >
         {isDone && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round">
             <path d="M2 5.5l2 2L8 3" />
           </svg>
         )}
@@ -88,14 +91,29 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          {!isDone && dot && <span className="inline-block rounded-full flex-shrink-0" style={{ width: 6, height: 6, backgroundColor: dot.bg, boxShadow: dot.shadow }} />}
-          <p className={`text-[15px] leading-snug ${isDone ? 'line-through text-done-text' : 'text-text'}`}>
+          {!isDone && dot && (
+            <span className="inline-block rounded-full flex-shrink-0" style={{
+              width: 6, height: 6, background: dot.bg, boxShadow: dot.shadow,
+            }} />
+          )}
+          <p style={{
+            fontSize: 15, lineHeight: 1.4,
+            color: isDone ? 'var(--color-text-done)' : 'var(--color-text)',
+            textDecoration: isDone ? 'line-through' : 'none',
+            textDecorationColor: isDone ? 'rgba(240,236,230,0.1)' : undefined,
+          }}>
             {todo.text}
           </p>
         </div>
         {!isDone && showDate && (
-          <span className={`inline-block mt-1.5 text-[11px] ${isOverdue ? 'text-danger' : 'text-text-dim'}`}
-            style={{ background: 'rgba(255,255,255,0.04)', padding: '2px 8px', borderRadius: 6 }}>
+          <span style={{
+            display: 'inline-block', marginTop: 6,
+            fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em',
+            color: isOverdue ? 'var(--color-danger)' : 'var(--accent-blush)',
+            background: isOverdue ? 'rgba(255,69,69,0.08)' : 'rgba(255,143,107,0.08)',
+            border: `1px solid ${isOverdue ? 'rgba(255,69,69,0.1)' : 'rgba(255,143,107,0.1)'}`,
+            padding: '2px 8px', borderRadius: 8,
+          }}>
             {dateLabel}
           </span>
         )}
@@ -103,7 +121,6 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     </div>
   )
 
-  // Active tasks get the fling handler
   if (!isDone) {
     return (
       <FlingHandler onComplete={handleComplete} onSwipeLeft={() => setShowActions(true)}>
@@ -111,7 +128,5 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       </FlingHandler>
     )
   }
-
-  // Done tasks are just tappable (checkbox to uncomplete, long press for actions)
   return taskContent
 }

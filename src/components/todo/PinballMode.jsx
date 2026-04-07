@@ -147,7 +147,8 @@ export default function PinballMode({ origin, onComplete, onCancel }) {
           width: BALL_SIZE,
           height: BALL_SIZE,
           borderRadius: '50%',
-          border: '2.5px solid var(--color-border-light)',
+          border: '2px solid rgba(255,255,255,0.1)',
+          background: 'radial-gradient(circle at 40% 35%, rgba(255,255,255,0.08), rgba(255,255,255,0.02))',
           background: 'rgba(255,255,255,0.04)',
           boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
         }} />
