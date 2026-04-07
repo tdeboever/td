@@ -5,6 +5,7 @@ import BottomNav from './BottomNav'
 import UndoToast from '../todo/UndoToast'
 import TodoInput from '../todo/TodoInput'
 import ParticleCanvas from '../todo/ParticleCanvas'
+import FallenBall from '../todo/FallenBall'
 import { useUiStore } from '../../stores/uiStore'
 import { useSwipe } from '../../hooks/useSwipe'
 
@@ -33,11 +34,12 @@ export default function AppShell({ children }) {
         <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar" {...swipeHandlers}>
           {children}
         </main>
-        <div className="border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }}>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           <TodoInput />
           {!inputFocused && <BottomNav />}
         </div>
         <UndoToast />
+        <FallenBall />
         <ParticleCanvas />
       </div>
     </div>

@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, getSnoozeLaterToday, getSnoozeTomorrow } from '../../lib/utils'
-import FlingHandler from './FlingHandler'
 
 const DOTS = {
   1: { bg: 'radial-gradient(circle at 35% 35%, #ff7a7a, #ff4545)', shadow: '0 0 8px rgba(255,69,69,0.5)' },
@@ -17,8 +16,12 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const snoozeTodo = useTodoStore((s) => s.snoozeTodo)
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
   const showUndo = useUiStore((s) => s.showUndo)
+  const spawnBall = useUiStore((s) => s.spawnBall)
   const activeView = useUiStore((s) => s.activeView)
+
   const [showActions, setShowActions] = useState(false)
+  const [completing, setCompleting] = useState(false)
+  const checkboxRef = useRef(null)
 
   const isDone = todo.status === 'done' || todo.status === 'ghost'
   const dot = DOTS[todo.priority]
@@ -27,17 +30,38 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const showDate = dateLabel && !(activeView === 'today' && dateLabel === 'Today')
 
   const handleComplete = () => {
-    if (isDone) return
-    isChecklist ? ghostTodo(todo.id) : completeTodo(todo.id)
-    showUndo('Task completed', () => uncompleteTodo(todo.id))
+    if (isDone || completing) return
+
+    // Get checkbox position for ball spawn
+    const rect = checkboxRef.current?.getBoundingClientRect()
+    const cx = rect ? rect.left + rect.width / 2 : 30
+    const cy = rect ? rect.top + rect.height / 2 : 100
+
+    // Haptic
+    if (navigator.vibrate) navigator.vibrate(10)
+
+    // Start animation
+    setCompleting(true)
+
+    // After text flies off, complete the task and spawn the ball
+    setTimeout(() => {
+      if (isChecklist) ghostTodo(todo.id)
+      else completeTodo(todo.id)
+      showUndo('Task completed', () => uncompleteTodo(todo.id))
+      spawnBall(cx, cy)
+      setCompleting(false)
+    }, 400)
   }
+
   const handleCheckbox = () => isDone ? uncompleteTodo(todo.id) : handleComplete()
+
   const handleSnooze = (until) => {
     snoozeTodo(todo.id, until)
     setShowActions(false)
     showUndo('Snoozed', () => snoozeTodo(todo.id, null))
   }
 
+  // Action panel (long press)
   if (showActions) {
     return (
       <div className="animate-slide-up" style={{
@@ -56,27 +80,31 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     )
   }
 
-  const taskContent = (
+  return (
     <div
       className={`flex items-center gap-3 transition-all duration-200 ${isDone ? '' : 'hover:rounded-[14px] active:scale-[0.985]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
         borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.03)',
-        opacity: isDone ? 0.3 : 1,
+        opacity: isDone ? 0.3 : completing ? 0 : 1,
+        transform: completing ? 'translateX(60px)' : 'translateX(0)',
+        transition: completing ? 'all 350ms cubic-bezier(0.16, 1, 0.3, 1)' : undefined,
         background: 'transparent',
       }}
-      onMouseEnter={(e) => { if (!isDone) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.04)' }}
+      onMouseEnter={(e) => { if (!isDone && !completing) { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.04)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
       onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
     >
       {/* Checkbox */}
       <button
+        ref={checkboxRef}
         onClick={handleCheckbox}
         className="flex items-center justify-center flex-shrink-0 rounded-full"
         style={{
           width: 22, height: 22, transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
           border: isDone ? '2px solid rgba(255,255,255,0.08)' : '2px solid rgba(255,255,255,0.12)',
-          background: isDone ? 'rgba(255,255,255,0.08)' : 'transparent',
+          background: isDone ? 'rgba(255,255,255,0.08)' : completing ? 'var(--accent-flame)' : 'transparent',
+          transform: completing ? 'scale(1.2)' : 'scale(1)',
         }}
         onMouseEnter={(e) => { if (!isDone) { e.currentTarget.style.borderColor = 'var(--accent-flame)'; e.currentTarget.style.boxShadow = '0 0 0 4px var(--accent-ember)' } }}
         onMouseLeave={(e) => { if (!isDone) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = 'none' } }}
@@ -86,15 +114,18 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
             <path d="M2 5.5l2 2L8 3" />
           </svg>
         )}
+        {completing && (
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" className="animate-check-pop">
+            <path d="M2 5.5l2 2L8 3" />
+          </svg>
+        )}
       </button>
 
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           {!isDone && dot && (
-            <span className="inline-block rounded-full flex-shrink-0" style={{
-              width: 6, height: 6, background: dot.bg, boxShadow: dot.shadow,
-            }} />
+            <span className="inline-block rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: dot.bg, boxShadow: dot.shadow }} />
           )}
           <p style={{
             fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.4,
@@ -120,13 +151,4 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       </div>
     </div>
   )
-
-  if (!isDone) {
-    return (
-      <FlingHandler onComplete={handleComplete} onSwipeLeft={() => setShowActions(true)}>
-        {taskContent}
-      </FlingHandler>
-    )
-  }
-  return taskContent
 }

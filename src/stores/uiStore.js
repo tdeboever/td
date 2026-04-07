@@ -13,6 +13,11 @@ export const useUiStore = create((set, get) => ({
   inputFocused: false,
   setInputFocused: (v) => set({ inputFocused: v }),
 
+  // Completion ball — drops from checkbox, sits at bottom, optionally play basketball
+  completionBall: null, // { x, y, startTime }
+  spawnBall: (x, y) => set({ completionBall: { x, y, startTime: Date.now() } }),
+  clearBall: () => set({ completionBall: null }),
+
   // Undo
   undoAction: null, // { message, onUndo, timeout }
   undoTimer: null,
