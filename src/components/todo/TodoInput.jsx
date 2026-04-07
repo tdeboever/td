@@ -64,7 +64,7 @@ export default function TodoInput() {
       {/* Chip bar — glassmorphism */}
       {focused && (
         <div className="mb-2 animate-slide-down" style={{
-          background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px) saturate(1.2)',
+          background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px) saturate(1.2)', WebkitBackdropFilter: 'blur(16px) saturate(1.2)',
           borderTop: '1px solid rgba(255,255,255,0.06)', padding: '10px 0', borderRadius: 14,
         }}>
           <ChipBar spaceId={effectiveSpaceId} dueDate={dueDate} onSpaceChange={setSpaceId} onDueDateChange={setDueDate} />

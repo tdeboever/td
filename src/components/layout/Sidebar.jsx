@@ -36,13 +36,13 @@ export default function Sidebar() {
   return (
     <>
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 animate-fade-in" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)' }} onClick={closeSidebar} />
+        <div className="fixed inset-0 z-40 animate-fade-in" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }} onClick={closeSidebar} />
       )}
       <aside
         className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col
           transform transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ width: '80%', maxWidth: 320, background: 'rgba(6,6,8,0.95)', backdropFilter: 'blur(24px)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+        style={{ width: '80%', maxWidth: 320, background: 'rgba(6,6,8,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
         <nav className="flex-1 overflow-y-auto no-scrollbar" style={{ paddingTop: 48 }}>
           <p style={{ padding: '0 20px 12px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--color-text-secondary)' }}>Views</p>
           {SMART_VIEWS.map((v) => {

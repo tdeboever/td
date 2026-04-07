@@ -27,7 +27,7 @@ export default function AppShell({ children }) {
 
   return (
     <div className="h-full flex justify-center">
-      <div className="app-shell w-full max-w-[480px] h-full flex flex-col relative overflow-hidden" style={{ backgroundColor: '#060608' }}>
+      <div className="app-shell w-full max-w-[480px] h-full flex flex-col relative overflow-hidden">
         <Sidebar />
         <Header />
         <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar" {...swipeHandlers}>

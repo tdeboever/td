@@ -19,7 +19,7 @@ export default function BottomNav() {
     <nav className="safe-bottom" style={{
       minHeight: 64,
       background: 'rgba(6,6,8,0.85)',
-      backdropFilter: 'blur(20px) saturate(1.3)',
+      backdropFilter: 'blur(20px) saturate(1.3)', WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
       borderTop: '1px solid rgba(255,255,255,0.04)',
     }}>
       <div className="flex items-center justify-around h-16" style={{ padding: '0 20px' }}>

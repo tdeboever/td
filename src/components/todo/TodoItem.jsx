@@ -42,7 +42,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     return (
       <div className="animate-slide-up" style={{
         margin: '4px 20px', padding: '12px 16px', borderRadius: 14,
-        background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)',
+        background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
         boxShadow: '0 0 0 1px rgba(255,255,255,0.06)',
       }}>
         <p style={{ fontSize: 12, color: 'var(--color-text-ghost)', marginBottom: 10 }} className="truncate">{todo.text}</p>
@@ -97,7 +97,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
             }} />
           )}
           <p style={{
-            fontSize: 15, lineHeight: 1.4,
+            fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.4,
             color: isDone ? 'var(--color-text-done)' : 'var(--color-text)',
             textDecoration: isDone ? 'line-through' : 'none',
             textDecorationColor: isDone ? 'rgba(240,236,230,0.1)' : undefined,
