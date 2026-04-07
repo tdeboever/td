@@ -42,11 +42,11 @@ export default function Header() {
 
   return (
     <header className="safe-top" style={{ padding: '48px 20px 0' }}>
-      <p className="text-[12px] font-medium text-text-dim uppercase" style={{ letterSpacing: '0.12em', marginBottom: 6 }}>
+      <p className="animate-task-enter text-[12px] font-medium text-text-dim uppercase" style={{ letterSpacing: '0.12em', marginBottom: 6, animationDelay: '0ms' }}>
         {getGreeting()}
       </p>
-      <div className="flex items-center justify-between">
-        <h1 className="text-[28px] font-bold text-text">{title}</h1>
+      <div className="flex items-center justify-between animate-task-enter" style={{ animationDelay: '80ms' }}>
+        <h1 className="text-[32px] font-bold text-text" style={{ textShadow: '0 0 40px rgba(255,107,53,0.1)' }}>{title}</h1>
         {isChecklist && doneCount > 0 && (
           <button onClick={() => { resetList(activeListId); showUndo('List reset', () => {}) }}
             className="text-[12px] text-text-dim hover:text-accent transition-colors">
@@ -55,7 +55,7 @@ export default function Header() {
         )}
       </div>
       {(activeCount > 0 || doneCount > 0) && (
-        <p className="text-[13px] text-text-dim" style={{ marginTop: 8 }}>
+        <p className="text-[13px] text-text-dim animate-task-enter" style={{ marginTop: 8, animationDelay: '160ms' }}>
           {activeCount > 0 && <span>{activeCount} remaining</span>}
           {activeCount > 0 && doneCount > 0 && <span className="mx-1.5 opacity-30">·</span>}
           {doneCount > 0 && <span>{doneCount} done</span>}

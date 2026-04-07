@@ -96,9 +96,9 @@ export default function TodoInput() {
         </div>
       )}
 
-      {/* Chip bar */}
+      {/* Chip bar — frosted container */}
       {focused && (
-        <div className="mb-3 animate-slide-down">
+        <div className="mb-2 animate-slide-down" style={{ background: 'rgba(20,20,20,0.8)', backdropFilter: 'blur(8px)', borderTop: '1px solid rgba(255,255,255,0.05)', padding: '8px 0', borderRadius: 12 }}>
           <ChipBar
             spaceId={effectiveSpaceId}
             dueDate={dueDate}
@@ -111,21 +111,23 @@ export default function TodoInput() {
       {/* Input field */}
       <div
         ref={inputBoxRef}
-        className={`
-          flex items-center gap-3 bg-surface transition-all duration-200 overflow-hidden
-          ${focused
-            ? 'border border-accent shadow-[0_0_0_3px_var(--color-accent-glow)]'
-            : 'border border-border'
-          }
-        `}
-        style={{ borderRadius: 12, padding: '14px 16px' }}
+        className="flex items-center gap-3 bg-surface border transition-all duration-200 overflow-hidden"
+        style={{
+          borderRadius: 12,
+          padding: '14px 16px',
+          borderColor: focused ? 'var(--color-accent)' : 'var(--color-border)',
+          boxShadow: focused
+            ? 'inset 0 1px 2px rgba(0,0,0,0.3), 0 0 0 3px rgba(255,107,53,0.15)'
+            : 'none',
+        }}
       >
-        {/* + symbol */}
-        <span className={`text-[20px] leading-none font-medium select-none transition-all duration-200 ${sending ? 'text-accent scale-110' : 'text-accent'}`}>
+        {/* + symbol — pulses once on focus */}
+        <span className={`text-[20px] leading-none font-medium select-none text-accent ${focused && !hasText ? 'animate-pulse-once' : ''} ${sending ? 'scale-110' : ''}`}
+          style={{ transition: 'transform 200ms' }}>
           {sending ? '✓' : '+'}
         </span>
 
-        {/* Input text — flies up when sending */}
+        {/* Input text */}
         <div className="flex-1 relative" style={{ minHeight: 20 }}>
           <input
             ref={inputRef}
@@ -143,19 +145,19 @@ export default function TodoInput() {
           />
         </div>
 
-        {/* Send arrow */}
+        {/* Send arrow — fades in + slides up when text exists */}
         {hasText && !sending ? (
-          <button onClick={submit} className="text-accent text-[20px] leading-none flex-shrink-0 hover:opacity-70 transition-opacity">
+          <button onClick={submit} className="text-accent text-[20px] leading-none flex-shrink-0 hover:opacity-70 animate-slide-up" style={{ animation: 'slideUp 200ms ease-out' }}>
             ↑
           </button>
         ) : focused && !sending ? (
-          <span className="text-text-dim text-[16px] leading-none select-none">↑</span>
+          <span className="text-text-dim text-[16px] leading-none select-none opacity-30">↑</span>
         ) : null}
       </div>
 
-      {/* Swipe hint */}
+      {/* Swipe hint — very subtle */}
       {hasText && (
-        <p className="text-center text-[11px] text-text-faint mt-2 animate-fade-in">
+        <p className="text-center text-[11px] mt-2 animate-fade-in" style={{ color: 'var(--color-text-dim)', opacity: 0.25 }}>
           swipe up to send
         </p>
       )}

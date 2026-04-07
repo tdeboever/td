@@ -57,25 +57,29 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
   const taskContent = (
     <div
-      className={`flex items-center gap-3 ${isDone ? 'opacity-50' : ''}`}
-      style={{ padding: isDone ? '10px 20px' : '14px 20px', borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.03)' }}
+      className={`flex items-center gap-3 transition-all duration-150 ${isDone ? 'opacity-35 hover:opacity-60' : 'hover:bg-[rgba(255,255,255,0.02)] active:bg-[rgba(255,255,255,0.04)] active:scale-[0.98]'}`}
+      style={{
+        padding: isDone ? '10px 20px' : '14px 20px',
+        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.03)',
+        borderRadius: isDone ? 0 : 12,
+      }}
       onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
     >
       {/* Checkbox */}
       <button
         onClick={handleCheckbox}
-        className={`
-          flex items-center justify-center flex-shrink-0 rounded-full
-          transition-all duration-200
-          ${isDone
-            ? 'bg-border-light border-[2px] border-border-light'
-            : 'border-[2px] border-border-light hover:border-accent hover:shadow-[0_0_0_3px_var(--color-accent-glow)]'
-          }
-        `}
-        style={{ width: 22, height: 22 }}
+        className="flex items-center justify-center flex-shrink-0 rounded-full transition-all duration-200"
+        style={{
+          width: 22, height: 22,
+          border: isDone ? '2px solid #2a2a2a' : '2px solid var(--color-border-light)',
+          background: isDone ? '#2a2a2a' : 'transparent',
+          boxShadow: isDone ? 'none' : undefined,
+        }}
+        onMouseEnter={(e) => { if (!isDone) e.currentTarget.style.boxShadow = '0 0 0 4px rgba(255,107,53,0.1)'; e.currentTarget.style.borderColor = 'var(--color-accent)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = 'none'; if (!isDone) e.currentTarget.style.borderColor = 'var(--color-border-light)' }}
       >
         {isDone && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round">
             <path d="M2 5.5l2 2L8 3" />
           </svg>
         )}
@@ -83,14 +87,17 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className={`text-[15px] leading-snug ${isDone ? 'line-through text-done-text' : 'text-text'}`}>
-          {todo.text}
-        </p>
-        {!isDone && (dot || showDate) && (
-          <div className="flex items-center gap-2 mt-1">
-            {dot && <span className="inline-block rounded-full" style={{ width: 6, height: 6, backgroundColor: dot.bg, boxShadow: dot.shadow }} />}
-            {showDate && <span className={`text-[11px] ${isOverdue ? 'text-danger' : 'text-text-dim'}`}>{dateLabel}</span>}
-          </div>
+        <div className="flex items-center gap-2">
+          {!isDone && dot && <span className="inline-block rounded-full flex-shrink-0" style={{ width: 6, height: 6, backgroundColor: dot.bg, boxShadow: dot.shadow }} />}
+          <p className={`text-[15px] leading-snug ${isDone ? 'line-through text-done-text' : 'text-text'}`}>
+            {todo.text}
+          </p>
+        </div>
+        {!isDone && showDate && (
+          <span className={`inline-block mt-1.5 text-[11px] ${isOverdue ? 'text-danger' : 'text-text-dim'}`}
+            style={{ background: 'rgba(255,255,255,0.04)', padding: '2px 8px', borderRadius: 6 }}>
+            {dateLabel}
+          </span>
         )}
       </div>
     </div>

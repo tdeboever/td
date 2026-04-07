@@ -9,23 +9,20 @@ export default function TodoList({ todos, isChecklist = false, emptyTitle, empty
   const ghost = todos.filter((t) => t.status === 'ghost').sort((a, b) => b.completionCount - a.completionCount)
   const [showDone, setShowDone] = useState(false)
 
-  // Show empty state only when there are NO tasks at all (not even completed)
   if (todos.length === 0) return <EmptyState title={emptyTitle} subtitle={emptySubtitle} />
 
-  // Show "all clear" when no active tasks but there are completed ones
   const showAllClear = active.length === 0 && done.length > 0
-
   const visibleDone = showDone ? done : done.slice(0, 3)
   const hasMoreDone = done.length > 3 && !showDone
 
   return (
-    <div>
-      {showAllClear && (
-        <EmptyState title="All clear" subtitle="Everything's done" />
-      )}
+    <div className="animate-view-enter">
+      {showAllClear && <EmptyState title="All clear" subtitle="Everything's done" />}
 
       {active.sort((a, b) => a.position - b.position).map((todo, i) => (
-        <TodoItem key={todo.id} todo={todo} isChecklist={isChecklist} isLast={i === active.length - 1} />
+        <div key={todo.id} className="animate-task-enter" style={{ animationDelay: `${i * 40}ms` }}>
+          <TodoItem todo={todo} isChecklist={isChecklist} isLast={i === active.length - 1} />
+        </div>
       ))}
 
       {ghost.length > 0 && (
@@ -39,16 +36,11 @@ export default function TodoList({ todos, isChecklist = false, emptyTitle, empty
 
       {done.length > 0 && (
         <div style={{ marginTop: 24 }}>
-          {/* Collapsible divider */}
-          <button
-            onClick={() => setShowDone(!showDone)}
+          <button onClick={() => setShowDone(!showDone)}
             className="w-full flex items-center gap-3 text-[11px] font-medium text-text-dim"
-            style={{ padding: '8px 20px' }}
-          >
+            style={{ padding: '8px 20px' }}>
             <div className="flex-1 h-px bg-border" />
-            <span style={{ letterSpacing: '0.08em' }}>
-              Completed · {done.length} {showDone ? '▴' : '▾'}
-            </span>
+            <span style={{ letterSpacing: '0.08em' }}>Completed · {done.length} {showDone ? '▴' : '▾'}</span>
             <div className="flex-1 h-px bg-border" />
           </button>
 
@@ -57,11 +49,9 @@ export default function TodoList({ todos, isChecklist = false, emptyTitle, empty
           ))}
 
           {hasMoreDone && (
-            <button
-              onClick={() => setShowDone(true)}
+            <button onClick={() => setShowDone(true)}
               className="w-full text-[12px] text-text-dim hover:text-text transition-colors"
-              style={{ padding: '8px 20px' }}
-            >
+              style={{ padding: '8px 20px' }}>
               Show all {done.length}
             </button>
           )}

@@ -19,7 +19,7 @@ function Chip({ children, active, onClick }) {
         inline-flex items-center gap-1.5 rounded-full text-[12px] font-medium
         whitespace-nowrap select-none flex-shrink-0 transition-all duration-150
         ${active
-          ? 'bg-accent border border-accent text-white'
+          ? 'bg-accent border border-accent text-white shadow-[0_0_8px_rgba(255,107,53,0.25)]'
           : 'bg-transparent border border-border text-text-dim hover:border-border-light hover:text-text'
         }
       `}
