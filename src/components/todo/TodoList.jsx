@@ -20,7 +20,7 @@ export default function TodoList({ todos, isChecklist = false, emptyTitle, empty
       {showAllClear && <EmptyState title="All clear" subtitle="Everything's done" />}
 
       {active.sort((a, b) => a.position - b.position).map((todo, i) => (
-        <div key={todo.id} className="animate-task-enter" style={{ animationDelay: `${i * 40}ms` }}>
+        <div key={todo.id} className="animate-task-enter" style={{ animationDelay: `${i * 50}ms` }}>
           <TodoItem todo={todo} isChecklist={isChecklist} isLast={i === active.length - 1} />
         </div>
       ))}
