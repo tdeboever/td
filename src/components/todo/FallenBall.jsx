@@ -42,11 +42,18 @@ export default function FallenBall() {
     W.current = window.innerWidth
     H.current = window.innerHeight
 
-    // Gyroscope — tilt influences gravity direction
+    // Gyroscope — tilt influences gravity in both axes
+    const tiltY = { current: 0 } // forward/back tilt affects gravity strength
     let gyroHandler = null
     if (window.DeviceOrientationEvent) {
       gyroHandler = (e) => {
-        if (e.gamma !== null) tiltX.current = (e.gamma / 90) * 2 // -2 to 2
+        if (e.gamma !== null) tiltX.current = (e.gamma / 45) * 3 // stronger left/right, -3 to 3
+        if (e.beta !== null) {
+          // beta ~45 = phone upright normal, <45 = tilted back, >45 = tilted forward
+          // Map: tilt back (beta<30) = reduced/reversed gravity, tilt forward (beta>60) = stronger gravity
+          const normalBeta = 45
+          tiltY.current = ((e.beta - normalBeta) / 45) * 1.5 // -1.5 to 1.5
+        }
       }
       window.addEventListener('deviceorientation', gyroHandler)
     }
@@ -57,16 +64,20 @@ export default function FallenBall() {
 
       const elapsed = Date.now() - startTime.current
 
-      // Apply gravity + gyro tilt
-      vy.current += GRAVITY
-      vx.current += tiltX.current * 0.15
+      // Apply gravity (modified by forward/back tilt) + horizontal tilt
+      const effectiveGravity = GRAVITY + (tiltY.current * 0.4) // tilt back = float, tilt forward = heavy
+      vy.current += effectiveGravity
+      vx.current += tiltX.current * 0.3
       vx.current *= FRICTION
 
       px.current += vx.current
       py.current += vy.current
 
-      // Floor — bottom of screen minus nav area
-      const floor = H.current - 80
+      // Ceiling — ball can float up if tilted back hard enough
+      if (py.current < BALL_SIZE / 2) { py.current = BALL_SIZE / 2; vy.current = Math.abs(vy.current) * 0.3 }
+
+      // Floor — rests ON TOP of the input/nav area, not behind it
+      const floor = H.current - 140
       if (py.current > floor) {
         py.current = floor
         vy.current = -vy.current * BOUNCE
