@@ -9,6 +9,10 @@ export const useUiStore = create((set, get) => ({
   // Sidebar
   sidebarOpen: false,
 
+  // Input focus
+  inputFocused: false,
+  setInputFocused: (v) => set({ inputFocused: v }),
+
   // Undo
   undoAction: null, // { message, onUndo, timeout }
   undoTimer: null,

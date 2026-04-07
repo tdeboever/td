@@ -6,11 +6,12 @@ export default function GhostItem({ todo }) {
   return (
     <button
       onClick={() => reactivateTodo(todo.id)}
-      className="w-full flex items-center gap-3 px-4 py-2.5 border-b border-border/50 opacity-30 hover:opacity-50 transition-opacity"
+      className="w-full flex items-center gap-3 text-left opacity-30 hover:opacity-50 transition-opacity"
+      style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.03)' }}
     >
-      <div className="w-5 h-5 rounded-full border border-border-light/50 flex-shrink-0" />
-      <span className="text-sm text-text-dim">{todo.text}</span>
-      <span className="text-[9px] text-text-dim/50 ml-auto">{todo.completionCount}x</span>
+      <div className="flex-shrink-0 rounded-full" style={{ width: 22, height: 22, border: '2px dashed var(--color-border-light)' }} />
+      <span className="flex-1 text-[15px] text-text-dim">{todo.text}</span>
+      <span className="text-[11px] text-text-faint">{todo.completionCount}×</span>
     </button>
   )
 }

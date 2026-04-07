@@ -1,20 +1,33 @@
+import { useMemo } from 'react'
 import AppShell from '../components/layout/AppShell'
 import TodoList from '../components/todo/TodoList'
-import TodoInput from '../components/todo/TodoInput'
 import { useTodoStore } from '../stores/todoStore'
 import { useListStore } from '../stores/listStore'
 import { useUiStore } from '../stores/uiStore'
 import { useAuth } from '../hooks/useAuth'
 import { useSync } from '../hooks/useSync'
 import { isSupabaseConfigured } from '../lib/supabase'
+import { isToday, isFuture } from '../lib/utils'
 import Login from './Login'
 
+function useVisibleTodos() {
+  const todos = useTodoStore((s) => s.todos)
+  return useMemo(() => {
+    const now = new Date().toISOString()
+    return todos.filter((t) => !t.snoozedUntil || t.snoozedUntil <= now)
+  }, [todos])
+}
+
 function InboxView() {
-  const todos = useTodoStore((s) => s.getInboxTodos())
+  const visible = useVisibleTodos()
+  const todos = useMemo(
+    () => visible.filter((t) => !t.listId && !t.spaceId),
+    [visible]
+  )
   return (
     <TodoList
       todos={todos}
-      emptyIcon="📥"
+
       emptyTitle="Inbox is empty"
       emptySubtitle="Tasks without a space land here"
     />
@@ -22,11 +35,15 @@ function InboxView() {
 }
 
 function TodayView() {
-  const todos = useTodoStore((s) => s.getTodayTodos())
+  const visible = useVisibleTodos()
+  const todos = useMemo(
+    () => visible.filter((t) => t.status === 'active' && isToday(t.dueDate)),
+    [visible]
+  )
   return (
     <TodoList
       todos={todos}
-      emptyIcon="📅"
+
       emptyTitle="Nothing due today"
       emptySubtitle="Set a due date to see tasks here"
     />
@@ -34,11 +51,18 @@ function TodayView() {
 }
 
 function UpcomingView() {
-  const todos = useTodoStore((s) => s.getUpcomingTodos())
+  const visible = useVisibleTodos()
+  const todos = useMemo(
+    () =>
+      visible
+        .filter((t) => t.status === 'active' && isFuture(t.dueDate) && !isToday(t.dueDate))
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
+    [visible]
+  )
   return (
     <TodoList
       todos={todos}
-      emptyIcon="🗓️"
+
       emptyTitle="No upcoming tasks"
       emptySubtitle="Tasks with future dates appear here"
     />
@@ -47,11 +71,15 @@ function UpcomingView() {
 
 function SpaceView() {
   const activeSpaceId = useUiStore((s) => s.activeSpaceId)
-  const todos = useTodoStore((s) => s.getSpaceTodos(activeSpaceId))
+  const visible = useVisibleTodos()
+  const todos = useMemo(
+    () => visible.filter((t) => t.spaceId === activeSpaceId),
+    [visible, activeSpaceId]
+  )
   return (
     <TodoList
       todos={todos}
-      emptyIcon="📁"
+
       emptyTitle="No tasks in this space"
       emptySubtitle="Add a task below"
     />
@@ -61,7 +89,11 @@ function SpaceView() {
 function ListView() {
   const activeListId = useUiStore((s) => s.activeListId)
   const lists = useListStore((s) => s.lists)
-  const todos = useTodoStore((s) => s.getListTodos(activeListId))
+  const visible = useVisibleTodos()
+  const todos = useMemo(
+    () => visible.filter((t) => t.listId === activeListId),
+    [visible, activeListId]
+  )
   const list = lists.find((l) => l.id === activeListId)
   const isChecklist = list?.type === 'checklist'
 
@@ -69,7 +101,7 @@ function ListView() {
     <TodoList
       todos={todos}
       isChecklist={isChecklist}
-      emptyIcon={isChecklist ? '☑️' : '📋'}
+
       emptyTitle={`No items in ${list?.name || 'this list'}`}
       emptySubtitle="Add one below"
     />
@@ -91,7 +123,6 @@ function AppContent() {
   return (
     <AppShell>
       <ViewComponent />
-      <TodoInput />
     </AppShell>
   )
 }

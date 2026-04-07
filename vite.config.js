@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
-        name: 'Todo App',
-        short_name: 'Todo',
+        name: 'Focus',
+        short_name: 'Focus',
         description: 'Fast, beautiful personal task management',
         theme_color: '#0a0a0a',
         background_color: '#0a0a0a',

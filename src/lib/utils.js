@@ -1,9 +1,24 @@
 export const uid = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2, 9)
 
+// Parse a YYYY-MM-DD date string as local (not UTC)
+export const parseLocalDate = (dateStr) => {
+  if (!dateStr) return null
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+export const toLocalDateStr = (date) => {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export const formatRelativeDate = (dateStr) => {
   if (!dateStr) return null
-  const date = new Date(dateStr)
+  const date = parseLocalDate(dateStr)
+  if (!date) return null
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
@@ -11,12 +26,11 @@ export const formatRelativeDate = (dateStr) => {
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
 
-  const target = new Date(dateStr)
-  target.setHours(0, 0, 0, 0)
+  date.setHours(0, 0, 0, 0)
 
-  if (target.getTime() === today.getTime()) return 'Today'
-  if (target.getTime() === tomorrow.getTime()) return 'Tomorrow'
-  if (target.getTime() === yesterday.getTime()) return 'Yesterday'
+  if (date.getTime() === today.getTime()) return 'Today'
+  if (date.getTime() === tomorrow.getTime()) return 'Tomorrow'
+  if (date.getTime() === yesterday.getTime()) return 'Yesterday'
   return date.toLocaleDateString('en', { month: 'short', day: 'numeric' })
 }
 
@@ -30,17 +44,19 @@ export const getGreeting = () => {
 
 export const isToday = (dateStr) => {
   if (!dateStr) return false
-  const d = new Date(dateStr)
+  const d = parseLocalDate(dateStr)
+  if (!d) return false
   const today = new Date()
   return d.toDateString() === today.toDateString()
 }
 
 export const isFuture = (dateStr) => {
   if (!dateStr) return false
-  const d = new Date(dateStr)
+  const d = parseLocalDate(dateStr)
+  if (!d) return false
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  return d > today
+  return d >= today && !isToday(dateStr)
 }
 
 export const getSnoozeLaterToday = () => {
