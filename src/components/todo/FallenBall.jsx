@@ -3,10 +3,10 @@ import { useUiStore } from '../../stores/uiStore'
 import BasketballMode from './BasketballMode'
 
 const BALL_SIZE = 22
-const GRAVITY = 0.5
-const BOUNCE = 0.5
-const FRICTION = 0.98
-const FADE_AFTER = 5000 // ms before auto-fade
+const GRAVITY = 0.7
+const BOUNCE = 0.35
+const FRICTION = 0.92
+const FADE_AFTER = 5000
 
 export default function FallenBall() {
   const ball = useUiStore((s) => s.completionBall)
@@ -47,12 +47,10 @@ export default function FallenBall() {
     let gyroHandler = null
     if (window.DeviceOrientationEvent) {
       gyroHandler = (e) => {
-        if (e.gamma !== null) tiltX.current = (e.gamma / 45) * 3 // stronger left/right, -3 to 3
+        if (e.gamma !== null) tiltX.current = (e.gamma / 45) * 2
         if (e.beta !== null) {
-          // beta ~45 = phone upright normal, <45 = tilted back, >45 = tilted forward
-          // Map: tilt back (beta<30) = reduced/reversed gravity, tilt forward (beta>60) = stronger gravity
           const normalBeta = 45
-          tiltY.current = ((e.beta - normalBeta) / 45) * 1.5 // -1.5 to 1.5
+          tiltY.current = ((e.beta - normalBeta) / 45) * 1.0
         }
       }
       window.addEventListener('deviceorientation', gyroHandler)
@@ -65,9 +63,9 @@ export default function FallenBall() {
       const elapsed = Date.now() - startTime.current
 
       // Apply gravity (modified by forward/back tilt) + horizontal tilt
-      const effectiveGravity = GRAVITY + (tiltY.current * 0.4) // tilt back = float, tilt forward = heavy
+      const effectiveGravity = GRAVITY + (tiltY.current * 0.5)
       vy.current += effectiveGravity
-      vx.current += tiltX.current * 0.3
+      vx.current += tiltX.current * 0.2
       vx.current *= FRICTION
 
       px.current += vx.current
@@ -120,7 +118,13 @@ export default function FallenBall() {
   if (showBasketball) {
     return (
       <BasketballMode
-        origin={{ x: px.current, y: py.current, width: BALL_SIZE, height: BALL_SIZE, velocity: 0 }}
+        origin={{
+          x: px.current, y: py.current,
+          width: BALL_SIZE, height: BALL_SIZE,
+          velocity: 0,
+          // Skip morph — ball is already a ball, go straight to play
+          skipMorph: true,
+        }}
         onComplete={() => { setShowBasketball(false); clearBall() }}
         onCancel={() => { setShowBasketball(false); clearBall() }}
       />

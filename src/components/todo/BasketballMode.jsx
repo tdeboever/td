@@ -39,14 +39,22 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
   // Main physics loop
   useEffect(() => {
     done.current = false
-    phase.current = 'morph'
-    morphT.current = 0
-    morphStart.current = null
     px.current = origin.x
     py.current = origin.y
     vx.current = 0
-    const swipeSpeed = origin.velocity || 0
-    vy.current = Math.max(3, Math.min(20, swipeSpeed / 150))
+
+    if (origin.skipMorph) {
+      // Ball already exists — go straight to play
+      phase.current = 'play'
+      morphT.current = 1
+      vy.current = 2
+    } else {
+      phase.current = 'morph'
+      morphT.current = 0
+      morphStart.current = null
+      const swipeSpeed = origin.velocity || 0
+      vy.current = Math.max(3, Math.min(20, swipeSpeed / 150))
+    }
 
     const tick = (ts) => {
       if (done.current) return
