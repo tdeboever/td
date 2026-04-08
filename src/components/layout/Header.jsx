@@ -2,7 +2,6 @@ import { useUiStore } from '../../stores/uiStore'
 import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
-import { getGreeting } from '../../lib/utils'
 
 const VIEW_TITLES = { inbox: 'Inbox', today: 'Today', upcoming: 'Upcoming' }
 
@@ -25,7 +24,7 @@ export default function Header() {
 
   if (inputFocused) {
     return (
-      <header className="flex items-center safe-top" style={{ padding: '8px 20px' }}>
+      <header className="flex items-center safe-top" style={{ padding: '6px 20px' }}>
         <span style={{ fontSize: 14, fontWeight: 600 }} className="flex-1">{title}</span>
         {activeCount > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{activeCount}</span>}
       </header>
@@ -33,28 +32,22 @@ export default function Header() {
   }
 
   return (
-    <header className="safe-top" style={{ padding: '48px 20px 0' }}>
-      <p className="animate-task-enter" style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)', marginBottom: 8, animationDelay: '0ms' }}>
-        {getGreeting()}
-      </p>
-      <div className="flex items-center justify-between animate-task-enter" style={{ animationDelay: '50ms' }}>
-        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 34, letterSpacing: '-0.02em', fontVariationSettings: "'opsz' 144" }}>{title}</h1>
-        {isChecklist && doneCount > 0 && (
-          <button onClick={() => { resetList(activeListId); showUndo('List reset', () => {}) }} style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Reset</button>
-        )}
+    <header className="safe-top" style={{ padding: '16px 20px 12px' }}>
+      <div className="flex items-baseline justify-between">
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 28, letterSpacing: '-0.02em', fontVariationSettings: "'opsz' 144" }}>{title}</h1>
+        <div className="flex items-center gap-3">
+          {(activeCount > 0 || doneCount > 0) && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em', color: 'var(--text-secondary)' }}>
+              {activeCount > 0 && `${activeCount}`}
+              {activeCount > 0 && doneCount > 0 && <span style={{ opacity: 0.3, margin: '0 3px' }}>·</span>}
+              {doneCount > 0 && <span style={{ color: 'var(--text-ghost)' }}>{doneCount} done</span>}
+            </span>
+          )}
+          {isChecklist && doneCount > 0 && (
+            <button onClick={() => { resetList(activeListId); showUndo('List reset', () => {}) }} style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Reset</button>
+          )}
+        </div>
       </div>
-      {(activeCount > 0 || doneCount > 0) && (
-        <p className="animate-task-enter" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em', color: 'var(--text-secondary)', marginTop: 8, animationDelay: '100ms' }}>
-          {activeCount > 0 && <span>{activeCount} remaining</span>}
-          {activeCount > 0 && doneCount > 0 && <span style={{ margin: '0 6px', opacity: 0.3 }}>·</span>}
-          {doneCount > 0 && <span>{doneCount} done</span>}
-        </p>
-      )}
-      {/* Rainbow divider */}
-      <div className="animate-task-enter" style={{
-        height: 2, borderRadius: 1, marginTop: 16, animationDelay: '150ms', opacity: 0.5,
-        background: 'linear-gradient(90deg, transparent 0%, #ff7b54 15%, #f472b6 40%, #a78bfa 65%, #60a5fa 85%, transparent 100%)',
-      }} />
     </header>
   )
 }
