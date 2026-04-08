@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import { useUiStore } from '../../stores/uiStore'
+import SearchBar from '../todo/SearchBar'
 import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
@@ -13,6 +15,7 @@ export default function Header() {
   const resetList = useTodoStore((s) => s.resetList)
   const showUndo = useUiStore((s) => s.showUndo)
 
+  const [showSearch, setShowSearch] = useState(false)
   let title = VIEW_TITLES[activeView] || ''
   let activeCount = 0, doneCount = 0, isChecklist = false
   const c = (fn) => { const m = todos.filter(fn); activeCount = m.filter((t) => t.status === 'active').length; doneCount = m.filter((t) => t.status === 'done' || t.status === 'ghost').length }
@@ -35,7 +38,8 @@ export default function Header() {
     <header className="safe-top" style={{ padding: '16px 20px 12px' }}>
       <div className="flex items-baseline justify-between">
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          <button data-search-trigger onClick={() => setShowSearch(true)} style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1 }}>⌕</button>
           {(activeCount > 0 || doneCount > 0) && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em', color: 'var(--text-secondary)' }}>
               {activeCount > 0 && `${activeCount}`}
@@ -48,6 +52,7 @@ export default function Header() {
           )}
         </div>
       </div>
+      {showSearch && <SearchBar onClose={() => setShowSearch(false)} />}
     </header>
   )
 }

@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useSync } from '../hooks/useSync'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { isToday, isFuture } from '../lib/utils'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import Login from './Login'
 
 function useVisibleTodos() {
@@ -28,8 +29,8 @@ function InboxView() {
     <TodoList
       todos={todos}
 
-      emptyTitle="Inbox is empty"
-      emptySubtitle="Tasks without a space land here"
+      emptyTitle="Nothing here yet"
+      emptySubtitle="Capture a thought — tap below"
     />
   )
 }
@@ -44,8 +45,8 @@ function TodayView() {
     <TodoList
       todos={todos}
 
-      emptyTitle="Nothing due today"
-      emptySubtitle="Set a due date to see tasks here"
+      emptyTitle="Today is clear"
+      emptySubtitle="Nothing on the schedule — enjoy it"
     />
   )
 }
@@ -63,8 +64,8 @@ function UpcomingView() {
     <TodoList
       todos={todos}
 
-      emptyTitle="No upcoming tasks"
-      emptySubtitle="Tasks with future dates appear here"
+      emptyTitle="Horizon is clear"
+      emptySubtitle="Future tasks will show up here"
     />
   )
 }
@@ -119,6 +120,7 @@ const VIEWS = {
 function AppContent() {
   const activeView = useUiStore((s) => s.activeView)
   const ViewComponent = VIEWS[activeView] || InboxView
+  useKeyboardShortcuts()
 
   return (
     <AppShell>
