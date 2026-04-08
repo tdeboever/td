@@ -82,9 +82,8 @@ export default function FallenBall() {
       px.current += vx.current
       py.current += vy.current
 
-      // Fade from checked to empty over first 600ms
-      if (elapsed < 600) checkFill.current = Math.max(0, 1 - elapsed / 600)
-      else checkFill.current = 0
+      // Keep checked look — ball always shows checkmark
+      checkFill.current = 1
 
       // Ceiling
       if (py.current < BALL_SIZE / 2) {
@@ -153,67 +152,41 @@ export default function FallenBall() {
     e.stopPropagation()
     e.preventDefault()
     done.current = true
-
-    // Transition: freeze ball, fade in overlay, then hand off to basketball
-    setBbState('transition')
-    setTimeout(() => setBbState('playing'), 400)
+    // Go straight to basketball — ball starts in 'waiting' (still until grabbed)
+    setBbState('playing')
   }
 
   const settled = Math.abs(vy.current) < 0.5 && py.current >= H.current - 151
-  const isTransitioning = bbState === 'transition'
-  const fill = checkFill.current
-
-  // Ball color interpolation: checked (accent) → empty (transparent)
-  const ballBorder = fill > 0.1
-    ? `2px solid rgba(255,107,53,${0.15 + fill * 0.85})`
-    : '2px solid rgba(255,255,255,0.15)'
-  const ballBg = fill > 0.1
-    ? `rgba(255,107,53,${fill * 0.8})`
-    : 'radial-gradient(circle at 40% 35%, rgba(255,255,255,0.1), rgba(255,255,255,0.03))'
 
   return (
-    <>
-      {isTransitioning && (
-        <div className="fixed inset-0" style={{
-          zIndex: 35,
-          background: 'rgba(10,10,10,0.88)',
-          animation: 'fadeIn 400ms ease-out',
-          touchAction: 'none',
-        }} />
-      )}
-
-      <div
-        onTouchStart={!isTransitioning ? handleGrab : undefined}
-        onClick={!isTransitioning ? handleGrab : undefined}
-        className="fixed"
-        style={{
-          zIndex: isTransitioning ? 45 : 30,
-          left: px.current - (isTransitioning ? 24 : BALL_SIZE / 2),
-          top: py.current - (isTransitioning ? 24 : BALL_SIZE / 2),
-          width: isTransitioning ? 48 : BALL_SIZE,
-          height: isTransitioning ? 48 : BALL_SIZE,
-          borderRadius: '50%',
-          border: ballBorder,
-          background: ballBg,
-          boxShadow: (settled || isTransitioning)
-            ? '0 0 16px rgba(255,107,53,0.25), 0 2px 8px rgba(0,0,0,0.3)'
-            : '0 2px 8px rgba(0,0,0,0.3)',
-          opacity: opacity.current,
-          transform: `rotate(${spin.current}deg)`,
-          cursor: isTransitioning ? 'default' : 'grab',
-          touchAction: 'none',
-          transition: isTransitioning ? 'all 300ms ease-out' : 'box-shadow 300ms',
-        }}
-      >
-        {/* Checkmark visible while still "checked" */}
-        {fill > 0.3 && (
-          <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: fill }}>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
-              <path d="M2 5.5l2 2L8 3" />
-            </svg>
-          </div>
-        )}
+    <div
+      onTouchStart={handleGrab}
+      onClick={handleGrab}
+      className="fixed z-30"
+      style={{
+        left: px.current - BALL_SIZE / 2,
+        top: py.current - BALL_SIZE / 2,
+        width: BALL_SIZE,
+        height: BALL_SIZE,
+        borderRadius: '50%',
+        border: '2px solid transparent',
+        background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))',
+        boxShadow: settled
+          ? '0 0 16px rgba(244,114,182,0.3), 0 2px 8px rgba(0,0,0,0.3)'
+          : '0 0 8px rgba(244,114,182,0.2), 0 2px 6px rgba(0,0,0,0.3)',
+        opacity: opacity.current,
+        transform: `rotate(${spin.current}deg)`,
+        cursor: 'grab',
+        touchAction: 'none',
+        transition: 'box-shadow 300ms',
+      }}
+    >
+      <div className="absolute inset-0 flex items-center justify-center">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"
+          style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
+          <path d="M2 5.5l2 2L8 3" />
+        </svg>
       </div>
-    </>
+    </div>
   )
 }

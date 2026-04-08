@@ -35,9 +35,18 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
   const hoopX = W.current / 2
   const hoopY = 110
   const done = useRef(false)
+  const tiltX = useRef(0) // gyroscope for shot nudging
 
   // Main physics loop
   useEffect(() => {
+    // Gyroscope — nudge ball in flight
+    let gyroHandler = null
+    if (window.DeviceOrientationEvent) {
+      gyroHandler = (e) => {
+        if (e.gamma !== null) tiltX.current = (e.gamma / 45) * 1.5
+      }
+      window.addEventListener('deviceorientation', gyroHandler)
+    }
     done.current = false
     px.current = origin.x
     py.current = origin.y
@@ -119,6 +128,7 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
 
       if (p === 'shot') {
         vy.current += GRAVITY * 0.65
+        vx.current += tiltX.current * 0.12 // gyro nudge in flight
         px.current += vx.current
         py.current += vy.current
         spin.current += vx.current * 3
@@ -163,7 +173,11 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
     }
 
     frameId.current = requestAnimationFrame(tick)
-    return () => { done.current = true; if (frameId.current) cancelAnimationFrame(frameId.current) }
+    return () => {
+      done.current = true
+      if (frameId.current) cancelAnimationFrame(frameId.current)
+      if (gyroHandler) window.removeEventListener('deviceorientation', gyroHandler)
+    }
   }, [])
 
   // Touch handlers — attached via ref with { passive: false }
