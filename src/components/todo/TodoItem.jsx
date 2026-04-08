@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { emitExplosion } from './ParticleCanvas'
 import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, getSnoozeLaterToday, getSnoozeTomorrow } from '../../lib/utils'
@@ -34,6 +35,8 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     const cx = rect ? rect.left + rect.width / 2 : 30
     const cy = rect ? rect.top + rect.height / 2 : 100
     if (navigator.vibrate) navigator.vibrate(10)
+    // Particle burst from checkbox
+    emitExplosion(cx, cy, 300, 10)
     setPhase('checked')
     setTimeout(() => { setPhase('collapsing'); spawnBall(cx, cy) }, 150)
     setTimeout(() => {

@@ -119,6 +119,17 @@ export const useTodoStore = create((set, get) => ({
     })
   },
 
+  reorderTodos: (orderedIds) => {
+    set((state) => {
+      const todos = state.todos.map((t) => {
+        const idx = orderedIds.indexOf(t.id)
+        return idx !== -1 ? { ...t, position: idx, updatedAt: new Date().toISOString() } : t
+      })
+      storage.set(STORAGE_KEY, todos)
+      return { todos }
+    })
+  },
+
   resetList: (listId) => {
     set((state) => {
       const todos = state.todos.map((t) =>

@@ -2,6 +2,7 @@ import { useUiStore } from '../../stores/uiStore'
 import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
+import { useAuth } from '../../hooks/useAuth'
 import { useState } from 'react'
 
 const SMART_VIEWS = [
@@ -22,6 +23,7 @@ export default function Sidebar() {
   const [newListName, setNewListName] = useState('')
   const [newListType, setNewListType] = useState('tasks')
 
+  const { user, signOut } = useAuth()
   const cnt = (fn) => todos.filter((t) => t.status === 'active' && fn(t)).length
   const navigate = (v, o) => { setView(v, o); closeSidebar() }
   const handleAddSpace = (e) => { e.preventDefault(); if (!newSpaceName.trim()) return; addSpace(newSpaceName.trim()); setNewSpaceName('') }
@@ -100,6 +102,16 @@ export default function Sidebar() {
               placeholder="+ New space" className="w-full bg-transparent outline-none transition-colors"
               style={{ fontSize: 14, color: 'var(--text-ghost)', padding: '8px 0' }} />
           </form>
+
+          {/* Sign out */}
+          {user && (
+            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-subtle)' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-ghost)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {user.email}
+              </div>
+              <button onClick={signOut} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Sign out</button>
+            </div>
+          )}
         </nav>
       </aside>
     </>
