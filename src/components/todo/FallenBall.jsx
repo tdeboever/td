@@ -37,12 +37,21 @@ export default function FallenBall() {
   const H = useRef(window.innerHeight)
   const hoopX = useRef(0)
   const hoopY = 110
+  const prevBall = useRef(null)
+
+  // Reset phase BEFORE render so the ball div mounts and touch handlers can attach
+  if (ball && ball !== prevBall.current) {
+    prevBall.current = ball
+    phase.current = 'falling'
+    done.current = false
+    isDragging.current = false
+    size.current = BALL_SIZE
+    overlayOpacity.current = 0
+    opacity.current = 1
+  }
 
   useEffect(() => {
     if (!ball) return
-
-    done.current = false
-    phase.current = 'falling'
     px.current = ball.x
     py.current = ball.y
     opacity.current = 1
