@@ -20,7 +20,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const activeView = useUiStore((s) => s.activeView)
 
   const [showActions, setShowActions] = useState(false)
-  const [completing, setCompleting] = useState(false)
+  const [phase, setPhase] = useState(null) // null | 'checked' | 'collapsing'
   const checkboxRef = useRef(null)
 
   const isDone = todo.status === 'done' || todo.status === 'ghost'
@@ -30,27 +30,30 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const showDate = dateLabel && !(activeView === 'today' && dateLabel === 'Today')
 
   const handleComplete = () => {
-    if (isDone || completing) return
+    if (isDone || phase) return
 
-    // Get checkbox position for ball spawn
     const rect = checkboxRef.current?.getBoundingClientRect()
     const cx = rect ? rect.left + rect.width / 2 : 30
     const cy = rect ? rect.top + rect.height / 2 : 100
 
-    // Haptic
     if (navigator.vibrate) navigator.vibrate(10)
 
-    // Start animation
-    setCompleting(true)
+    // Phase 1: checkbox checks instantly
+    setPhase('checked')
 
-    // After text flies off, complete the task and spawn the ball
+    // Phase 2: after brief moment, text collapses and ball spawns
+    setTimeout(() => {
+      setPhase('collapsing')
+      spawnBall(cx, cy)
+    }, 150)
+
+    // Phase 3: complete the task
     setTimeout(() => {
       if (isChecklist) ghostTodo(todo.id)
       else completeTodo(todo.id)
       showUndo('Task completed', () => uncompleteTodo(todo.id))
-      spawnBall(cx, cy)
-      setCompleting(false)
-    }, 400)
+      setPhase(null)
+    }, 350)
   }
 
   const handleCheckbox = () => isDone ? uncompleteTodo(todo.id) : handleComplete()
@@ -61,7 +64,6 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     showUndo('Snoozed', () => snoozeTodo(todo.id, null))
   }
 
-  // Action panel (long press)
   if (showActions) {
     return (
       <div className="animate-slide-up" style={{
@@ -80,18 +82,27 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     )
   }
 
+  // Animation states
+  const isChecked = phase === 'checked' || phase === 'collapsing'
+  const isCollapsing = phase === 'collapsing'
+
   return (
     <div
-      className={`flex items-center gap-3 transition-all duration-200 ${isDone ? '' : 'hover:rounded-[14px] active:scale-[0.985]'}`}
+      className={`flex items-center gap-3 ${isDone ? '' : 'hover:rounded-[14px] active:scale-[0.985]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
         borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.03)',
-        opacity: isDone ? 0.3 : completing ? 0 : 1,
-        transform: completing ? 'translateX(60px)' : 'translateX(0)',
-        transition: completing ? 'all 350ms cubic-bezier(0.16, 1, 0.3, 1)' : undefined,
+        opacity: isDone ? 0.3 : isCollapsing ? 0 : 1,
+        transform: isCollapsing ? 'scaleY(0)' : 'scaleY(1)',
+        maxHeight: isCollapsing ? 0 : 200,
+        overflow: 'hidden',
+        transformOrigin: 'top',
+        transition: isCollapsing
+          ? 'opacity 200ms ease-out, max-height 200ms ease-out, transform 200ms ease-out'
+          : 'all 200ms cubic-bezier(0.4,0,0.2,1)',
         background: 'transparent',
       }}
-      onMouseEnter={(e) => { if (!isDone && !completing) { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.04)' } }}
+      onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.04)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
       onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
     >
@@ -101,42 +112,50 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         onClick={handleCheckbox}
         className="flex items-center justify-center flex-shrink-0 rounded-full"
         style={{
-          width: 22, height: 22, transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
-          border: isDone ? '2px solid rgba(255,255,255,0.08)' : '2px solid rgba(255,255,255,0.12)',
-          background: isDone ? 'rgba(255,255,255,0.08)' : completing ? 'var(--accent-flame)' : 'transparent',
-          transform: completing ? 'scale(1.2)' : 'scale(1)',
+          width: 22, height: 22,
+          transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
+          border: (isDone || isChecked)
+            ? '2px solid var(--accent-flame)'
+            : '2px solid rgba(255,255,255,0.12)',
+          background: (isDone || isChecked)
+            ? 'var(--accent-flame)'
+            : 'transparent',
+          transform: isChecked && !isCollapsing ? 'scale(1.2)' : 'scale(1)',
+          boxShadow: isChecked ? '0 0 12px var(--accent-ember)' : 'none',
         }}
-        onMouseEnter={(e) => { if (!isDone) { e.currentTarget.style.borderColor = 'var(--accent-flame)'; e.currentTarget.style.boxShadow = '0 0 0 4px var(--accent-ember)' } }}
-        onMouseLeave={(e) => { if (!isDone) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = 'none' } }}
+        onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'var(--accent-flame)'; e.currentTarget.style.boxShadow = '0 0 0 4px var(--accent-ember)' } }}
+        onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = 'none' } }}
       >
-        {isDone && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2" strokeLinecap="round">
-            <path d="M2 5.5l2 2L8 3" />
-          </svg>
-        )}
-        {completing && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" className="animate-check-pop">
+        {/* Checkmark — visible when done OR during check animation */}
+        {(isDone || isChecked) && (
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
+            stroke={isDone ? 'rgba(255,255,255,0.2)' : 'white'}
+            strokeWidth="2" strokeLinecap="round">
             <path d="M2 5.5l2 2L8 3" />
           </svg>
         )}
       </button>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0" style={{
+        transition: isChecked ? 'opacity 200ms, transform 150ms' : undefined,
+        opacity: isChecked ? 0.4 : 1,
+        transform: isChecked ? 'translateX(-8px)' : 'translateX(0)',
+      }}>
         <div className="flex items-center gap-2">
-          {!isDone && dot && (
+          {!isDone && !isChecked && dot && (
             <span className="inline-block rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: dot.bg, boxShadow: dot.shadow }} />
           )}
           <p style={{
             fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.4,
-            color: isDone ? 'var(--color-text-done)' : 'var(--color-text)',
-            textDecoration: isDone ? 'line-through' : 'none',
-            textDecorationColor: isDone ? 'rgba(240,236,230,0.1)' : undefined,
+            color: (isDone || isChecked) ? 'var(--color-text-done)' : 'var(--color-text)',
+            textDecoration: (isDone || isChecked) ? 'line-through' : 'none',
+            textDecorationColor: 'rgba(240,236,230,0.1)',
           }}>
             {todo.text}
           </p>
         </div>
-        {!isDone && showDate && (
+        {!isDone && !isChecked && showDate && (
           <span style={{
             display: 'inline-block', marginTop: 6,
             fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em',
