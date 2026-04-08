@@ -6,6 +6,7 @@ import UndoToast from '../todo/UndoToast'
 import TodoInput from '../todo/TodoInput'
 import ParticleCanvas from '../todo/ParticleCanvas'
 import FallenBall from '../todo/FallenBall'
+import InstallPrompt from '../common/InstallPrompt'
 import { useUiStore } from '../../stores/uiStore'
 import { useSwipe } from '../../hooks/useSwipe'
 
@@ -41,6 +42,7 @@ export default function AppShell({ children }) {
         <UndoToast />
         <FallenBall />
         <ParticleCanvas />
+        <InstallPrompt />
       </div>
     </div>
   )
