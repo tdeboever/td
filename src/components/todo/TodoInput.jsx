@@ -54,7 +54,7 @@ export default function TodoInput() {
       )}
 
       {focused && (
-        <div className="mb-3 animate-slide-down">
+        <div className="animate-slide-down" style={{ marginBottom: 12 }}>
           <ChipBar spaceId={effectiveSpaceId} listId={effectiveListId} dueDate={dueDate} dueTime={dueTime} onSpaceChange={setSpaceId} onListChange={setListId} onDueDateChange={setDueDate} onDueTimeChange={setDueTime} />
         </div>
       )}
