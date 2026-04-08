@@ -43,7 +43,6 @@ export default function FallenBall() {
   if (ball && ball !== prevBall.current) {
     prevBall.current = ball
     phase.current = 'falling'
-    done.current = false
     isDragging.current = false
     size.current = BALL_SIZE
     overlayOpacity.current = 0
@@ -52,6 +51,8 @@ export default function FallenBall() {
 
   useEffect(() => {
     if (!ball) return
+    // Reset done HERE (after old effect cleanup ran), not in pre-render
+    done.current = false
     px.current = ball.x
     py.current = ball.y
     opacity.current = 1
