@@ -14,6 +14,7 @@ const toSnake = (obj) => {
     listId: 'list_id',
     spaceId: 'space_id',
     dueDate: 'due_date',
+    dueTime: 'due_time',
     snoozedUntil: 'snoozed_until',
     completionCount: 'completion_count',
     lastCompletedAt: 'last_completed_at',
@@ -33,6 +34,7 @@ const toCamel = (obj) => {
     list_id: 'listId',
     space_id: 'spaceId',
     due_date: 'dueDate',
+    due_time: 'dueTime',
     snoozed_until: 'snoozedUntil',
     completion_count: 'completionCount',
     last_completed_at: 'lastCompletedAt',
@@ -86,17 +88,23 @@ export function useSync(userId) {
   const pushAll = useCallback(async () => {
     if (!isSupabaseConfigured() || !userId) return
 
+    const isUUID = (s) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+
     for (const table of TABLES) {
       const localItems = storeMap[table].getState()
       if (localItems.length === 0) continue
 
-      const rows = localItems.map((item) => toSnake({ ...item, userId }))
+      // Only sync items with valid UUID ids
+      const validItems = localItems.filter((item) => isUUID(item.id))
+      if (validItems.length === 0) continue
+
+      const rows = validItems.map((item) => toSnake({ ...item, userId }))
       const { error: err } = await supabase
         .from(table)
         .upsert(rows, { onConflict: 'id' })
 
       if (err) {
-        console.error(`Push ${table} error:`, err.message)
+        console.error(`Push ${table} error:`, err.message, err.details)
         setError(err.message)
       }
     }

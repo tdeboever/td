@@ -1,5 +1,10 @@
 export const uid = () =>
-  Date.now().toString(36) + Math.random().toString(36).slice(2, 9)
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = Math.random() * 16 | 0
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+      })
 
 // Parse a YYYY-MM-DD date string as local (not UTC)
 export const parseLocalDate = (dateStr) => {
