@@ -12,12 +12,12 @@ function Chip({ children, active, onClick }) {
     <button onMouseDown={(e) => e.preventDefault()} onClick={handleClick}
       className="inline-flex items-center gap-1.5 whitespace-nowrap select-none flex-shrink-0"
       style={{
-        padding: '6px 14px', borderRadius: 9999, fontSize: 12, fontWeight: active ? 700 : 500,
+        padding: '6px 14px', borderRadius: 9999, fontSize: 12, fontWeight: active ? 600 : 500,
         transition: 'all 150ms',
-        background: active ? 'linear-gradient(135deg, #ff6b35, #ffaa40)' : 'transparent',
-        border: active ? '1px solid transparent' : '1px solid rgba(255,255,255,0.08)',
-        color: active ? '#060608' : 'var(--color-text-secondary)',
-        boxShadow: active ? '0 0 12px rgba(255,107,53,0.3)' : 'none',
+        background: active ? 'linear-gradient(135deg, #ff7b54, #f472b6)' : 'transparent',
+        border: active ? '1px solid transparent' : '1px solid var(--border-visible)',
+        color: active ? 'white' : 'var(--text-secondary)',
+        boxShadow: active ? '0 2px 12px rgba(255,123,84,0.25)' : 'none',
       }}>
       {children}
     </button>
@@ -46,15 +46,11 @@ export default function ChipBar({ spaceId, dueDate, onSpaceChange, onDueDateChan
   return (
     <div className="flex gap-1.5 overflow-x-auto no-scrollbar" style={{ padding: '0 4px' }}>
       {spaces.map((s) => (
-        <Chip key={s.id} active={spaceId === s.id} onClick={() => onSpaceChange(spaceId === s.id ? null : s.id)}>
-          {s.name}
-        </Chip>
+        <Chip key={s.id} active={spaceId === s.id} onClick={() => onSpaceChange(spaceId === s.id ? null : s.id)}>{s.name}</Chip>
       ))}
       {spaces.length > 0 && <div style={{ width: 8, flexShrink: 0 }} />}
       {dates.map((d) => (
-        <Chip key={d.value} active={dueDate === d.value} onClick={() => onDueDateChange(dueDate === d.value ? null : d.value)}>
-          {d.label}
-        </Chip>
+        <Chip key={d.value} active={dueDate === d.value} onClick={() => onDueDateChange(dueDate === d.value ? null : d.value)}>{d.label}</Chip>
       ))}
       <Chip active={customActive} onClick={() => dateInputRef.current?.showPicker()}>
         {customActive ? new Date(dueDate + 'T00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : 'Pick date'}

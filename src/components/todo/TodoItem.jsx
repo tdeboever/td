@@ -4,9 +4,9 @@ import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, getSnoozeLaterToday, getSnoozeTomorrow } from '../../lib/utils'
 
 const DOTS = {
-  1: { bg: 'radial-gradient(circle at 35% 35%, #ff7a7a, #ff4545)', shadow: '0 0 8px rgba(255,69,69,0.5)' },
-  2: { bg: 'radial-gradient(circle at 35% 35%, #ffc966, #ffb340)', shadow: 'none' },
-  3: { bg: 'radial-gradient(circle at 35% 35%, #7aecbe, #45dea0)', shadow: 'none' },
+  1: { bg: 'radial-gradient(circle at 35% 35%, #ff8a8a, #ff6b6b)', shadow: '0 0 8px rgba(255,107,107,0.5)' },
+  2: { bg: 'radial-gradient(circle at 35% 35%, #fcd34d, #fbbf24)', shadow: 'none' },
+  3: { bg: 'radial-gradient(circle at 35% 35%, #6ee7b7, #4ade80)', shadow: 'none' },
 }
 
 export default function TodoItem({ todo, isChecklist = false, isLast = false }) {
@@ -18,9 +18,8 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const showUndo = useUiStore((s) => s.showUndo)
   const spawnBall = useUiStore((s) => s.spawnBall)
   const activeView = useUiStore((s) => s.activeView)
-
   const [showActions, setShowActions] = useState(false)
-  const [phase, setPhase] = useState(null) // null | 'checked' | 'collapsing'
+  const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
 
   const isDone = todo.status === 'done' || todo.status === 'ghost'
@@ -31,106 +30,76 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
   const handleComplete = () => {
     if (isDone || phase) return
-
     const rect = checkboxRef.current?.getBoundingClientRect()
     const cx = rect ? rect.left + rect.width / 2 : 30
     const cy = rect ? rect.top + rect.height / 2 : 100
-
     if (navigator.vibrate) navigator.vibrate(10)
-
-    // Phase 1: checkbox checks instantly
     setPhase('checked')
-
-    // Phase 2: after brief moment, text collapses and ball spawns
+    setTimeout(() => { setPhase('collapsing'); spawnBall(cx, cy) }, 150)
     setTimeout(() => {
-      setPhase('collapsing')
-      spawnBall(cx, cy)
-    }, 150)
-
-    // Phase 3: complete the task
-    setTimeout(() => {
-      if (isChecklist) ghostTodo(todo.id)
-      else completeTodo(todo.id)
+      if (isChecklist) ghostTodo(todo.id); else completeTodo(todo.id)
       showUndo('Task completed', () => uncompleteTodo(todo.id))
       setPhase(null)
     }, 350)
   }
 
   const handleCheckbox = () => isDone ? uncompleteTodo(todo.id) : handleComplete()
-
-  const handleSnooze = (until) => {
-    snoozeTodo(todo.id, until)
-    setShowActions(false)
-    showUndo('Snoozed', () => snoozeTodo(todo.id, null))
-  }
+  const handleSnooze = (until) => { snoozeTodo(todo.id, until); setShowActions(false); showUndo('Snoozed', () => snoozeTodo(todo.id, null)) }
 
   if (showActions) {
     return (
       <div className="animate-slide-up" style={{
-        margin: '4px 20px', padding: '12px 16px', borderRadius: 14,
-        background: 'rgba(255,255,255,0.04)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-        boxShadow: '0 0 0 1px rgba(255,255,255,0.06)',
+        margin: '4px 20px', padding: '12px 16px', borderRadius: 16,
+        background: 'var(--surface-glass)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+        boxShadow: '0 0 0 1px var(--border-subtle)',
       }}>
-        <p style={{ fontSize: 12, color: 'var(--color-text-ghost)', marginBottom: 10 }} className="truncate">{todo.text}</p>
+        <p style={{ fontSize: 12, color: 'var(--text-ghost)', marginBottom: 10 }} className="truncate">{todo.text}</p>
         <div className="flex gap-5">
-          {!isDone && <button onClick={() => handleSnooze(getSnoozeLaterToday())} style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Later today</button>}
-          {!isDone && <button onClick={() => handleSnooze(getSnoozeTomorrow())} style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Tomorrow</button>}
+          {!isDone && <button onClick={() => handleSnooze(getSnoozeLaterToday())} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Later today</button>}
+          {!isDone && <button onClick={() => handleSnooze(getSnoozeTomorrow())} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Tomorrow</button>}
           <button onClick={() => { deleteTodo(todo.id); setShowActions(false) }} style={{ fontSize: 13, color: 'var(--color-danger)', opacity: 0.6 }}>Delete</button>
-          <button onClick={() => setShowActions(false)} style={{ fontSize: 13, color: 'var(--color-text-ghost)', marginLeft: 'auto' }}>Cancel</button>
+          <button onClick={() => setShowActions(false)} style={{ fontSize: 13, color: 'var(--text-ghost)', marginLeft: 'auto' }}>Cancel</button>
         </div>
       </div>
     )
   }
 
-  // Animation states
   const isChecked = phase === 'checked' || phase === 'collapsing'
   const isCollapsing = phase === 'collapsing'
 
   return (
     <div
-      className={`flex items-center gap-3 ${isDone ? '' : 'hover:rounded-[14px] active:scale-[0.985]'}`}
+      className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
-        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.03)',
+        borderBottom: isLast ? 'none' : '1px solid var(--border-subtle)',
         opacity: isDone ? 0.3 : isCollapsing ? 0 : 1,
         transform: isCollapsing ? 'scaleY(0)' : 'scaleY(1)',
-        maxHeight: isCollapsing ? 0 : 200,
-        overflow: 'hidden',
-        transformOrigin: 'top',
-        transition: isCollapsing
-          ? 'opacity 200ms ease-out, max-height 200ms ease-out, transform 200ms ease-out'
-          : 'all 200ms cubic-bezier(0.4,0,0.2,1)',
-        background: 'transparent',
+        maxHeight: isCollapsing ? 0 : 200, overflow: 'hidden', transformOrigin: 'top',
+        transition: isCollapsing ? 'opacity 200ms, max-height 200ms, transform 200ms' : 'all 200ms',
+        background: 'transparent', borderRadius: 16,
       }}
-      onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.boxShadow = '0 0 0 1px rgba(255,255,255,0.04)' } }}
+      onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
       onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
     >
-      {/* Checkbox */}
-      <button
-        ref={checkboxRef}
-        onClick={handleCheckbox}
+      {/* Checkbox — celebration on check */}
+      <button ref={checkboxRef} onClick={handleCheckbox}
         className="flex items-center justify-center flex-shrink-0 rounded-full"
         style={{
           width: 22, height: 22,
-          transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
-          border: (isDone || isChecked)
-            ? '2px solid var(--accent-flame)'
-            : '2px solid rgba(255,255,255,0.12)',
-          background: (isDone || isChecked)
-            ? 'var(--accent-flame)'
-            : 'transparent',
-          transform: isChecked && !isCollapsing ? 'scale(1.2)' : 'scale(1)',
-          boxShadow: isChecked ? '0 0 12px var(--accent-ember)' : 'none',
+          transition: 'all 250ms cubic-bezier(0.34,1.56,0.64,1)',
+          border: isChecked ? '2px solid transparent' : isDone ? '2px solid transparent' : '2px solid rgba(255,255,255,0.15)',
+          background: isChecked ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : isDone ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'transparent',
+          transform: isChecked && !isCollapsing ? 'scale(1.3)' : 'scale(1)',
+          boxShadow: (isChecked || isDone) ? '0 0 12px rgba(244,114,182,0.30)' : 'none',
         }}
-        onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'var(--accent-flame)'; e.currentTarget.style.boxShadow = '0 0 0 4px var(--accent-ember)' } }}
-        onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.boxShadow = 'none' } }}
+        onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'var(--accent-rose)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(244,114,182,0.12)'; e.currentTarget.style.transform = 'scale(1.08)' } }}
+        onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)' } }}
       >
-        {/* Checkmark — visible when done OR during check animation */}
         {(isDone || isChecked) && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
-            stroke={isDone ? 'rgba(255,255,255,0.2)' : 'white'}
-            strokeWidth="2" strokeLinecap="round">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"
+            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}>
             <path d="M2 5.5l2 2L8 3" />
           </svg>
         )}
@@ -148,24 +117,20 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
           )}
           <p style={{
             fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.4,
-            color: (isDone || isChecked) ? 'var(--color-text-done)' : 'var(--color-text)',
+            color: isDone ? 'var(--text-done)' : 'var(--text-primary)',
             textDecoration: (isDone || isChecked) ? 'line-through' : 'none',
-            textDecorationColor: 'rgba(240,236,230,0.1)',
-          }}>
-            {todo.text}
-          </p>
+            textDecorationColor: 'rgba(244,240,237,0.1)',
+          }}>{todo.text}</p>
         </div>
         {!isDone && !isChecked && showDate && (
           <span style={{
             display: 'inline-block', marginTop: 6,
             fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em',
-            color: isOverdue ? 'var(--color-danger)' : 'var(--accent-blush)',
-            background: isOverdue ? 'rgba(255,69,69,0.08)' : 'rgba(255,143,107,0.08)',
-            border: `1px solid ${isOverdue ? 'rgba(255,69,69,0.1)' : 'rgba(255,143,107,0.1)'}`,
-            padding: '2px 8px', borderRadius: 8,
-          }}>
-            {dateLabel}
-          </span>
+            color: isOverdue ? 'var(--color-danger)' : 'var(--accent-sky)',
+            background: isOverdue ? 'rgba(255,107,107,0.10)' : 'rgba(96,165,250,0.10)',
+            border: `1px solid ${isOverdue ? 'rgba(255,107,107,0.15)' : 'rgba(96,165,250,0.15)'}`,
+            padding: '2px 8px', borderRadius: 10,
+          }}>{dateLabel}</span>
         )}
       </div>
     </div>
