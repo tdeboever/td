@@ -9,6 +9,7 @@ import { useSync } from '../hooks/useSync'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { isToday, isFuture } from '../lib/utils'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useNotifications } from '../hooks/useNotifications'
 import Login from './Login'
 
 function useVisibleTodos() {
@@ -121,6 +122,7 @@ function AppContent() {
   const activeView = useUiStore((s) => s.activeView)
   const ViewComponent = VIEWS[activeView] || InboxView
   useKeyboardShortcuts()
+  useNotifications()
 
   return (
     <AppShell>
