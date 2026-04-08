@@ -107,12 +107,6 @@ export default function FallenBall() {
           if (opacity.current <= 0) { done.current = true; clearBall(); return }
         }
 
-        if (isDragging.current) {
-          // Grabbed! Transition to holding
-          phase.current = 'holding'
-          vx.current = 0; vy.current = 0
-        }
-
         rerender(); return
       }
 
@@ -180,6 +174,11 @@ export default function FallenBall() {
     const handleStart = (e) => {
       e.stopPropagation(); e.preventDefault()
       isDragging.current = true
+      // Transition to holding IMMEDIATELY — don't wait for animation frame
+      if (phase.current === 'falling') {
+        phase.current = 'holding'
+        vx.current = 0; vy.current = 0
+      }
       const t = e.touches[0]
       px.current = t.clientX
       py.current = t.clientY
@@ -201,8 +200,6 @@ export default function FallenBall() {
       e.stopPropagation()
       if (!isDragging.current) return
       isDragging.current = false
-
-      if (phase.current === 'falling') return // was just a tap during falling, ignore
 
       const h = touches.current
       let fvx = 0, fvy = 0
