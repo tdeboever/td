@@ -9,13 +9,14 @@ const loadLists = () => storage.get(STORAGE_KEY) || []
 export const useListStore = create((set, get) => ({
   lists: loadLists(),
 
-  addList: (name, spaceId, type = 'tasks') => {
+  addList: (name, spaceId, type = 'tasks', userId = null) => {
     const list = {
       id: uid(),
       name,
       type,
       spaceId,
       position: get().lists.filter((l) => l.spaceId === spaceId).length,
+      userId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }

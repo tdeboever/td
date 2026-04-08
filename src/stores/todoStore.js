@@ -9,7 +9,7 @@ const loadTodos = () => storage.get(STORAGE_KEY) || []
 export const useTodoStore = create((set, get) => ({
   todos: loadTodos(),
 
-  addTodo: (text, { listId = null, spaceId = null, priority = 0, dueDate = null } = {}) => {
+  addTodo: (text, { listId = null, spaceId = null, priority = 0, dueDate = null, userId = null } = {}) => {
     const todo = {
       id: uid(),
       text,
@@ -22,6 +22,7 @@ export const useTodoStore = create((set, get) => ({
       position: get().todos.filter((t) => t.status === 'active').length,
       completionCount: 0,
       lastCompletedAt: null,
+      userId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }

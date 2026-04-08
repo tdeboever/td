@@ -9,13 +9,14 @@ const loadSpaces = () => storage.get(STORAGE_KEY) || []
 export const useSpaceStore = create((set, get) => ({
   spaces: loadSpaces(),
 
-  addSpace: (name, icon = '📁', color = '#ff6b35') => {
+  addSpace: (name, icon = '📁', color = '#ff7b54', userId = null) => {
     const space = {
       id: uid(),
       name,
       icon,
       color,
       position: get().spaces.length,
+      userId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
