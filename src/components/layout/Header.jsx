@@ -34,7 +34,7 @@ export default function Header() {
   return (
     <header className="safe-top" style={{ padding: '16px 20px 12px' }}>
       <div className="flex items-baseline justify-between">
-        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 28, letterSpacing: '-0.02em', fontVariationSettings: "'opsz' 144" }}>{title}</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
         <div className="flex items-center gap-3">
           {(activeCount > 0 || doneCount > 0) && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em', color: 'var(--text-secondary)' }}>

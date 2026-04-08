@@ -277,15 +277,22 @@ export default function FallenBall() {
         </>
       )}
 
-      {/* Ball — same element the entire lifecycle */}
+      {/* Ball — same element the entire lifecycle. Outer div = large touch target, inner = visual ball */}
       {p !== 'score' && p !== 'miss' && (
         <div
           ref={ballRef}
           className="fixed"
           style={{
             zIndex: isSwish ? 37 : 39,
-            left: px.current - s / 2,
-            top: py.current - s / 2,
+            left: px.current - Math.max(s, 44) / 2,
+            top: py.current - Math.max(s, 44) / 2,
+            width: Math.max(s, 44), height: Math.max(s, 44),
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: p === 'falling' ? 'grab' : 'grabbing',
+            touchAction: 'none',
+          }}
+        >
+          <div style={{
             width: s, height: s,
             borderRadius: '50%',
             border: '2px solid transparent',
@@ -295,16 +302,15 @@ export default function FallenBall() {
               : '0 0 8px rgba(244,114,182,0.2), 0 2px 6px rgba(0,0,0,0.3)',
             opacity: opacity.current,
             transform: `rotate(${spin.current}deg)`,
-            cursor: p === 'falling' ? 'grab' : 'grabbing',
-            touchAction: 'none',
             transition: isSwish ? 'background 200ms' : 'box-shadow 200ms',
-          }}
-        >
+            pointerEvents: 'none',
+          }}>
           <div className="absolute inset-0 flex items-center justify-center">
             <svg width={s * 0.4} height={s * 0.4} viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"
               style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }}>
               <path d="M2 5.5l2 2L8 3" />
             </svg>
+          </div>
           </div>
         </div>
       )}
@@ -312,7 +318,7 @@ export default function FallenBall() {
       {/* Score */}
       {p === 'score' && (
         <div className="fixed inset-0 z-40 flex items-center justify-center animate-slide-up">
-          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28 }}>Task complete</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28 }}>Task complete</p>
         </div>
       )}
 
