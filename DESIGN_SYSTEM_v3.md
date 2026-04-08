@@ -152,7 +152,7 @@ Priority dots use radial gradients for dimensionality:
 
 | Role | Font | Fallback | Why |
 |------|------|----------|-----|
-| Display | **Fraunces** | Georgia, serif | Variable optical-size serif with playful "wonky" axis. Adds whimsy and warmth that's impossible with a geometric sans. |
+| Display | **Nunito** | system-ui, sans-serif | Rounded terminals on every letter — the typography equivalent of the pillowy, bouncy UI. Bold and friendly without being childish. At 800 weight, it's confident and toylike. |
 | Body | **General Sans** | system-ui, sans-serif | Clean, modern, excellent readability. Slightly friendlier than Inter/Satoshi without being juvenile. |
 | Mono | **IBM Plex Mono** | monospace | Warm, readable monospace for data. More character than JetBrains Mono. |
 
@@ -160,7 +160,7 @@ Priority dots use radial gradients for dimensionality:
 ```html
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,700;0,9..144,900;1,9..144,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,700;0,800;0,900;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet">
 ```
 
@@ -168,9 +168,9 @@ Priority dots use radial gradients for dimensionality:
 
 | Role | Font | Weight | Size | Line Height | Letter Spacing | Usage |
 |------|------|--------|------|-------------|----------------|-------|
-| Brand title | Fraunces | 400 | 26px | 1.1 | -0.01em | "Focus" in sidebar — with `font-variation-settings: 'WONK' 1` for playful softening |
-| View title | Fraunces | 900 | 34px | 1.1 | -0.02em | "Inbox", "Today", "Upcoming" — with optical size axis set large |
-| Empty state title | Fraunces | 400 italic | 22px | 1.3 | 0 | "All clear" — warm and celebratory |
+| Brand title | Nunito | 800 | 26px | 1.1 | -0.02em | "Focus" in sidebar |
+| View title | Nunito | 800 | 34px | 1.1 | -0.03em | "Inbox", "Today", "Upcoming" |
+| Empty state title | Nunito | 400 italic | 22px | 1.3 | 0 | "All clear" — warm and celebratory |
 | Section label | General Sans | 600 | 11px | 1.4 | 0.12em | "COMPLETED", "SPACES" — uppercase |
 | Task text | General Sans | 500 | 15px | 1.5 | -0.01em | Task content |
 | Body | General Sans | 400 | 14px | 1.5 | 0 | Descriptions, tooltips |
@@ -180,25 +180,23 @@ Priority dots use radial gradients for dimensionality:
 
 ### View Title Treatment
 
-The view title uses Fraunces at its heaviest weight with the optical size axis maximized, creating a title that looks like it was hand-set by a typographer:
+The view title uses Nunito at weight 800 with tight tracking. The rounded terminals echo every soft corner in the UI — the font IS the brand:
 
 ```css
 .view-title {
-  font-family: 'Fraunces', Georgia, serif;
-  font-weight: 900;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
   font-size: 34px;
-  font-variation-settings: 'opsz' 144;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
   color: var(--text-primary);
 }
 ```
 
-No gradient text, no text-shadow trickery. The font itself is the spectacle — Fraunces at weight 900 with maximum optical size is visually stunning and doesn't need effects.
+No gradient text, no text-shadow trickery. The font's natural roundness and warmth is the spectacle.
 
 ### Typography Rules
 
-- Fraunces is for **display text only** — view titles, brand title, empty state headings. Nowhere else.
-- Fraunces with `'WONK' 1` is **only** for the brand title "Focus" (activates the soft, playful alternates)
+- Nunito is for **display text only** — view titles, brand title, empty state headings. Nowhere else.
 - General Sans handles all functional/body text
 - IBM Plex Mono is **only** for numerical/data displays
 - Task text is always 15px / 500 weight
@@ -270,7 +268,7 @@ The 1px white inner ring on every shadow creates the "frosted glass edge" effect
 │                                              │
 │  ┌──────────────────────────────────────┐    │
 │  │ GOOD MORNING                        │    │  ← safe-top + 48px
-│  │ Inbox            (Fraunces 900)     │    │
+│  │ Inbox            (Nunito 800)       │    │
 │  │ 3 remaining · 1 done  (Plex Mono)  │    │
 │  │ ━━━━━━━━━━ (gradient divider) ━━━━ │    │
 │  ├──────────────────────────────────────┤    │
@@ -320,7 +318,7 @@ The 1px white inner ring on every shadow creates the "frosted glass edge" effect
 │                                      │  ← 48px + safe-area
 │  GOOD MORNING                        │  ← General Sans 600, 11px, uppercase
 │                                      │     0.12em tracking, --text-secondary
-│  Inbox                               │  ← Fraunces 900, 34px
+│  Inbox                               │  ← Nunito 800, 34px
 │                                      │     opsz 144, --text-primary
 │  3 remaining · 1 done                │  ← IBM Plex Mono 400, 10px
 │                                      │     --text-secondary
@@ -598,7 +596,7 @@ Active chips use the **sunset gradient** (coral → rose) — it's warmer and mo
 ```
 
 - **"✦" icon:** 36px, `var(--accent-amber)`, `text-shadow: 0 0 20px rgba(251, 191, 36, 0.4)` — a warm star
-- **Title:** Fraunces 400 italic, 22px, `var(--text-secondary)` — gentle and celebratory
+- **Title:** Nunito 400 italic, 22px, `var(--text-secondary)` — gentle and celebratory
 - **Subtitle:** General Sans 400, 14px, `var(--text-ghost)`
 - **Background area:** enhanced gradient glow with slow breathing animation (12s cycle):
   ```css
@@ -687,7 +685,7 @@ Retained from v1. Physics, gesture detection, direction mapping, and game mechan
 ```
 
 ### Score Text
-Fraunces 700, 28px, `var(--text-primary)`. On goal/score, flash with `var(--accent-mint)`.
+Nunito 700, 28px, `var(--text-primary)`. On goal/score, flash with `var(--accent-mint)`.
 
 ### Action Panel (Left Swipe)
 ```css
@@ -796,7 +794,7 @@ Unchanged from v1.
 | Gradient | Subtle orange-only | Multi-hue: peach, rose, blue, mint |
 | Accent | 5-stop orange scale | 6-color joy palette (coral, rose, sky, mint, amber, lavender) |
 | Completed checkbox | Neutral gray | Rose-to-coral gradient with glow — celebration! |
-| Display font | Instrument Serif italic | Fraunces variable (wonky serif) |
+| Display font | Instrument Serif italic | Nunito 800 (rounded sans) |
 | Body font | Satoshi | General Sans |
 | Mono font | JetBrains Mono | IBM Plex Mono |
 | Date badges | Orange-tinted | Sky-blue (time = sky) |

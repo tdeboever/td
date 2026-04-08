@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,700;0,800;0,900;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
 @import url('https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap');
 @import "tailwindcss";
 
@@ -67,7 +67,7 @@
 
   /* Fonts */
   --font-body: 'General Sans', system-ui, sans-serif;
-  --font-display: 'Outfit', sans-serif;
+  --font-display: 'Nunito', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
 }
 
