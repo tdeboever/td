@@ -44,10 +44,10 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
     vx.current = 0
 
     if (origin.skipMorph) {
-      // Ball already exists — go straight to play
-      phase.current = 'play'
+      // Ball already exists — wait for user to grab it, no auto-bounce
+      phase.current = 'waiting'
       morphT.current = 1
-      vy.current = 2
+      vy.current = 0
     } else {
       phase.current = 'morph'
       morphT.current = 0
@@ -78,6 +78,12 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
           phase.current = 'play'
           vy.current = Math.abs(vy.current) > 2 ? vy.current : 3
         }
+        rerender()
+        return
+      }
+
+      // Waiting — ball sits still until grabbed
+      if (p === 'waiting') {
         rerender()
         return
       }
@@ -168,9 +174,10 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
     const handleStart = (e) => {
       e.stopPropagation()
       e.preventDefault()
-      if (phase.current !== 'play') return
+      if (phase.current !== 'play' && phase.current !== 'waiting') return
       const t = e.touches[0]
       if (Math.sqrt((t.clientX - px.current) ** 2 + (t.clientY - py.current) ** 2) > 80) return
+      if (phase.current === 'waiting') phase.current = 'play'
       isDragging.current = true
       vx.current = 0; vy.current = 0
       touches.current = [{ x: t.clientX, y: t.clientY, t: Date.now() }]
@@ -252,7 +259,7 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
     pointerEvents: 'none', overflow: 'hidden',
   } : null
 
-  const ballVisible = p === 'play' || p === 'shot' || p === 'swish'
+  const ballVisible = p === 'waiting' || p === 'play' || p === 'shot' || p === 'swish'
   const isSwish = p === 'swish'
 
   const ballEl = ballVisible && (
@@ -330,7 +337,7 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
         </div>
       )}
 
-      {p === 'play' && (
+      {(p === 'play' || p === 'waiting') && (
         <button onClick={onCancel} className="absolute bottom-8 left-0 right-0 text-center text-[12px] text-text-faint" style={{ zIndex: 10 }}>
           tap to cancel
         </button>

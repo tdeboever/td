@@ -23,6 +23,7 @@ export default function FallenBall() {
   const tiltX = useRef(0)
   const opacity = useRef(1)
   const bounceCount = useRef(0)
+  const checkFill = useRef(1) // 1 = checked look, fades to 0 = empty
   const frameId = useRef(null)
   const done = useRef(false)
   const startTime = useRef(0)
@@ -42,8 +43,10 @@ export default function FallenBall() {
     W.current = window.innerWidth
     H.current = window.innerHeight
 
-    // POP out — upward burst with random angle, like flicking a marble
-    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2 // mostly up, slightly random
+    checkFill.current = 1 // start as checked
+
+    // POP out — upward burst with random angle
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2
     const power = 6 + Math.random() * 4
     vx.current = Math.cos(angle) * power
     vy.current = Math.sin(angle) * power
@@ -79,14 +82,18 @@ export default function FallenBall() {
       px.current += vx.current
       py.current += vy.current
 
+      // Fade from checked to empty over first 600ms
+      if (elapsed < 600) checkFill.current = Math.max(0, 1 - elapsed / 600)
+      else checkFill.current = 0
+
       // Ceiling
       if (py.current < BALL_SIZE / 2) {
         py.current = BALL_SIZE / 2
         vy.current = Math.abs(vy.current) * 0.3
       }
 
-      // Floor — the divider line above the input field
-      const floor = H.current - 145
+      // Floor — ball sits ON the divider line (bottom of ball touches line)
+      const floor = H.current - 149
       if (py.current > floor) {
         py.current = floor
         const impact = Math.abs(vy.current)
@@ -152,36 +159,42 @@ export default function FallenBall() {
     setTimeout(() => setBbState('playing'), 400)
   }
 
-  const settled = Math.abs(vy.current) < 0.5 && py.current >= H.current - 147
+  const settled = Math.abs(vy.current) < 0.5 && py.current >= H.current - 151
   const isTransitioning = bbState === 'transition'
+  const fill = checkFill.current
+
+  // Ball color interpolation: checked (accent) → empty (transparent)
+  const ballBorder = fill > 0.1
+    ? `2px solid rgba(255,107,53,${0.15 + fill * 0.85})`
+    : '2px solid rgba(255,255,255,0.15)'
+  const ballBg = fill > 0.1
+    ? `rgba(255,107,53,${fill * 0.8})`
+    : 'radial-gradient(circle at 40% 35%, rgba(255,255,255,0.1), rgba(255,255,255,0.03))'
 
   return (
     <>
-      {/* Transition overlay — fades in when ball is grabbed */}
       {isTransitioning && (
-        <div className="fixed inset-0 z-35" style={{
+        <div className="fixed inset-0" style={{
+          zIndex: 35,
           background: 'rgba(10,10,10,0.88)',
           animation: 'fadeIn 400ms ease-out',
           touchAction: 'none',
         }} />
       )}
 
-      {/* The ball */}
       <div
         onTouchStart={!isTransitioning ? handleGrab : undefined}
         onClick={!isTransitioning ? handleGrab : undefined}
         className="fixed"
         style={{
           zIndex: isTransitioning ? 45 : 30,
-          left: px.current - BALL_SIZE / 2,
-          top: py.current - BALL_SIZE / 2,
+          left: px.current - (isTransitioning ? 24 : BALL_SIZE / 2),
+          top: py.current - (isTransitioning ? 24 : BALL_SIZE / 2),
           width: isTransitioning ? 48 : BALL_SIZE,
           height: isTransitioning ? 48 : BALL_SIZE,
-          marginLeft: isTransitioning ? -13 : 0,
-          marginTop: isTransitioning ? -13 : 0,
           borderRadius: '50%',
-          border: '2px solid rgba(255,255,255,0.15)',
-          background: 'radial-gradient(circle at 40% 35%, rgba(255,255,255,0.1), rgba(255,255,255,0.03))',
+          border: ballBorder,
+          background: ballBg,
           boxShadow: (settled || isTransitioning)
             ? '0 0 16px rgba(255,107,53,0.25), 0 2px 8px rgba(0,0,0,0.3)'
             : '0 2px 8px rgba(0,0,0,0.3)',
@@ -189,9 +202,18 @@ export default function FallenBall() {
           transform: `rotate(${spin.current}deg)`,
           cursor: isTransitioning ? 'default' : 'grab',
           touchAction: 'none',
-          transition: isTransitioning ? 'width 300ms ease-out, height 300ms ease-out, margin 300ms ease-out, box-shadow 300ms' : 'box-shadow 300ms',
+          transition: isTransitioning ? 'all 300ms ease-out' : 'box-shadow 300ms',
         }}
-      />
+      >
+        {/* Checkmark visible while still "checked" */}
+        {fill > 0.3 && (
+          <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: fill }}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+              <path d="M2 5.5l2 2L8 3" />
+            </svg>
+          </div>
+        )}
+      </div>
     </>
   )
 }
