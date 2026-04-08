@@ -12,7 +12,7 @@ const FADE_AFTER = 6000
 export default function FallenBall() {
   const ball = useUiStore((s) => s.completionBall)
   const clearBall = useUiStore((s) => s.clearBall)
-  const [showBasketball, setShowBasketball] = useState(false)
+  const [bbState, setBbState] = useState(null) // null | 'transition' | 'playing'
   const [, forceRender] = useState(0)
 
   const px = useRef(0)
@@ -85,8 +85,8 @@ export default function FallenBall() {
         vy.current = Math.abs(vy.current) * 0.3
       }
 
-      // Floor — above input/nav
-      const floor = H.current - 140
+      // Floor — the divider line above the input field
+      const floor = H.current - 145
       if (py.current > floor) {
         py.current = floor
         const impact = Math.abs(vy.current)
@@ -123,10 +123,10 @@ export default function FallenBall() {
     }
   }, [ball])
 
-  if (!ball && !showBasketball) return null
+  if (!ball && !bbState) return null
 
-  // Basketball — render the ball AND the basketball overlay simultaneously for seamless transition
-  if (showBasketball) {
+  // Full basketball mode
+  if (bbState === 'playing') {
     return (
       <BasketballMode
         origin={{
@@ -134,8 +134,8 @@ export default function FallenBall() {
           width: BALL_SIZE, height: BALL_SIZE,
           velocity: 0, skipMorph: true,
         }}
-        onComplete={() => { setShowBasketball(false); clearBall() }}
-        onCancel={() => { setShowBasketball(false); clearBall() }}
+        onComplete={() => { setBbState(null); clearBall() }}
+        onCancel={() => { setBbState(null); clearBall() }}
       />
     )
   }
@@ -146,33 +146,52 @@ export default function FallenBall() {
     e.stopPropagation()
     e.preventDefault()
     done.current = true
-    setShowBasketball(true)
+
+    // Transition: freeze ball, fade in overlay, then hand off to basketball
+    setBbState('transition')
+    setTimeout(() => setBbState('playing'), 400)
   }
 
-  const settled = Math.abs(vy.current) < 0.5 && py.current >= H.current - 142
+  const settled = Math.abs(vy.current) < 0.5 && py.current >= H.current - 147
+  const isTransitioning = bbState === 'transition'
 
   return (
-    <div
-      onTouchStart={handleGrab}
-      onClick={handleGrab}
-      className="fixed z-30"
-      style={{
-        left: px.current - BALL_SIZE / 2,
-        top: py.current - BALL_SIZE / 2,
-        width: BALL_SIZE,
-        height: BALL_SIZE,
-        borderRadius: '50%',
-        border: '2px solid rgba(255,255,255,0.15)',
-        background: 'radial-gradient(circle at 40% 35%, rgba(255,255,255,0.1), rgba(255,255,255,0.03))',
-        boxShadow: settled
-          ? '0 0 12px rgba(255,107,53,0.2), 0 2px 6px rgba(0,0,0,0.3)'
-          : '0 2px 8px rgba(0,0,0,0.3)',
-        opacity: opacity.current,
-        transform: `rotate(${spin.current}deg)`,
-        cursor: 'grab',
-        touchAction: 'none',
-        transition: 'box-shadow 300ms',
-      }}
-    />
+    <>
+      {/* Transition overlay — fades in when ball is grabbed */}
+      {isTransitioning && (
+        <div className="fixed inset-0 z-35" style={{
+          background: 'rgba(10,10,10,0.88)',
+          animation: 'fadeIn 400ms ease-out',
+          touchAction: 'none',
+        }} />
+      )}
+
+      {/* The ball */}
+      <div
+        onTouchStart={!isTransitioning ? handleGrab : undefined}
+        onClick={!isTransitioning ? handleGrab : undefined}
+        className="fixed"
+        style={{
+          zIndex: isTransitioning ? 45 : 30,
+          left: px.current - BALL_SIZE / 2,
+          top: py.current - BALL_SIZE / 2,
+          width: isTransitioning ? 48 : BALL_SIZE,
+          height: isTransitioning ? 48 : BALL_SIZE,
+          marginLeft: isTransitioning ? -13 : 0,
+          marginTop: isTransitioning ? -13 : 0,
+          borderRadius: '50%',
+          border: '2px solid rgba(255,255,255,0.15)',
+          background: 'radial-gradient(circle at 40% 35%, rgba(255,255,255,0.1), rgba(255,255,255,0.03))',
+          boxShadow: (settled || isTransitioning)
+            ? '0 0 16px rgba(255,107,53,0.25), 0 2px 8px rgba(0,0,0,0.3)'
+            : '0 2px 8px rgba(0,0,0,0.3)',
+          opacity: opacity.current,
+          transform: `rotate(${spin.current}deg)`,
+          cursor: isTransitioning ? 'default' : 'grab',
+          touchAction: 'none',
+          transition: isTransitioning ? 'width 300ms ease-out, height 300ms ease-out, margin 300ms ease-out, box-shadow 300ms' : 'box-shadow 300ms',
+        }}
+      />
+    </>
   )
 }
