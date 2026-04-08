@@ -2,7 +2,7 @@ export default function Login({ onSignIn }) {
   return (
     <div className="h-full flex flex-col items-center justify-center p-8 bg-bg">
       <div className="animate-fade-in text-center">
-        <h1 className="font-display text-5xl font-bold tracking-tight text-text mb-2">Focus</h1>
+        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 48, letterSpacing: '-0.03em', color: 'var(--text-primary)', marginBottom: 8 }}>Whim</h1>
         <p className="text-text-dim text-[13px] mb-10 tracking-wide">tasks, simplified</p>
 
         <button

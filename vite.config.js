@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/*.png'],
       manifest: {
-        name: 'Focus',
-        short_name: 'Focus',
-        description: 'Fast, beautiful personal task management',
+        name: 'Whim',
+        short_name: 'Whim',
+        description: 'Playful personal task management',
         theme_color: '#1a1625',
         background_color: '#1a1625',
         display: 'standalone',
