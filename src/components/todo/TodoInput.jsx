@@ -64,7 +64,7 @@ export default function TodoInput() {
         borderRadius: 16, padding: '14px 16px', border: 'none',
         background: focused ? 'var(--bg-float)' : 'var(--bg-raised)',
         boxShadow: focused
-          ? '0 0 0 2px rgba(255,123,84,0.3), 0 0 0 6px rgba(255,123,84,0.08), 0 4px 20px rgba(255,123,84,0.10)'
+          ? '0 0 12px rgba(255,123,84,0.15), 0 0 30px rgba(255,123,84,0.06)'
           : '0 0 0 1px var(--border-visible), 0 1px 2px rgba(0,0,0,0.15)',
         transition: 'all 250ms cubic-bezier(0.4,0,0.2,1)',
       }}>
