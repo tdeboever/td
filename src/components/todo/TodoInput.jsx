@@ -11,6 +11,7 @@ export default function TodoInput() {
   const [text, setText] = useState('')
   const [priority, setPriority] = useState(0)
   const [dueDate, setDueDate] = useState(null)
+  const [dueTime, setDueTime] = useState(null)
   const [spaceId, setSpaceId] = useState(null)
   const [focused, _setFocused] = useState(false)
   const [sending, setSending] = useState(false)
@@ -27,8 +28,8 @@ export default function TodoInput() {
     if (navigator.vibrate) navigator.vibrate(8)
     setSending(true)
     setTimeout(() => {
-      addTodo(text.trim(), { listId: effectiveListId, spaceId: effectiveSpaceId, priority, dueDate })
-      setText(''); setPriority(0); setDueDate(null); setSpaceId(null)
+      addTodo(text.trim(), { listId: effectiveListId, spaceId: effectiveSpaceId, priority, dueDate, dueTime })
+      setText(''); setPriority(0); setDueDate(null); setDueTime(null); setSpaceId(null)
       setSending(false); setFocused(false); inputRef.current?.blur()
     }, 250)
   }, [text, sending, effectiveListId, effectiveSpaceId, priority, dueDate, addTodo])
@@ -52,11 +53,8 @@ export default function TodoInput() {
       )}
 
       {focused && (
-        <div className="mb-2 animate-slide-down" style={{
-          background: 'var(--surface-glass)', backdropFilter: 'blur(20px) saturate(1.3)', WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
-          borderTop: '1px solid var(--border-subtle)', padding: '10px 0', borderRadius: 16,
-        }}>
-          <ChipBar spaceId={effectiveSpaceId} dueDate={dueDate} onSpaceChange={setSpaceId} onDueDateChange={setDueDate} />
+        <div className="mb-3 animate-slide-down">
+          <ChipBar spaceId={effectiveSpaceId} dueDate={dueDate} dueTime={dueTime} onSpaceChange={setSpaceId} onDueDateChange={setDueDate} onDueTimeChange={setDueTime} />
         </div>
       )}
 

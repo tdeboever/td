@@ -133,7 +133,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
             background: isOverdue ? 'rgba(255,107,107,0.10)' : 'rgba(96,165,250,0.10)',
             border: `1px solid ${isOverdue ? 'rgba(255,107,107,0.15)' : 'rgba(96,165,250,0.15)'}`,
             padding: '2px 8px', borderRadius: 10,
-          }}>{dateLabel}</span>
+          }}>{dateLabel}{todo.dueTime && ` ${todo.dueTime}`}</span>
         )}
       </div>
     </div>
