@@ -304,7 +304,7 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
 
   return (
     <div ref={overlayRef} className="fixed inset-0 z-40"
-      style={{ background: `rgba(10,10,10,${p === 'morph' ? mt * 0.88 : 0.88})`, touchAction: 'none' }}>
+      style={{ background: `rgba(10,10,10,${p === 'morph' && !origin.skipMorph ? mt * 0.88 : 0.88})`, touchAction: 'none' }}>
 
       {ballVisible && (
         <div className="absolute rounded-full pointer-events-none" style={{
