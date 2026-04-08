@@ -80,8 +80,8 @@ export default function TodoInput() {
             onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown}
             onFocus={() => setFocused(true)} onBlur={handleBlur}
             placeholder="What needs doing?" autoComplete="off" enterKeyHint="done"
-            className="w-full bg-transparent outline-none"
-            style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text-primary)', ...(sending ? { transform: 'translateY(-20px)', opacity: 0, transition: 'all 200ms' } : {}) }}
+            className="w-full bg-transparent"
+            style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text-primary)', outline: 'none', border: 'none', boxShadow: 'none', WebkitAppearance: 'none', ...(sending ? { transform: 'translateY(-20px)', opacity: 0, transition: 'all 200ms' } : {}) }}
           />
         </div>
 
