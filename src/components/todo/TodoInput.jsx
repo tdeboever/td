@@ -13,6 +13,7 @@ export default function TodoInput() {
   const [dueDate, setDueDate] = useState(null)
   const [dueTime, setDueTime] = useState(null)
   const [spaceId, setSpaceId] = useState(null)
+  const [listId, setListId] = useState(null)
   const [focused, _setFocused] = useState(false)
   const [sending, setSending] = useState(false)
   const setFocused = (v) => { _setFocused(v); setInputFocused(v) }
@@ -20,7 +21,7 @@ export default function TodoInput() {
   const containerRef = useRef(null)
 
   const effectiveSpaceId = spaceId ?? (activeView === 'space' ? activeSpaceId : null)
-  const effectiveListId = activeView === 'list' ? activeListId : null
+  const effectiveListId = listId ?? (activeView === 'list' ? activeListId : null)
   const suggestions = useAutocomplete(effectiveListId, text)
 
   const submit = useCallback(() => {
@@ -29,7 +30,7 @@ export default function TodoInput() {
     setSending(true)
     setTimeout(() => {
       addTodo(text.trim(), { listId: effectiveListId, spaceId: effectiveSpaceId, priority, dueDate, dueTime })
-      setText(''); setPriority(0); setDueDate(null); setDueTime(null); setSpaceId(null)
+      setText(''); setPriority(0); setDueDate(null); setDueTime(null); setSpaceId(null); setListId(null)
       setSending(false); setFocused(false); inputRef.current?.blur()
     }, 250)
   }, [text, sending, effectiveListId, effectiveSpaceId, priority, dueDate, addTodo])
@@ -54,7 +55,7 @@ export default function TodoInput() {
 
       {focused && (
         <div className="mb-3 animate-slide-down">
-          <ChipBar spaceId={effectiveSpaceId} dueDate={dueDate} dueTime={dueTime} onSpaceChange={setSpaceId} onDueDateChange={setDueDate} onDueTimeChange={setDueTime} />
+          <ChipBar spaceId={effectiveSpaceId} listId={effectiveListId} dueDate={dueDate} dueTime={dueTime} onSpaceChange={setSpaceId} onListChange={setListId} onDueDateChange={setDueDate} onDueTimeChange={setDueTime} />
         </div>
       )}
 

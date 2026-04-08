@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useSpaceStore } from '../../stores/spaceStore'
+import { useListStore } from '../../stores/listStore'
 import { toLocalDateStr } from '../../lib/utils'
 
 function Opt({ children, active, onClick, small }) {
@@ -24,11 +25,8 @@ function datePresets() {
   const today = new Date()
   const tmrw = new Date(today); tmrw.setDate(tmrw.getDate() + 1)
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-
-  // Next Saturday and Monday
   const sat = new Date(today); sat.setDate(sat.getDate() + ((6 - sat.getDay() + 7) % 7 || 7))
   const mon = new Date(today); mon.setDate(mon.getDate() + ((1 - mon.getDay() + 7) % 7 || 7))
-
   return [
     { value: toLocalDateStr(today), label: 'Today' },
     { value: toLocalDateStr(tmrw), label: 'Tmrw' },
@@ -44,26 +42,35 @@ const TIMES = [
   { label: '6pm', value: '18:00', icon: '🌙' },
 ]
 
-export default function ChipBar({ spaceId, dueDate, dueTime, onSpaceChange, onDueDateChange, onDueTimeChange }) {
+export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChange, onListChange, onDueDateChange, onDueTimeChange }) {
   const spaces = useSpaceStore((s) => s.spaces)
+  const lists = useListStore((s) => s.lists)
   const dateInputRef = useRef(null)
   const [showTime, setShowTime] = useState(false)
   const dates = datePresets()
   const customActive = dueDate && !dates.some((d) => d.value === dueDate)
 
+  // Lists for the selected space
+  const spaceLists = spaceId ? lists.filter((l) => l.spaceId === spaceId).sort((a, b) => a.position - b.position) : []
+
   const handleDateTap = (value) => {
-    if (dueDate === value) {
-      onDueDateChange(null)
-      setShowTime(false)
+    if (dueDate === value) { onDueDateChange(null); setShowTime(false) }
+    else { onDueDateChange(value); setShowTime(true) }
+  }
+
+  const handleSpaceTap = (id) => {
+    if (spaceId === id) {
+      onSpaceChange(null)
+      onListChange?.(null)
     } else {
-      onDueDateChange(value)
-      setShowTime(true)
+      onSpaceChange(id)
+      onListChange?.(null)
     }
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {/* Row 1: When */}
+      {/* When */}
       <div style={{ display: 'flex', gap: 6 }}>
         {dates.map((d) => (
           <Opt key={d.value} active={dueDate === d.value} onClick={() => handleDateTap(d.value)}>
@@ -77,7 +84,7 @@ export default function ChipBar({ spaceId, dueDate, dueTime, onSpaceChange, onDu
         </Opt>
       </div>
 
-      {/* Row 2: Time (shows after picking a date) */}
+      {/* Time */}
       {showTime && dueDate && (
         <div style={{ display: 'flex', gap: 6 }} className="animate-slide-down">
           {TIMES.map((t) => (
@@ -88,12 +95,23 @@ export default function ChipBar({ spaceId, dueDate, dueTime, onSpaceChange, onDu
         </div>
       )}
 
-      {/* Row 3: Where (spaces) */}
+      {/* Spaces */}
       {spaces.length > 0 && (
         <div style={{ display: 'flex', gap: 6 }}>
           {spaces.map((s) => (
-            <Opt key={s.id} active={spaceId === s.id} small onClick={() => onSpaceChange(spaceId === s.id ? null : s.id)}>
-              {s.icon} {s.name}
+            <Opt key={s.id} active={spaceId === s.id} small onClick={() => handleSpaceTap(s.id)}>
+              {s.name}
+            </Opt>
+          ))}
+        </div>
+      )}
+
+      {/* Lists within selected space */}
+      {spaceLists.length > 0 && (
+        <div style={{ display: 'flex', gap: 6 }} className="animate-slide-down">
+          {spaceLists.map((l) => (
+            <Opt key={l.id} active={listId === l.id} small onClick={() => onListChange?.(listId === l.id ? null : l.id)}>
+              {l.name}
             </Opt>
           ))}
         </div>
