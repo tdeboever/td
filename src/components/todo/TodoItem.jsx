@@ -7,6 +7,7 @@ import SpaceAvatar from '../common/SpaceAvatar'
 import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, toLocalDateStr } from '../../lib/utils'
 import SwipeActions from './SwipeActions'
+import DragOrganize from './DragOrganize'
 
 const DOTS = {
   1: { bg: 'radial-gradient(circle at 35% 35%, #ff8a8a, #ff6b6b)', shadow: '0 0 8px rgba(255,107,107,0.5)' },
@@ -29,6 +30,8 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const [showMoveMenu, setShowMoveMenu] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState('')
+  const [dragging, setDragging] = useState(null) // { x, y } start position
+  const longPressRef = useRef(null)
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
 
@@ -163,8 +166,22 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     { label: 'Delete', color: 'rgba(255,107,107,0.7)', onAction: () => deleteTodo(todo.id) },
   ] : []
 
+  const handleTouchStart = (e) => {
+    if (isDone || phase) return
+    const t = e.touches[0]
+    longPressRef.current = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(15)
+      setDragging({ x: t.clientX, y: t.clientY })
+    }, 400)
+  }
+  const handleTouchMove = () => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null } }
+  const handleTouchEnd = () => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null } }
+
   const taskRow = (
     <div
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
       className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
@@ -234,9 +251,15 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     </div>
   )
 
-  if (!isDone && (leftActions.length > 0 || rightActions.length > 0)) {
-    return <SwipeActions leftActions={leftActions} rightActions={rightActions}>{taskRow}</SwipeActions>
-  }
-
-  return taskRow
+  return (
+    <>
+      {!isDone && (leftActions.length > 0 || rightActions.length > 0)
+        ? <SwipeActions leftActions={leftActions} rightActions={rightActions}>{taskRow}</SwipeActions>
+        : taskRow
+      }
+      {dragging && (
+        <DragOrganize todo={todo} startPos={dragging} onDone={() => setDragging(null)} />
+      )}
+    </>
+  )
 }
