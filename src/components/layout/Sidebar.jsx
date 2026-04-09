@@ -28,8 +28,12 @@ export default function Sidebar() {
   const deleteList = useListStore((s) => s.deleteList)
   const { user, signOut } = useAuth()
   const swipeHandlers = useSwipe({ onSwipeRight: closeSidebar })
+  const updateSpace = useSpaceStore((s) => s.updateSpace)
+  const [renamingSpace, setRenamingSpace] = useState(null)
+  const [renameText, setRenameText] = useState('')
   const cnt = (fn) => todos.filter((t) => t.status === 'active' && fn(t)).length
   const navigate = (v, o) => { setView(v, o); closeSidebar() }
+  const selectSpace = (id) => { useUiStore.setState({ activeSpaceId: id, activeListId: null }); closeSidebar() }
   const handleAddSpace = (e) => { e.preventDefault(); if (!newSpaceName.trim()) return; addSpace(newSpaceName.trim()); setNewSpaceName('') }
   const handleAddList = (e, sid) => { e.preventDefault(); if (!newListName.trim()) return; addList(newListName.trim(), sid, newListType); setNewListName(''); setNewListType('tasks'); setAddingListForSpace(null) }
 
@@ -65,13 +69,25 @@ export default function Sidebar() {
             return (
               <div key={space.id}>
                 <div className="flex items-center" style={{ height: 48, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}` }}>
-                  <button onClick={() => navigate('space', { spaceId: space.id })} className="flex-1 flex items-center gap-4 text-left transition-colors"
-                    style={{ padding: '0 0 0 20px', fontSize: 15, color: a ? 'var(--accent-lavender)' : 'var(--text-primary)', fontWeight: a ? 600 : 400, height: '100%' }}>
-                    <SpaceAvatar space={space} size={24} />
-                    <span className="flex-1">{space.name}</span>
-                    {sc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{sc}</span>}
-                  </button>
-                  <button onClick={() => { if (confirm(`Delete "${space.name}"?`)) { deleteSpace(space.id); if (a) navigate('today') } }}
+                  {renamingSpace === space.id ? (
+                    <form onSubmit={(e) => { e.preventDefault(); if (renameText.trim()) { updateSpace(space.id, { name: renameText.trim() }); setRenamingSpace(null) } }}
+                      style={{ flex: 1, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 12, height: '100%' }}>
+                      <SpaceAvatar space={{ ...space, name: renameText || space.name }} size={24} />
+                      <input autoFocus value={renameText} onChange={(e) => setRenameText(e.target.value)}
+                        onBlur={() => { if (renameText.trim()) updateSpace(space.id, { name: renameText.trim() }); setRenamingSpace(null) }}
+                        className="flex-1 bg-transparent outline-none" style={{ fontSize: 15, color: 'var(--text-primary)' }} />
+                    </form>
+                  ) : (
+                    <button onClick={() => selectSpace(space.id)}
+                      onDoubleClick={() => { setRenamingSpace(space.id); setRenameText(space.name) }}
+                      className="flex-1 flex items-center gap-4 text-left transition-colors"
+                      style={{ padding: '0 0 0 20px', fontSize: 15, color: a ? 'var(--accent-lavender)' : 'var(--text-primary)', fontWeight: a ? 600 : 400, height: '100%' }}>
+                      <SpaceAvatar space={space} size={24} />
+                      <span className="flex-1">{space.name}</span>
+                      {sc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{sc}</span>}
+                    </button>
+                  )}
+                  <button onClick={() => { if (confirm(`Delete "${space.name}"?`)) { deleteSpace(space.id); if (a) { useUiStore.setState({ activeSpaceId: null }); closeSidebar() } } }}
                     style={{ padding: '0 20px', color: 'var(--text-ghost)', fontSize: 14, height: '100%' }}>×</button>
                 </div>
                 {spaceLists.map((list) => {

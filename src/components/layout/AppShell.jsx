@@ -8,6 +8,7 @@ import ParticleCanvas from '../todo/ParticleCanvas'
 import FallenBall from '../todo/FallenBall'
 import SpaceRow from './SpaceRow'
 import InstallPrompt from '../common/InstallPrompt'
+import OfflineIndicator from '../common/OfflineIndicator'
 import { useUiStore } from '../../stores/uiStore'
 import { useSwipe } from '../../hooks/useSwipe'
 
@@ -31,6 +32,7 @@ export default function AppShell({ children }) {
   return (
     <div className="h-full flex justify-center">
       <div className="app-shell w-full max-w-[480px] h-full flex flex-col relative overflow-hidden">
+        <OfflineIndicator />
         <Sidebar />
         <Header />
         <SpaceRow />
