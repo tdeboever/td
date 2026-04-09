@@ -4,9 +4,10 @@ import { useSpaceStore } from '../../stores/spaceStore'
 import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 import { toLocalDateStr } from '../../lib/utils'
+import { emitExplosion } from './ParticleCanvas'
 import SpaceAvatar from '../common/SpaceAvatar'
 
-const ZONE_R = 32
+const ZONE_R = 30
 
 export default function DragOrganize({ todo, startPos, onDone }) {
   const spaces = useSpaceStore((s) => s.spaces)
@@ -19,10 +20,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const velX = useRef(0)
   const velY = useRef(0)
   const lastT = useRef({ x: startPos.x, y: startPos.y, t: Date.now() })
-  const [, rerender] = useState(0)
   const [hovered, setHovered] = useState(null)
-  const [done, setDone] = useState(false)
-  const overlayRef = useRef(null)
+  const [entered, setEntered] = useState(false)
+  const [, rerender] = useState(0)
 
   const W = window.innerWidth
   const H = window.innerHeight
@@ -30,23 +30,23 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const zones = [
     ...spaces.map((s, i) => ({
       id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
-      x: 40 + i * 70, y: 70,
-      icon: <SpaceAvatar space={s} size={24} />,
+      x: 50 + i * 72, y: 80,
+      icon: <SpaceAvatar space={s} size={26} />,
       action: () => { updateTodo(todo.id, { spaceId: s.id }); showUndo(`→ ${s.name}`, () => updateTodo(todo.id, { spaceId: todo.spaceId })) },
     })),
-    { id: 'later', label: 'Later', x: W - 60, y: H * 0.3, color: '#60a5fa', icon: '⏰',
-      action: () => { const n = new Date(); updateTodo(todo.id, { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` }); showUndo('Later', () => updateTodo(todo.id, { dueDate: todo.dueDate, dueTime: todo.dueTime })) }},
-    { id: 'tmrw', label: 'Tmrw', x: W - 60, y: H * 0.45, color: '#a78bfa', icon: '📅',
-      action: () => { const d = new Date(); d.setDate(d.getDate()+1); updateTodo(todo.id, { dueDate: toLocalDateStr(d), dueTime: null }); showUndo('Tomorrow', () => updateTodo(todo.id, { dueDate: todo.dueDate })) }},
-    { id: 'note', label: 'Note', x: W - 60, y: H * 0.6, color: '#60a5fa', icon: '✎',
+    { id: 'later', label: 'Later', x: W - 50, y: H * 0.35, color: '#60a5fa', icon: '⏰',
+      action: () => { const n=new Date(); updateTodo(todo.id, { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` }); showUndo('Later', () => updateTodo(todo.id, { dueDate: todo.dueDate, dueTime: todo.dueTime })) }},
+    { id: 'tmrw', label: 'Tmrw', x: W - 50, y: H * 0.5, color: '#a78bfa', icon: '📅',
+      action: () => { const d=new Date(); d.setDate(d.getDate()+1); updateTodo(todo.id, { dueDate: toLocalDateStr(d), dueTime: null }); showUndo('Tomorrow', () => updateTodo(todo.id, { dueDate: todo.dueDate })) }},
+    { id: 'note', label: 'Note', x: 50, y: H * 0.45, color: '#60a5fa', icon: '✎',
       action: () => { updateTodo(todo.id, { type: 'note' }); showUndo('→ Note', () => updateTodo(todo.id, { type: 'task' })) }},
-    { id: 'del', label: 'Delete', x: W / 2, y: H - 100, color: '#ff6b6b', icon: '✕',
+    { id: 'del', label: 'Delete', x: W / 2, y: H - 120, color: '#ff6b6b', icon: '✕',
       action: () => deleteTodo(todo.id) },
   ]
 
+  // Listen on DOCUMENT so we capture the existing touch seamlessly
   useEffect(() => {
-    const el = overlayRef.current
-    if (!el) return
+    setTimeout(() => setEntered(true), 50)
 
     const move = (e) => {
       e.preventDefault()
@@ -58,84 +58,119 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       px.current = t.clientX
       py.current = t.clientY
 
-      let nearest = null
+      let near = null
       for (const z of zones) {
-        if (Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2) < 50) { nearest = z.id; break }
+        if (Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2) < 55) { near = z.id; break }
       }
-      setHovered(nearest)
+      setHovered(near)
       rerender(n => n + 1)
     }
 
     const end = () => {
-      // Check direct drop
+      // Direct drop
       if (hovered) {
         const z = zones.find(z => z.id === hovered)
-        if (z) { setDone(true); if (navigator.vibrate) navigator.vibrate(10); z.action(); setTimeout(onDone, 200); return }
+        if (z) {
+          emitExplosion(z.x, z.y, 400, 12)
+          if (navigator.vibrate) navigator.vibrate(12)
+          z.action()
+          onDone()
+          return
+        }
       }
 
-      // Check fling momentum
+      // Fling
       const speed = Math.sqrt(velX.current ** 2 + velY.current ** 2)
-      if (speed > 600) {
-        const projX = px.current + velX.current * 0.2
-        const projY = py.current + velY.current * 0.2
-        let best = null, bestDist = 120
+      if (speed > 500) {
+        const projX = px.current + velX.current * 0.25
+        const projY = py.current + velY.current * 0.25
+        let best = null, bestD = 130
         for (const z of zones) {
           const d = Math.sqrt((projX - z.x) ** 2 + (projY - z.y) ** 2)
-          if (d < bestDist) { best = z; bestDist = d }
+          if (d < bestD) { best = z; bestD = d }
         }
-        if (best) { setDone(true); px.current = best.x; py.current = best.y; rerender(n => n+1); if (navigator.vibrate) navigator.vibrate(10); best.action(); setTimeout(onDone, 200); return }
+        if (best) {
+          emitExplosion(best.x, best.y, 400, 12)
+          if (navigator.vibrate) navigator.vibrate(12)
+          best.action()
+          onDone()
+          return
+        }
       }
 
       onDone()
     }
 
-    el.addEventListener('touchmove', move, { passive: false })
-    el.addEventListener('touchend', end)
-    return () => { el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end) }
+    document.addEventListener('touchmove', move, { passive: false })
+    document.addEventListener('touchend', end)
+    return () => {
+      document.removeEventListener('touchmove', move)
+      document.removeEventListener('touchend', end)
+    }
   })
 
-  if (done) return null
+  const overlay = (
+    <div className="fixed inset-0 z-50" style={{ touchAction: 'none', pointerEvents: 'none' }}>
+      {/* Background blur */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: 'rgba(26,22,37,0.8)',
+        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+        opacity: entered ? 1 : 0,
+        transition: 'opacity 250ms ease-out',
+      }} />
 
-  return createPortal(
-    <div ref={overlayRef} className="fixed inset-0 z-50" style={{ touchAction: 'none' }}>
-      <div className="absolute inset-0" style={{ background: 'rgba(26,22,37,0.75)', transition: 'opacity 150ms' }} />
-
-      {/* Drop zones */}
-      {zones.map(z => {
+      {/* Drop zones — spring in */}
+      {zones.map((z, i) => {
         const h = hovered === z.id
         return (
-          <div key={z.id} className="absolute flex flex-col items-center gap-1" style={{
-            left: z.x - ZONE_R, top: z.y - ZONE_R, width: ZONE_R * 2, height: ZONE_R * 2,
+          <div key={z.id} className="absolute flex flex-col items-center" style={{
+            left: z.x - ZONE_R, top: z.y - ZONE_R,
+            width: ZONE_R * 2, height: ZONE_R * 2 + 16,
+            opacity: entered ? 1 : 0,
+            transform: entered ? 'scale(1) translateY(0)' : 'scale(0.5) translateY(10px)',
+            transition: `all 350ms cubic-bezier(0.34,1.56,0.64,1) ${i * 40}ms`,
           }}>
             <div style={{
-              width: h ? 56 : 48, height: h ? 56 : 48, borderRadius: 16,
+              width: h ? 58 : 50, height: h ? 58 : 50,
+              borderRadius: h ? 18 : 14,
               background: h ? z.color : 'rgba(255,255,255,0.08)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 20, color: 'white',
-              boxShadow: h ? `0 0 20px ${z.color}50` : 'none',
-              transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
-              border: `2px solid ${h ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
+              boxShadow: h ? `0 0 28px ${z.color}60, 0 4px 16px rgba(0,0,0,0.3)` : '0 2px 8px rgba(0,0,0,0.2)',
+              transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
+              border: `2px solid ${h ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.06)'}`,
             }}>
               {typeof z.icon === 'string' ? z.icon : z.icon}
             </div>
-            <span style={{ fontSize: 9, fontWeight: 600, color: h ? 'var(--text-primary)' : 'var(--text-ghost)' }}>{z.label}</span>
+            <span style={{
+              fontSize: 9, fontWeight: 600, marginTop: 4,
+              color: h ? '#fff' : 'var(--text-ghost)',
+              transition: 'color 150ms',
+            }}>{z.label}</span>
           </div>
         )
       })}
 
-      {/* Dragged pill */}
+      {/* Floating pill */}
       <div style={{
-        position: 'absolute', left: px.current - 70, top: py.current - 18,
-        width: 140, padding: '8px 14px', borderRadius: 16,
-        background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-        color: 'white', fontSize: 12, fontWeight: 600,
+        position: 'absolute',
+        left: px.current - 75, top: py.current - 22,
+        width: 150, padding: '10px 16px',
+        borderRadius: 20,
+        background: hovered
+          ? (zones.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))')
+          : 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+        color: 'white', fontSize: 13, fontWeight: 600,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
-        pointerEvents: 'none',
+        transition: 'background 150ms, border-radius 150ms',
+        transform: hovered ? 'scale(0.9)' : 'scale(1)',
       }}>
         {todo.text}
       </div>
-    </div>,
-    document.body
+    </div>
   )
+
+  return createPortal(overlay, document.body)
 }
