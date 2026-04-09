@@ -24,6 +24,8 @@ export default function Sidebar() {
   const [newListName, setNewListName] = useState('')
   const [newListType, setNewListType] = useState('tasks')
 
+  const deleteSpace = useSpaceStore((s) => s.deleteSpace)
+  const deleteList = useListStore((s) => s.deleteList)
   const { user, signOut } = useAuth()
   const swipeHandlers = useSwipe({ onSwipeRight: closeSidebar })
   const cnt = (fn) => todos.filter((t) => t.status === 'active' && fn(t)).length
@@ -62,21 +64,29 @@ export default function Sidebar() {
             const sc = cnt((t) => t.spaceId === space.id)
             return (
               <div key={space.id}>
-                <button onClick={() => navigate('space', { spaceId: space.id })} className="w-full flex items-center gap-4 text-left transition-colors"
-                  style={{ height: 48, padding: '0 20px', fontSize: 15, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}`, color: a ? 'var(--accent-lavender)' : 'var(--text-primary)', fontWeight: a ? 600 : 400 }}>
-                  <SpaceAvatar space={space} size={24} />
-                  <span className="flex-1">{space.name}</span>
-                  {sc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{sc}</span>}
-                </button>
+                <div className="flex items-center" style={{ height: 48, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}` }}>
+                  <button onClick={() => navigate('space', { spaceId: space.id })} className="flex-1 flex items-center gap-4 text-left transition-colors"
+                    style={{ padding: '0 0 0 20px', fontSize: 15, color: a ? 'var(--accent-lavender)' : 'var(--text-primary)', fontWeight: a ? 600 : 400, height: '100%' }}>
+                    <SpaceAvatar space={space} size={24} />
+                    <span className="flex-1">{space.name}</span>
+                    {sc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{sc}</span>}
+                  </button>
+                  <button onClick={() => { if (confirm(`Delete "${space.name}"?`)) { deleteSpace(space.id); if (a) navigate('today') } }}
+                    style={{ padding: '0 20px', color: 'var(--text-ghost)', fontSize: 14, height: '100%' }}>×</button>
+                </div>
                 {spaceLists.map((list) => {
                   const la = activeView === 'list' && activeListId === list.id
                   const lc = cnt((t) => t.listId === list.id)
                   return (
-                    <button key={list.id} onClick={() => navigate('list', { spaceId: space.id, listId: list.id })} className="w-full flex items-center text-left transition-colors"
-                      style={{ height: 40, padding: '0 20px 0 52px', fontSize: 13, color: la ? 'var(--accent-lavender)' : 'var(--text-secondary)', fontWeight: la ? 500 : 400 }}>
-                      <span className="flex-1">{list.name}{list.type === 'checklist' && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.4 }}>☑</span>}</span>
-                      {lc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-ghost)' }}>{lc}</span>}
-                    </button>
+                    <div key={list.id} className="flex items-center" style={{ height: 40 }}>
+                      <button onClick={() => navigate('list', { spaceId: space.id, listId: list.id })} className="flex-1 flex items-center text-left transition-colors"
+                        style={{ padding: '0 0 0 52px', fontSize: 13, color: la ? 'var(--accent-lavender)' : 'var(--text-secondary)', fontWeight: la ? 500 : 400, height: '100%' }}>
+                        <span className="flex-1">{list.name}{list.type === 'checklist' && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.4 }}>☑</span>}</span>
+                        {lc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-ghost)' }}>{lc}</span>}
+                      </button>
+                      <button onClick={() => { if (confirm(`Delete "${list.name}"?`)) { deleteList(list.id); if (la) navigate('space', { spaceId: space.id }) } }}
+                        style={{ padding: '0 20px', color: 'var(--text-ghost)', fontSize: 12, height: '100%' }}>×</button>
+                    </div>
                   )
                 })}
                 {addingListForSpace === space.id ? (
