@@ -24,6 +24,8 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const updateTodo = useTodoStore((s) => s.updateTodo)
   const [showActions, setShowActions] = useState(false)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editText, setEditText] = useState('')
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
 
@@ -79,7 +81,17 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         background: 'var(--surface-glass)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
         boxShadow: '0 0 0 1px var(--border-subtle)',
       }}>
-        <p style={{ fontSize: 12, color: 'var(--text-ghost)', marginBottom: 10 }} className="truncate">{todo.text}</p>
+        {editing ? (
+          <form onSubmit={(e) => { e.preventDefault(); if (editText.trim()) { updateTodo(todo.id, { text: editText.trim() }); setEditing(false) } }} style={{ marginBottom: 10 }}>
+            <input autoFocus value={editText} onChange={(e) => setEditText(e.target.value)}
+              onBlur={() => { if (editText.trim() && editText !== todo.text) updateTodo(todo.id, { text: editText.trim() }); setEditing(false) }}
+              className="w-full bg-transparent outline-none"
+              style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-visible)', paddingBottom: 4 }} />
+          </form>
+        ) : (
+          <p onClick={() => { setEditText(todo.text); setEditing(true) }}
+            style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, cursor: 'text' }} className="truncate">{todo.text}</p>
+        )}
 
         {/* Move to space */}
         {showMoveMenu ? (
