@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { emitExplosion } from './ParticleCanvas'
 import { useTodoStore } from '../../stores/todoStore'
 import { useSpaceStore } from '../../stores/spaceStore'
+import { useListStore } from '../../stores/listStore'
 import SpaceAvatar from '../common/SpaceAvatar'
 import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, toLocalDateStr } from '../../lib/utils'
@@ -21,6 +22,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const spawnBall = useUiStore((s) => s.spawnBall)
   const activeView = useUiStore((s) => s.activeView)
   const spaces = useSpaceStore((s) => s.spaces)
+  const lists = useListStore((s) => s.lists)
   const updateTodo = useTodoStore((s) => s.updateTodo)
   const [showActions, setShowActions] = useState(false)
   const [showMoveMenu, setShowMoveMenu] = useState(false)
@@ -93,24 +95,36 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
             style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, cursor: 'text' }} className="truncate">{todo.text}</p>
         )}
 
-        {/* Move to space */}
+        {/* Move to space/list */}
         {showMoveMenu ? (
           <div className="animate-slide-down" style={{ marginBottom: 10 }}>
             <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Move to</p>
             <div className="flex gap-2 flex-wrap">
               {todo.spaceId && (
-                <button onClick={() => { updateTodo(todo.id, { spaceId: null, listId: null }); setShowActions(false); showUndo('Moved to Today', () => updateTodo(todo.id, { spaceId: todo.spaceId })) }}
+                <button onClick={() => { updateTodo(todo.id, { spaceId: null, listId: null }); setShowActions(false); showUndo('Removed from space', () => updateTodo(todo.id, { spaceId: todo.spaceId, listId: todo.listId })) }}
                   style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--text-secondary)' }}>
                   No space
                 </button>
               )}
-              {spaces.filter((s) => s.id !== todo.spaceId).map((s) => (
-                <button key={s.id} onClick={() => { updateTodo(todo.id, { spaceId: s.id }); setShowActions(false); showUndo(`Moved to ${s.name}`, () => updateTodo(todo.id, { spaceId: todo.spaceId })) }}
-                  className="flex items-center gap-2"
-                  style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--text-secondary)' }}>
-                  <SpaceAvatar space={s} size={16} /> {s.name}
-                </button>
-              ))}
+              {spaces.map((s) => {
+                const spaceLists = lists.filter((l) => l.spaceId === s.id)
+                const isCurrentSpace = todo.spaceId === s.id
+                return (
+                  <div key={s.id} className="flex gap-1.5 flex-wrap">
+                    <button onClick={() => { updateTodo(todo.id, { spaceId: s.id, listId: null }); setShowActions(false); showUndo(`Moved to ${s.name}`, () => updateTodo(todo.id, { spaceId: todo.spaceId, listId: todo.listId })) }}
+                      className="flex items-center gap-2"
+                      style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, background: isCurrentSpace && !todo.listId ? 'var(--surface-active)' : 'var(--surface-card)', color: 'var(--text-secondary)' }}>
+                      <SpaceAvatar space={s} size={16} /> {s.name}
+                    </button>
+                    {spaceLists.map((l) => (
+                      <button key={l.id} onClick={() => { updateTodo(todo.id, { spaceId: s.id, listId: l.id }); setShowActions(false); showUndo(`Moved to ${l.name}`, () => updateTodo(todo.id, { spaceId: todo.spaceId, listId: todo.listId })) }}
+                        style={{ padding: '6px 12px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: todo.listId === l.id ? 'var(--surface-active)' : 'var(--surface-card)', color: 'var(--text-ghost)' }}>
+                        {l.name}
+                      </button>
+                    ))}
+                  </div>
+                )
+              })}
             </div>
           </div>
         ) : null}
