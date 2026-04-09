@@ -3,6 +3,7 @@ import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
 import { useAuth } from '../../hooks/useAuth'
+import { useSwipe } from '../../hooks/useSwipe'
 import SpaceAvatar from '../common/SpaceAvatar'
 import { useState } from 'react'
 
@@ -24,6 +25,7 @@ export default function Sidebar() {
   const [newListType, setNewListType] = useState('tasks')
 
   const { user, signOut } = useAuth()
+  const swipeHandlers = useSwipe({ onSwipeRight: closeSidebar })
   const cnt = (fn) => todos.filter((t) => t.status === 'active' && fn(t)).length
   const navigate = (v, o) => { setView(v, o); closeSidebar() }
   const handleAddSpace = (e) => { e.preventDefault(); if (!newSpaceName.trim()) return; addSpace(newSpaceName.trim()); setNewSpaceName('') }
@@ -37,7 +39,7 @@ export default function Sidebar() {
   return (
     <>
       {sidebarOpen && <div className="fixed inset-0 z-40 animate-fade-in" style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }} onClick={closeSidebar} />}
-      <aside className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col transform transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      <aside {...swipeHandlers} className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col transform transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ width: '80%', maxWidth: 320, background: 'rgba(26,22,37,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRight: '1px solid var(--border-subtle)' }}>
         <nav className="flex-1 overflow-y-auto no-scrollbar" style={{ paddingTop: 48 }}>
           <p style={{ padding: '0 20px 12px', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)' }}>Views</p>
