@@ -6,7 +6,6 @@ import { useListStore } from '../../stores/listStore'
 import SpaceAvatar from '../common/SpaceAvatar'
 import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, toLocalDateStr } from '../../lib/utils'
-import SwipeActions from './SwipeActions'
 import DragOrganize from './DragOrganize'
 
 const DOTS = {
@@ -148,40 +147,34 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const isChecked = phase === 'checked' || phase === 'collapsing'
   const isCollapsing = phase === 'collapsing'
 
-  // Swipe actions
-  const leftActions = !isDone ? spaces.map((s) => ({
-    label: s.name,
-    color: s.color || 'var(--accent-lavender)',
-    onAction: () => {
-      const old = { spaceId: todo.spaceId, listId: todo.listId }
-      updateTodo(todo.id, { spaceId: s.id })
-      showUndo(`→ ${s.name}`, () => updateTodo(todo.id, old))
-    },
-  })) : []
-
-  const rightActions = !isDone ? [
-    { label: 'Later', color: 'rgba(96,165,250,0.8)', onAction: handleLater },
-    { label: 'Tmrw', color: 'rgba(167,139,250,0.8)', onAction: handleTomorrow },
-    { label: 'Note', color: 'rgba(96,165,250,0.6)', onAction: () => { updateTodo(todo.id, { type: 'note' }); showUndo('Made a note', () => updateTodo(todo.id, { type: 'task' })) } },
-    { label: 'Delete', color: 'rgba(255,107,107,0.7)', onAction: () => deleteTodo(todo.id) },
-  ] : []
-
-  const handleTouchStart = (e) => {
+  // Horizontal swipe detection — detaches task into drag mode
+  const touchStart = useRef(null)
+  const handleTouchStart2 = (e) => {
     if (isDone || phase) return
     const t = e.touches[0]
-    longPressRef.current = setTimeout(() => {
-      if (navigator.vibrate) navigator.vibrate(15)
-      setDragging({ x: t.clientX, y: t.clientY })
-    }, 400)
+    touchStart.current = { x: t.clientX, y: t.clientY, scrolled: false }
   }
-  const handleTouchMove = () => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null } }
+  const handleTouchMove2 = (e) => {
+    if (!touchStart.current || dragging) return
+    const t = e.touches[0]
+    const dx = Math.abs(t.clientX - touchStart.current.x)
+    const dy = Math.abs(t.clientY - touchStart.current.y)
+    // If vertical > horizontal, it's a scroll — ignore
+    if (dy > 15 && dy > dx) { touchStart.current = null; return }
+    // Horizontal threshold to detach
+    if (dx > 30 && dx > dy * 1.5) {
+      e.stopPropagation()
+      if (navigator.vibrate) navigator.vibrate(8)
+      setDragging({ x: t.clientX, y: t.clientY })
+      touchStart.current = null
+    }
+  }
   const handleTouchEnd = () => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null } }
 
   const taskRow = (
     <div
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onTouchStart={handleTouchStart2}
+      onTouchMove={handleTouchMove2}
       className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
@@ -253,10 +246,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
   return (
     <>
-      {!isDone && (leftActions.length > 0 || rightActions.length > 0)
-        ? <SwipeActions leftActions={leftActions} rightActions={rightActions}>{taskRow}</SwipeActions>
-        : taskRow
-      }
+      {taskRow}
       {dragging && (
         <DragOrganize todo={todo} startPos={dragging} onDone={() => setDragging(null)} />
       )}

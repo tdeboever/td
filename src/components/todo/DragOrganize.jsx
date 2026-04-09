@@ -5,13 +5,7 @@ import { useUiStore } from '../../stores/uiStore'
 import { toLocalDateStr } from '../../lib/utils'
 import SpaceAvatar from '../common/SpaceAvatar'
 
-/*
-  When active, shows a floating task pill + drop zone targets.
-  The task follows the finger and can be dropped/flung to a target.
-*/
-
-const ZONE_SIZE = 64
-const SNAP_DIST = 60
+const ZONE_R = 32
 
 export default function DragOrganize({ todo, startPos, onDone }) {
   const spaces = useSpaceStore((s) => s.spaces)
@@ -19,180 +13,127 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
   const showUndo = useUiStore((s) => s.showUndo)
 
-  const [pos, setPos] = useState(startPos)
-  const [hoveredZone, setHoveredZone] = useState(null)
-  const [dropped, setDropped] = useState(false)
-  const velocity = useRef({ vx: 0, vy: 0 })
-  const lastTouch = useRef({ x: startPos.x, y: startPos.y, t: Date.now() })
+  const px = useRef(startPos.x)
+  const py = useRef(startPos.y)
+  const velX = useRef(0)
+  const velY = useRef(0)
+  const lastT = useRef({ x: startPos.x, y: startPos.y, t: Date.now() })
+  const [, rerender] = useState(0)
+  const [hovered, setHovered] = useState(null)
+  const [done, setDone] = useState(false)
   const overlayRef = useRef(null)
 
   const W = window.innerWidth
   const H = window.innerHeight
 
-  // Drop zones — arranged around the screen
   const zones = [
-    // Spaces across the top
     ...spaces.map((s, i) => ({
-      id: `space-${s.id}`,
-      label: s.name,
-      x: (W / (spaces.length + 1)) * (i + 1),
-      y: 80,
-      color: s.color || 'var(--accent-lavender)',
-      icon: <SpaceAvatar space={s} size={28} />,
-      action: () => {
-        const old = { spaceId: todo.spaceId }
-        updateTodo(todo.id, { spaceId: s.id })
-        showUndo(`→ ${s.name}`, () => updateTodo(todo.id, old))
-      },
+      id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
+      x: 40 + i * 70, y: 70,
+      icon: <SpaceAvatar space={s} size={24} />,
+      action: () => { updateTodo(todo.id, { spaceId: s.id }); showUndo(`→ ${s.name}`, () => updateTodo(todo.id, { spaceId: todo.spaceId })) },
     })),
-    // Time options bottom-left
-    { id: 'later', label: 'Later', x: W * 0.2, y: H - 160, color: 'var(--accent-sky)', icon: '⏰',
-      action: () => {
-        const now = new Date()
-        const h = Math.min(now.getHours() + 3, 21)
-        updateTodo(todo.id, { dueDate: toLocalDateStr(now), dueTime: `${String(h).padStart(2,'0')}:00` })
-        showUndo('Set to later', () => updateTodo(todo.id, { dueDate: todo.dueDate, dueTime: todo.dueTime }))
-      }},
-    { id: 'tmrw', label: 'Tomorrow', x: W * 0.4, y: H - 160, color: 'var(--accent-lavender)', icon: '📅',
-      action: () => {
-        const d = new Date(); d.setDate(d.getDate() + 1)
-        updateTodo(todo.id, { dueDate: toLocalDateStr(d), dueTime: null })
-        showUndo('→ Tomorrow', () => updateTodo(todo.id, { dueDate: todo.dueDate, dueTime: todo.dueTime }))
-      }},
-    // Note bottom-right
-    { id: 'note', label: 'Note', x: W * 0.7, y: H - 160, color: 'var(--accent-sky)', icon: '✎',
-      action: () => {
-        updateTodo(todo.id, { type: 'note' })
-        showUndo('Made a note', () => updateTodo(todo.id, { type: 'task' }))
-      }},
-    // Delete far bottom-right
-    { id: 'delete', label: 'Delete', x: W * 0.9, y: H - 160, color: 'var(--color-danger)', icon: '✕',
+    { id: 'later', label: 'Later', x: W - 60, y: H * 0.3, color: '#60a5fa', icon: '⏰',
+      action: () => { const n = new Date(); updateTodo(todo.id, { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` }); showUndo('Later', () => updateTodo(todo.id, { dueDate: todo.dueDate, dueTime: todo.dueTime })) }},
+    { id: 'tmrw', label: 'Tmrw', x: W - 60, y: H * 0.45, color: '#a78bfa', icon: '📅',
+      action: () => { const d = new Date(); d.setDate(d.getDate()+1); updateTodo(todo.id, { dueDate: toLocalDateStr(d), dueTime: null }); showUndo('Tomorrow', () => updateTodo(todo.id, { dueDate: todo.dueDate })) }},
+    { id: 'note', label: 'Note', x: W - 60, y: H * 0.6, color: '#60a5fa', icon: '✎',
+      action: () => { updateTodo(todo.id, { type: 'note' }); showUndo('→ Note', () => updateTodo(todo.id, { type: 'task' })) }},
+    { id: 'del', label: 'Delete', x: W / 2, y: H - 100, color: '#ff6b6b', icon: '✕',
       action: () => deleteTodo(todo.id) },
   ]
 
-  // Touch handlers
   useEffect(() => {
     const el = overlayRef.current
     if (!el) return
 
-    const handleMove = (e) => {
+    const move = (e) => {
       e.preventDefault()
       const t = e.touches[0]
       const now = Date.now()
-      const dt = (now - lastTouch.current.t) / 1000
-      if (dt > 0) {
-        velocity.current.vx = (t.clientX - lastTouch.current.x) / dt
-        velocity.current.vy = (t.clientY - lastTouch.current.y) / dt
-      }
-      lastTouch.current = { x: t.clientX, y: t.clientY, t: now }
-      setPos({ x: t.clientX, y: t.clientY })
+      const dt = (now - lastT.current.t) / 1000
+      if (dt > 0) { velX.current = (t.clientX - lastT.current.x) / dt; velY.current = (t.clientY - lastT.current.y) / dt }
+      lastT.current = { x: t.clientX, y: t.clientY, t: now }
+      px.current = t.clientX
+      py.current = t.clientY
 
-      // Check which zone we're hovering
       let nearest = null
-      let nearestDist = Infinity
       for (const z of zones) {
-        const dist = Math.sqrt((t.clientX - z.x) ** 2 + (t.clientY - z.y) ** 2)
-        if (dist < SNAP_DIST && dist < nearestDist) {
-          nearest = z.id
-          nearestDist = dist
-        }
+        if (Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2) < 50) { nearest = z.id; break }
       }
-      setHoveredZone(nearest)
+      setHovered(nearest)
+      rerender(n => n + 1)
     }
 
-    const handleEnd = () => {
-      if (hoveredZone) {
-        // Drop on zone
-        const zone = zones.find((z) => z.id === hoveredZone)
-        if (zone) {
-          setDropped(true)
-          if (navigator.vibrate) navigator.vibrate(10)
-          zone.action()
-          setTimeout(onDone, 300)
-          return
-        }
+    const end = () => {
+      // Check direct drop
+      if (hovered) {
+        const z = zones.find(z => z.id === hovered)
+        if (z) { setDone(true); if (navigator.vibrate) navigator.vibrate(10); z.action(); setTimeout(onDone, 200); return }
       }
 
-      // Check momentum — if flung toward a zone
-      const speed = Math.sqrt(velocity.current.vx ** 2 + velocity.current.vy ** 2)
-      if (speed > 800) {
-        const angle = Math.atan2(velocity.current.vy, velocity.current.vx)
-        const projX = pos.x + Math.cos(angle) * 200
-        const projY = pos.y + Math.sin(angle) * 200
+      // Check fling momentum
+      const speed = Math.sqrt(velX.current ** 2 + velY.current ** 2)
+      if (speed > 600) {
+        const projX = px.current + velX.current * 0.2
+        const projY = py.current + velY.current * 0.2
+        let best = null, bestDist = 120
         for (const z of zones) {
-          const dist = Math.sqrt((projX - z.x) ** 2 + (projY - z.y) ** 2)
-          if (dist < SNAP_DIST * 2) {
-            setDropped(true)
-            setPos({ x: z.x, y: z.y })
-            if (navigator.vibrate) navigator.vibrate(10)
-            z.action()
-            setTimeout(onDone, 300)
-            return
-          }
+          const d = Math.sqrt((projX - z.x) ** 2 + (projY - z.y) ** 2)
+          if (d < bestDist) { best = z; bestDist = d }
         }
+        if (best) { setDone(true); px.current = best.x; py.current = best.y; rerender(n => n+1); if (navigator.vibrate) navigator.vibrate(10); best.action(); setTimeout(onDone, 200); return }
       }
 
-      // No target — cancel
       onDone()
     }
 
-    el.addEventListener('touchmove', handleMove, { passive: false })
-    el.addEventListener('touchend', handleEnd)
-    return () => {
-      el.removeEventListener('touchmove', handleMove)
-      el.removeEventListener('touchend', handleEnd)
-    }
+    el.addEventListener('touchmove', move, { passive: false })
+    el.addEventListener('touchend', end)
+    return () => { el.removeEventListener('touchmove', move); el.removeEventListener('touchend', end) }
   })
+
+  if (done) return null
 
   return (
     <div ref={overlayRef} className="fixed inset-0 z-50" style={{ touchAction: 'none' }}>
-      {/* Dimmed background */}
-      <div className="absolute inset-0 animate-fade-in" style={{ background: 'rgba(26,22,37,0.7)' }} />
+      <div className="absolute inset-0" style={{ background: 'rgba(26,22,37,0.75)', transition: 'opacity 150ms' }} />
 
       {/* Drop zones */}
-      {zones.map((z) => {
-        const isHovered = hoveredZone === z.id
+      {zones.map(z => {
+        const h = hovered === z.id
         return (
-          <div key={z.id} className="absolute flex flex-col items-center gap-1 animate-fade-in"
-            style={{
-              left: z.x - ZONE_SIZE / 2, top: z.y - ZONE_SIZE / 2,
-              width: ZONE_SIZE, height: ZONE_SIZE,
-              transition: 'transform 200ms cubic-bezier(0.16,1,0.3,1), box-shadow 200ms',
-              transform: isHovered ? 'scale(1.3)' : 'scale(1)',
-            }}>
+          <div key={z.id} className="absolute flex flex-col items-center gap-1" style={{
+            left: z.x - ZONE_R, top: z.y - ZONE_R, width: ZONE_R * 2, height: ZONE_R * 2,
+          }}>
             <div style={{
-              width: ZONE_SIZE - 8, height: ZONE_SIZE - 8, borderRadius: 20,
-              background: isHovered ? z.color : 'var(--surface-active)',
-              boxShadow: isHovered ? `0 0 24px ${z.color}40` : 'none',
+              width: h ? 56 : 48, height: h ? 56 : 48, borderRadius: 16,
+              background: h ? z.color : 'rgba(255,255,255,0.08)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 22, transition: 'all 200ms',
-              border: `2px solid ${isHovered ? 'rgba(255,255,255,0.2)' : 'var(--border-visible)'}`,
+              fontSize: 20, color: 'white',
+              boxShadow: h ? `0 0 20px ${z.color}50` : 'none',
+              transition: 'all 150ms cubic-bezier(0.16,1,0.3,1)',
+              border: `2px solid ${h ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
             }}>
               {typeof z.icon === 'string' ? z.icon : z.icon}
             </div>
-            <span style={{ fontSize: 10, fontWeight: 600, color: isHovered ? 'var(--text-primary)' : 'var(--text-ghost)', transition: 'color 150ms' }}>{z.label}</span>
+            <span style={{ fontSize: 9, fontWeight: 600, color: h ? 'var(--text-primary)' : 'var(--text-ghost)' }}>{z.label}</span>
           </div>
         )
       })}
 
-      {/* Floating task pill */}
-      {!dropped && (
-        <div style={{
-          position: 'absolute',
-          left: pos.x - 80, top: pos.y - 20,
-          width: 160, padding: '10px 16px',
-          borderRadius: 20,
-          background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-          color: 'white', fontSize: 13, fontWeight: 600,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          textAlign: 'center',
-          pointerEvents: 'none',
-          transition: 'transform 50ms',
-        }}>
-          {todo.text}
-        </div>
-      )}
+      {/* Dragged pill */}
+      <div style={{
+        position: 'absolute', left: px.current - 70, top: py.current - 18,
+        width: 140, padding: '8px 14px', borderRadius: 16,
+        background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        color: 'white', fontSize: 12, fontWeight: 600,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
+        pointerEvents: 'none',
+      }}>
+        {todo.text}
+      </div>
     </div>
   )
 }
