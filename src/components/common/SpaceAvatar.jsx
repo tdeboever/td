@@ -1,10 +1,6 @@
 export default function SpaceAvatar({ space, size = 24 }) {
-  const letter = space.icon?.length === 1 ? space.icon : space.name?.charAt(0)?.toUpperCase() || '?'
-  const isEmoji = space.icon?.length > 1
-
-  if (isEmoji) {
-    return <span style={{ fontSize: size * 0.7, lineHeight: 1 }}>{space.icon}</span>
-  }
+  // Always use letter avatar — ignore old folder emoji defaults
+  const letter = (space.icon?.length === 1 && space.icon !== '📁') ? space.icon : space.name?.charAt(0)?.toUpperCase() || '?'
 
   return (
     <div style={{
