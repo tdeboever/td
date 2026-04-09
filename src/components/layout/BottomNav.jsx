@@ -1,9 +1,9 @@
 import { useUiStore } from '../../stores/uiStore'
 
 const TABS = [
+  { id: 'spaces', label: 'Spaces', icon: '◫' },
   { id: 'today', label: 'Today', icon: '◉' },
   { id: 'upcoming', label: 'Upcoming', icon: '→' },
-  { id: 'spaces', label: 'Spaces', icon: '◫' },
 ]
 
 export default function BottomNav() {

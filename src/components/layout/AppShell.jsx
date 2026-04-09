@@ -11,17 +11,30 @@ import InstallPrompt from '../common/InstallPrompt'
 import { useUiStore } from '../../stores/uiStore'
 import { useSwipe } from '../../hooks/useSwipe'
 
-const VIEW_ORDER = ['today', 'upcoming']
+const VIEW_ORDER = ['spaces', 'today', 'upcoming']
 
 export default function AppShell({ children }) {
   const { inputFocused, activeView, setView } = useUiStore()
 
+  const { toggleSidebar, closeSidebar } = useUiStore()
+
   const swipeToView = useCallback((direction) => {
     const idx = VIEW_ORDER.indexOf(activeView)
-    if (idx === -1) return
+    if (idx === -1) {
+      // In a space/list view, swipe right goes back to today
+      if (direction === 1) setView('today')
+      return
+    }
     const next = idx + direction
-    if (next >= 0 && next < VIEW_ORDER.length) setView(VIEW_ORDER[next])
-  }, [activeView, setView])
+    if (next < 0 || next >= VIEW_ORDER.length) return
+    const target = VIEW_ORDER[next]
+    if (target === 'spaces') {
+      toggleSidebar()
+    } else {
+      closeSidebar()
+      setView(target)
+    }
+  }, [activeView, setView, toggleSidebar, closeSidebar])
 
   const swipeHandlers = useSwipe({
     onSwipeLeft: () => swipeToView(1),
