@@ -64,9 +64,7 @@ export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChan
       onListChange?.(null)
     } else {
       onSpaceChange(id)
-      // Auto-assign if space has exactly one list
-      const spLists = lists.filter((l) => l.spaceId === id)
-      onListChange?.(spLists.length === 1 ? spLists[0].id : null)
+      onListChange?.(null)
     }
   }
 
