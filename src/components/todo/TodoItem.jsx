@@ -6,6 +6,7 @@ import { useListStore } from '../../stores/listStore'
 import SpaceAvatar from '../common/SpaceAvatar'
 import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, toLocalDateStr } from '../../lib/utils'
+import SwipeActions from './SwipeActions'
 
 const DOTS = {
   1: { bg: 'radial-gradient(circle at 35% 35%, #ff8a8a, #ff6b6b)', shadow: '0 0 8px rgba(255,107,107,0.5)' },
@@ -144,7 +145,25 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const isChecked = phase === 'checked' || phase === 'collapsing'
   const isCollapsing = phase === 'collapsing'
 
-  return (
+  // Swipe actions
+  const leftActions = !isDone ? spaces.map((s) => ({
+    label: s.name,
+    color: s.color || 'var(--accent-lavender)',
+    onAction: () => {
+      const old = { spaceId: todo.spaceId, listId: todo.listId }
+      updateTodo(todo.id, { spaceId: s.id })
+      showUndo(`→ ${s.name}`, () => updateTodo(todo.id, old))
+    },
+  })) : []
+
+  const rightActions = !isDone ? [
+    { label: 'Later', color: 'rgba(96,165,250,0.8)', onAction: handleLater },
+    { label: 'Tmrw', color: 'rgba(167,139,250,0.8)', onAction: handleTomorrow },
+    { label: 'Note', color: 'rgba(96,165,250,0.6)', onAction: () => { updateTodo(todo.id, { type: 'note' }); showUndo('Made a note', () => updateTodo(todo.id, { type: 'task' })) } },
+    { label: 'Delete', color: 'rgba(255,107,107,0.7)', onAction: () => deleteTodo(todo.id) },
+  ] : []
+
+  const taskRow = (
     <div
       className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
@@ -157,6 +176,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         background: 'transparent', borderRadius: 16,
       }}
       onClick={() => { if (!phase && !isDone) setShowActions(true) }}
+      onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
       onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
       onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
@@ -213,4 +233,10 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       </div>
     </div>
   )
+
+  if (!isDone && (leftActions.length > 0 || rightActions.length > 0)) {
+    return <SwipeActions leftActions={leftActions} rightActions={rightActions}>{taskRow}</SwipeActions>
+  }
+
+  return taskRow
 }
