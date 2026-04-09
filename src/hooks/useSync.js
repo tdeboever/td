@@ -98,7 +98,20 @@ export function useSync(userId) {
       const validItems = localItems.filter((item) => isUUID(item.id))
       if (validItems.length === 0) continue
 
-      const rows = validItems.map((item) => toSnake({ ...item, userId }))
+      // Only include columns that exist in the DB
+      const TODO_COLS = ['id','text','type','status','priority','list_id','space_id','due_date','due_time','snoozed_until','position','completion_count','last_completed_at','user_id','created_at','updated_at']
+      const SPACE_COLS = ['id','name','icon','color','position','user_id','created_at','updated_at']
+      const LIST_COLS = ['id','name','type','space_id','position','user_id','created_at','updated_at']
+      const colMap = { todos: TODO_COLS, spaces: SPACE_COLS, lists: LIST_COLS }
+      const cols = colMap[table] || TODO_COLS
+
+      const rows = validItems.map((item) => {
+        const snake = toSnake({ ...item, userId })
+        // Strip unknown columns
+        const clean = {}
+        for (const k of cols) { if (snake[k] !== undefined) clean[k] = snake[k] }
+        return clean
+      })
       const { error: err } = await supabase
         .from(table)
         .upsert(rows, { onConflict: 'id' })
