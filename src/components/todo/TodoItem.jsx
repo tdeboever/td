@@ -111,12 +111,13 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         transition: isCollapsing ? 'opacity 200ms, max-height 200ms, transform 200ms' : 'all 200ms',
         background: 'transparent', borderRadius: 16,
       }}
+      onClick={() => { if (!phase && !isDone) setShowActions(true) }}
       onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
       onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
     >
       {/* Checkbox — celebration on check */}
-      <button ref={checkboxRef} onClick={handleCheckbox}
+      <button ref={checkboxRef} onClick={(e) => { e.stopPropagation(); handleCheckbox() }}
         className="flex items-center justify-center flex-shrink-0 rounded-full"
         style={{
           width: 22, height: 22,
