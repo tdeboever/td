@@ -5,7 +5,7 @@ import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
 
-const VIEW_TITLES = { today: 'Today', upcoming: 'Upcoming' }
+const VIEW_TITLES = { today: 'Today', upcoming: 'Upcoming', notes: 'Notes' }
 
 export default function Header() {
   const { activeView, activeSpaceId, activeListId, inputFocused } = useUiStore()
