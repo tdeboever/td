@@ -29,8 +29,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const [showMoveMenu, setShowMoveMenu] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState('')
-  const [dragging, setDragging] = useState(null) // { x, y } start position
-  const longPressRef = useRef(null)
+  const [dragging, setDragging] = useState(null)
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
 
@@ -169,7 +168,6 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       touchStart.current = null
     }
   }
-  const handleTouchEnd = () => { if (longPressRef.current) { clearTimeout(longPressRef.current); longPressRef.current = null } }
 
   const taskRow = (
     <div

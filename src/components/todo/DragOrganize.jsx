@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useSpaceStore } from '../../stores/spaceStore'
 import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
@@ -95,7 +96,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
   if (done) return null
 
-  return (
+  return createPortal(
     <div ref={overlayRef} className="fixed inset-0 z-50" style={{ touchAction: 'none' }}>
       <div className="absolute inset-0" style={{ background: 'rgba(26,22,37,0.75)', transition: 'opacity 150ms' }} />
 
@@ -134,6 +135,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       }}>
         {todo.text}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
