@@ -1,5 +1,6 @@
 import { useSpaceStore } from '../../stores/spaceStore'
 import { useUiStore } from '../../stores/uiStore'
+import SpaceAvatar from '../common/SpaceAvatar'
 
 export default function SpaceRow() {
   const spaces = useSpaceStore((s) => s.spaces)
@@ -24,7 +25,7 @@ export default function SpaceRow() {
               boxShadow: active ? '0 2px 10px rgba(167,139,250,0.2)' : 'none',
               transition: 'all 150ms',
             }}>
-            {s.icon} {s.name}
+            <SpaceAvatar space={s} size={20} /> {s.name}
           </button>
         )
       })}

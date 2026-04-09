@@ -9,7 +9,10 @@ const loadSpaces = () => storage.get(STORAGE_KEY) || []
 export const useSpaceStore = create((set, get) => ({
   spaces: loadSpaces(),
 
-  addSpace: (name, icon = '📁', color = '#ff7b54', userId = null) => {
+  addSpace: (name, icon = null, color = null, userId = null) => {
+    const PALETTE = ['#ff7b54', '#f472b6', '#60a5fa', '#4ade80', '#fbbf24', '#a78bfa']
+    if (!color) color = PALETTE[get().spaces.length % PALETTE.length]
+    if (!icon) icon = name.charAt(0).toUpperCase()
     const space = {
       id: uid(),
       name,

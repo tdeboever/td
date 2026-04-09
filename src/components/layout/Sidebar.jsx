@@ -3,6 +3,7 @@ import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
 import { useAuth } from '../../hooks/useAuth'
+import SpaceAvatar from '../common/SpaceAvatar'
 import { useState } from 'react'
 
 const SMART_VIEWS = [
@@ -61,7 +62,7 @@ export default function Sidebar() {
               <div key={space.id}>
                 <button onClick={() => navigate('space', { spaceId: space.id })} className="w-full flex items-center gap-4 text-left transition-colors"
                   style={{ height: 48, padding: '0 20px', fontSize: 15, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}`, color: a ? 'var(--accent-lavender)' : 'var(--text-primary)', fontWeight: a ? 600 : 400 }}>
-                  <span className="w-5 text-center">{space.icon}</span>
+                  <SpaceAvatar space={space} size={24} />
                   <span className="flex-1">{space.name}</span>
                   {sc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{sc}</span>}
                 </button>
