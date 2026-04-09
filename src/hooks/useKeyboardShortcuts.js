@@ -10,10 +10,9 @@ export function useKeyboardShortcuts() {
       const tag = e.target.tagName
       if (tag === 'INPUT' || tag === 'TEXTAREA') return
 
-      // 1/2/3 = switch views
-      if (e.key === '1') { e.preventDefault(); useUiStore.getState().setView('inbox') }
-      if (e.key === '2') { e.preventDefault(); useUiStore.getState().setView('today') }
-      if (e.key === '3') { e.preventDefault(); useUiStore.getState().setView('upcoming') }
+      // 1/2 = switch views
+      if (e.key === '1') { e.preventDefault(); useUiStore.getState().setView('today') }
+      if (e.key === '2') { e.preventDefault(); useUiStore.getState().setView('upcoming') }
 
       // / = focus search (find the search button and click it)
       if (e.key === '/') {

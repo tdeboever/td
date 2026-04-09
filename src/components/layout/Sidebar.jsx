@@ -6,7 +6,6 @@ import { useAuth } from '../../hooks/useAuth'
 import { useState } from 'react'
 
 const SMART_VIEWS = [
-  { id: 'inbox', label: 'Inbox', icon: '↓' },
   { id: 'today', label: 'Today', icon: '◉' },
   { id: 'upcoming', label: 'Upcoming', icon: '→' },
 ]
@@ -30,8 +29,7 @@ export default function Sidebar() {
   const handleAddList = (e, sid) => { e.preventDefault(); if (!newListName.trim()) return; addList(newListName.trim(), sid, newListType); setNewListName(''); setNewListType('tasks'); setAddingListForSpace(null) }
 
   const smartCounts = {
-    inbox: cnt((t) => !t.listId && !t.spaceId),
-    today: (() => { const d = new Date().toDateString(); return cnt((t) => t.dueDate && new Date(t.dueDate).toDateString() === d) })(),
+    today: cnt((t) => !t.dueDate || new Date(t.dueDate).toDateString() === new Date().toDateString()),
     upcoming: (() => { const n = new Date(); n.setHours(0,0,0,0); return cnt((t) => t.dueDate && new Date(t.dueDate) > n) })(),
   }
 

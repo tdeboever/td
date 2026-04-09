@@ -5,7 +5,7 @@ import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
 
-const VIEW_TITLES = { inbox: 'Inbox', today: 'Today', upcoming: 'Upcoming' }
+const VIEW_TITLES = { today: 'Today', upcoming: 'Upcoming' }
 
 export default function Header() {
   const { activeView, activeSpaceId, activeListId, inputFocused } = useUiStore()
@@ -19,8 +19,7 @@ export default function Header() {
   let title = VIEW_TITLES[activeView] || ''
   let activeCount = 0, doneCount = 0, isChecklist = false
   const c = (fn) => { const m = todos.filter(fn); activeCount = m.filter((t) => t.status === 'active').length; doneCount = m.filter((t) => t.status === 'done' || t.status === 'ghost').length }
-  if (activeView === 'inbox') c((t) => !t.listId && !t.spaceId)
-  else if (activeView === 'today') { const d = new Date().toDateString(); c((t) => t.dueDate && new Date(t.dueDate).toDateString() === d) }
+  if (activeView === 'today') { c((t) => !t.dueDate || new Date(t.dueDate).toDateString() === new Date().toDateString()) }
   else if (activeView === 'upcoming') { const n = new Date(); n.setHours(0,0,0,0); c((t) => t.dueDate && new Date(t.dueDate) > n) }
   else if (activeView === 'space') { const s = spaces.find((s) => s.id === activeSpaceId); if (s) title = s.name; c((t) => t.spaceId === activeSpaceId) }
   else if (activeView === 'list') { const l = lists.find((l) => l.id === activeListId); if (l) { title = l.name; isChecklist = l.type === 'checklist' }; c((t) => t.listId === activeListId) }

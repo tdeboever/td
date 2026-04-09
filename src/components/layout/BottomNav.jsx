@@ -1,7 +1,6 @@
 import { useUiStore } from '../../stores/uiStore'
 
 const TABS = [
-  { id: 'inbox', label: 'Inbox', icon: '↓' },
   { id: 'today', label: 'Today', icon: '◉' },
   { id: 'upcoming', label: 'Upcoming', icon: '→' },
   { id: 'spaces', label: 'Spaces', icon: '◫' },

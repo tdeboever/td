@@ -2,7 +2,7 @@ import { create } from 'zustand'
 
 export const useUiStore = create((set, get) => ({
   // Navigation
-  activeView: 'inbox', // 'inbox' | 'today' | 'upcoming' | 'space' | 'list'
+  activeView: 'today', // 'today' | 'upcoming' | 'space' | 'list'
   activeSpaceId: null,
   activeListId: null,
 

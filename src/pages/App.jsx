@@ -20,71 +20,44 @@ function useVisibleTodos() {
   }, [todos])
 }
 
-function InboxView() {
-  const visible = useVisibleTodos()
-  const todos = useMemo(
-    () => visible.filter((t) => !t.listId && !t.spaceId),
-    [visible]
-  )
-  return (
-    <TodoList
-      todos={todos}
-
-      emptyTitle="Nothing here yet"
-      emptySubtitle="Capture a thought — tap below"
-    />
-  )
-}
-
+// Today = due today + unscheduled (no date = available now)
 function TodayView() {
   const visible = useVisibleTodos()
   const todos = useMemo(
-    () => visible.filter((t) => t.status === 'active' && isToday(t.dueDate)),
+    () => visible.filter((t) => !t.dueDate || isToday(t.dueDate)),
     [visible]
   )
   return (
-    <TodoList
-      todos={todos}
-
-      emptyTitle="Today is clear"
-      emptySubtitle="Nothing on the schedule — enjoy it"
-    />
+    <TodoList todos={todos}
+      emptyTitle="All clear"
+      emptySubtitle="Nothing to do — enjoy it" />
   )
 }
 
+// Upcoming = future dates only
 function UpcomingView() {
   const visible = useVisibleTodos()
   const todos = useMemo(
-    () =>
-      visible
-        .filter((t) => t.status === 'active' && isFuture(t.dueDate) && !isToday(t.dueDate))
-        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
+    () => visible
+      .filter((t) => t.status === 'active' && isFuture(t.dueDate) && !isToday(t.dueDate))
+      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
     [visible]
   )
   return (
-    <TodoList
-      todos={todos}
-
+    <TodoList todos={todos}
       emptyTitle="Horizon is clear"
-      emptySubtitle="Future tasks will show up here"
-    />
+      emptySubtitle="Future tasks will show up here" />
   )
 }
 
 function SpaceView() {
   const activeSpaceId = useUiStore((s) => s.activeSpaceId)
   const visible = useVisibleTodos()
-  const todos = useMemo(
-    () => visible.filter((t) => t.spaceId === activeSpaceId),
-    [visible, activeSpaceId]
-  )
+  const todos = useMemo(() => visible.filter((t) => t.spaceId === activeSpaceId), [visible, activeSpaceId])
   return (
-    <TodoList
-      todos={todos}
-
+    <TodoList todos={todos}
       emptyTitle="No tasks in this space"
-      emptySubtitle="Add a task below"
-    />
+      emptySubtitle="Add a task below" />
   )
 }
 
@@ -92,26 +65,16 @@ function ListView() {
   const activeListId = useUiStore((s) => s.activeListId)
   const lists = useListStore((s) => s.lists)
   const visible = useVisibleTodos()
-  const todos = useMemo(
-    () => visible.filter((t) => t.listId === activeListId),
-    [visible, activeListId]
-  )
+  const todos = useMemo(() => visible.filter((t) => t.listId === activeListId), [visible, activeListId])
   const list = lists.find((l) => l.id === activeListId)
-  const isChecklist = list?.type === 'checklist'
-
   return (
-    <TodoList
-      todos={todos}
-      isChecklist={isChecklist}
-
+    <TodoList todos={todos} isChecklist={list?.type === 'checklist'}
       emptyTitle={`No items in ${list?.name || 'this list'}`}
-      emptySubtitle="Add one below"
-    />
+      emptySubtitle="Add one below" />
   )
 }
 
 const VIEWS = {
-  inbox: InboxView,
   today: TodayView,
   upcoming: UpcomingView,
   space: SpaceView,
@@ -120,7 +83,7 @@ const VIEWS = {
 
 function AppContent() {
   const activeView = useUiStore((s) => s.activeView)
-  const ViewComponent = VIEWS[activeView] || InboxView
+  const ViewComponent = VIEWS[activeView] || TodayView
   useKeyboardShortcuts()
   useNotifications()
 
@@ -133,26 +96,18 @@ function AppContent() {
 
 export default function App() {
   const { user, loading, signIn } = useAuth()
-
-  // Sync when user is authenticated
   useSync(user?.id ?? null)
 
-  // If Supabase isn't configured, skip auth — run local-only
-  if (!isSupabaseConfigured()) {
-    return <AppContent />
-  }
+  if (!isSupabaseConfigured()) return <AppContent />
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-bg">
-        <div className="text-text-dim text-sm">Loading...</div>
+      <div className="h-full flex items-center justify-center" style={{ background: 'var(--bg-deep)' }}>
+        <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Loading...</div>
       </div>
     )
   }
 
-  if (!user) {
-    return <Login onSignIn={signIn} />
-  }
-
+  if (!user) return <Login onSignIn={signIn} />
   return <AppContent />
 }
