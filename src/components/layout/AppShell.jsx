@@ -12,7 +12,7 @@ import OfflineIndicator from '../common/OfflineIndicator'
 import { useUiStore } from '../../stores/uiStore'
 import { useSwipe } from '../../hooks/useSwipe'
 
-const VIEW_ORDER = ['today', 'upcoming']
+const VIEW_ORDER = ['today', 'upcoming', 'notes']
 
 export default function AppShell({ children }) {
   const { inputFocused, activeView, setView } = useUiStore()

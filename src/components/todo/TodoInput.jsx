@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 import { useSwipe } from '../../hooks/useSwipe'
@@ -9,6 +9,8 @@ export default function TodoInput() {
   const addTodo = useTodoStore((s) => s.addTodo)
   const { activeView, activeSpaceId, activeListId, setInputFocused } = useUiStore()
   const [text, setText] = useState('')
+  const [mode, setMode] = useState(activeView === 'notes' ? 'note' : 'task')
+  useEffect(() => { setMode(activeView === 'notes' ? 'note' : 'task') }, [activeView])
   const [priority, setPriority] = useState(0)
   const [dueDate, setDueDate] = useState(null)
   const [dueTime, setDueTime] = useState(null)
@@ -29,7 +31,7 @@ export default function TodoInput() {
     if (navigator.vibrate) navigator.vibrate(8)
     setSending(true)
     setTimeout(() => {
-      addTodo(text.trim(), { listId: effectiveListId, spaceId: effectiveSpaceId, priority, dueDate, dueTime })
+      addTodo(text.trim(), { type: mode, listId: mode === 'note' ? null : effectiveListId, spaceId: mode === 'note' ? null : effectiveSpaceId, priority: mode === 'note' ? 0 : priority, dueDate: mode === 'note' ? null : dueDate, dueTime: mode === 'note' ? null : dueTime })
       setText(''); setPriority(0); setDueDate(null); setDueTime(null)
       setSending(false)
       // Keep focused for rapid entry — re-focus the input
@@ -55,7 +57,7 @@ export default function TodoInput() {
         </div>
       )}
 
-      {focused && (
+      {focused && mode === 'task' && (
         <div className="animate-slide-down" style={{ marginBottom: 12 }}>
           <ChipBar spaceId={effectiveSpaceId} listId={effectiveListId} dueDate={dueDate} dueTime={dueTime} onSpaceChange={setSpaceId} onListChange={setListId} onDueDateChange={setDueDate} onDueTimeChange={setDueTime} />
         </div>
@@ -69,18 +71,20 @@ export default function TodoInput() {
           : '0 0 0 1px var(--border-visible), 0 1px 2px rgba(0,0,0,0.15)',
         transition: 'all 250ms cubic-bezier(0.4,0,0.2,1)',
       }}>
-        <span style={{
-          fontSize: 14, color: sending ? 'var(--accent-mint)' : 'var(--accent-coral)',
-          transition: 'all 300ms cubic-bezier(0.16,1,0.3,1)',
-          transform: focused && !hasText ? 'scale(1.15) rotate(45deg)' : 'scale(1)',
-          display: 'inline-block',
-        }}>{sending ? '✓' : focused ? '◆' : '◇'}</span>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setMode(mode === 'task' ? 'note' : 'task')}
+          style={{
+            fontSize: 14,
+            color: sending ? 'var(--accent-mint)' : mode === 'note' ? 'var(--accent-lavender)' : 'var(--accent-coral)',
+            transition: 'all 300ms cubic-bezier(0.16,1,0.3,1)',
+            transform: focused && !hasText && mode === 'task' ? 'scale(1.15) rotate(45deg)' : 'scale(1)',
+            display: 'inline-block',
+          }}>{sending ? '✓' : mode === 'note' ? '✎' : focused ? '◆' : '◇'}</button>
 
         <div className="flex-1 relative" style={{ minHeight: 20 }}>
           <input ref={inputRef} type="search" value={text}
             onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown}
             onFocus={() => setFocused(true)} onBlur={handleBlur}
-            placeholder="What needs doing?" autoComplete="off" enterKeyHint="done"
+            placeholder={mode === 'note' ? 'Capture a thought...' : 'What needs doing?'} autoComplete="off" enterKeyHint="done"
             className="w-full bg-transparent"
             style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text-primary)', outline: 'none', border: 'none', boxShadow: 'none', WebkitAppearance: 'none', ...(sending ? { transform: 'translateY(-20px)', opacity: 0, transition: 'all 200ms' } : {}) }}
           />

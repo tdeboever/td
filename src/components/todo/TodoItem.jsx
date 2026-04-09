@@ -119,6 +119,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
           {!isDone && <button onClick={handleLater} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Later</button>}
           {!isDone && <button onClick={handleTomorrow} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Tmrw</button>}
           {spaces.length > 0 && <button onClick={() => setShowMoveMenu(!showMoveMenu)} style={{ fontSize: 13, color: 'var(--accent-lavender)' }}>Move</button>}
+          <button onClick={() => { updateTodo(todo.id, { type: 'note' }); setShowActions(false); showUndo('Made a note', () => updateTodo(todo.id, { type: 'task' })) }} style={{ fontSize: 13, color: 'var(--accent-sky)' }}>Note</button>
           <button onClick={() => { deleteTodo(todo.id); setShowActions(false) }} style={{ fontSize: 13, color: 'var(--color-danger)', opacity: 0.6 }}>Delete</button>
           <button onClick={() => { setShowActions(false); setShowMoveMenu(false) }} style={{ fontSize: 13, color: 'var(--text-ghost)', marginLeft: 'auto' }}>✕</button>
         </div>
