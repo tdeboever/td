@@ -64,7 +64,9 @@ export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChan
       onListChange?.(null)
     } else {
       onSpaceChange(id)
-      onListChange?.(null)
+      // Auto-assign if space has exactly one list
+      const spLists = lists.filter((l) => l.spaceId === id)
+      onListChange?.(spLists.length === 1 ? spLists[0].id : null)
     }
   }
 
@@ -106,8 +108,8 @@ export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChan
         </div>
       )}
 
-      {/* Lists within selected space */}
-      {spaceLists.length > 0 && (
+      {/* Lists within selected space — only show if more than one */}
+      {spaceLists.length > 1 && (
         <div style={{ display: 'flex', gap: 6 }} className="animate-slide-down">
           {spaceLists.map((l) => (
             <Opt key={l.id} active={listId === l.id} small onClick={() => onListChange?.(listId === l.id ? null : l.id)}>

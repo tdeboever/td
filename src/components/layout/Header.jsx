@@ -16,13 +16,17 @@ export default function Header() {
   const showUndo = useUiStore((s) => s.showUndo)
 
   const [showSearch, setShowSearch] = useState(false)
-  let title = VIEW_TITLES[activeView] || ''
-  let activeCount = 0, doneCount = 0, isChecklist = false
+  let title = VIEW_TITLES[activeView] || 'Today'
+  let activeCount = 0, doneCount = 0
   const c = (fn) => { const m = todos.filter(fn); activeCount = m.filter((t) => t.status === 'active').length; doneCount = m.filter((t) => t.status === 'done' || t.status === 'ghost').length }
-  if (activeView === 'today') { c((t) => !t.dueDate || new Date(t.dueDate).toDateString() === new Date().toDateString()) }
-  else if (activeView === 'upcoming') { const n = new Date(); n.setHours(0,0,0,0); c((t) => t.dueDate && new Date(t.dueDate) > n) }
-  else if (activeView === 'space') { const s = spaces.find((s) => s.id === activeSpaceId); if (s) title = s.name; c((t) => t.spaceId === activeSpaceId) }
-  else if (activeView === 'list') { const l = lists.find((l) => l.id === activeListId); if (l) { title = l.name; isChecklist = l.type === 'checklist' }; c((t) => t.listId === activeListId) }
+
+  // Count based on view + active filter
+  let filterFn = (t) => true
+  if (activeListId) filterFn = (t) => t.listId === activeListId
+  else if (activeSpaceId) filterFn = (t) => t.spaceId === activeSpaceId
+
+  if (activeView === 'today') c((t) => filterFn(t) && (!t.dueDate || new Date(t.dueDate).toDateString() === new Date().toDateString()))
+  else if (activeView === 'upcoming') { const n = new Date(); n.setHours(0,0,0,0); c((t) => filterFn(t) && t.dueDate && new Date(t.dueDate) > n) }
 
   if (inputFocused) {
     return (
@@ -45,9 +49,6 @@ export default function Header() {
               {activeCount > 0 && doneCount > 0 && <span style={{ opacity: 0.3, margin: '0 3px' }}>·</span>}
               {doneCount > 0 && <span style={{ color: 'var(--text-ghost)' }}>{doneCount} done</span>}
             </span>
-          )}
-          {isChecklist && doneCount > 0 && (
-            <button onClick={() => { resetList(activeListId); showUndo('List reset', () => {}) }} style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Reset</button>
           )}
         </div>
       </div>

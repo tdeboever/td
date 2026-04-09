@@ -2,9 +2,9 @@ import { create } from 'zustand'
 
 export const useUiStore = create((set, get) => ({
   // Navigation
-  activeView: 'today', // 'today' | 'upcoming' | 'space' | 'list'
-  activeSpaceId: null,
-  activeListId: null,
+  activeView: 'today', // 'today' | 'upcoming'
+  activeSpaceId: null,  // filter — null means show all
+  activeListId: null,   // filter — null means show all in space
 
   // Sidebar
   sidebarOpen: false,

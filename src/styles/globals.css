@@ -88,6 +88,7 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+  overscroll-behavior-x: none;
 }
 
 ::selection { background: var(--accent-coral); color: var(--bg-deep); }

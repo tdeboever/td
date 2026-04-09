@@ -12,70 +12,47 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useNotifications } from '../hooks/useNotifications'
 import Login from './Login'
 
-function useVisibleTodos() {
-  const todos = useTodoStore((s) => s.todos)
-  return todos
-}
-
-// Today = due today + unscheduled (no date = available now)
+// Today = due today + unscheduled, optionally filtered by space/list
 function TodayView() {
-  const visible = useVisibleTodos()
-  const todos = useMemo(
-    () => visible.filter((t) => !t.dueDate || isToday(t.dueDate)),
-    [visible]
-  )
+  const todos = useTodoStore((s) => s.todos)
+  const { activeSpaceId, activeListId } = useUiStore()
+
+  const filtered = useMemo(() => {
+    let t = todos.filter((t) => !t.dueDate || isToday(t.dueDate))
+    if (activeListId) t = t.filter((t) => t.listId === activeListId)
+    else if (activeSpaceId) t = t.filter((t) => t.spaceId === activeSpaceId)
+    return t
+  }, [todos, activeSpaceId, activeListId])
+
   return (
-    <TodoList todos={todos}
+    <TodoList todos={filtered}
       emptyTitle="All clear"
       emptySubtitle="Nothing to do — enjoy it" />
   )
 }
 
-// Upcoming = future dates only
+// Upcoming = future dates, optionally filtered by space/list
 function UpcomingView() {
-  const visible = useVisibleTodos()
-  const todos = useMemo(
-    () => visible
-      .filter((t) => t.status === 'active' && isFuture(t.dueDate) && !isToday(t.dueDate))
-      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
-    [visible]
-  )
+  const todos = useTodoStore((s) => s.todos)
+  const { activeSpaceId, activeListId } = useUiStore()
+
+  const filtered = useMemo(() => {
+    let t = todos.filter((t) => t.status === 'active' && isFuture(t.dueDate) && !isToday(t.dueDate))
+    if (activeListId) t = t.filter((t) => t.listId === activeListId)
+    else if (activeSpaceId) t = t.filter((t) => t.spaceId === activeSpaceId)
+    return t.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+  }, [todos, activeSpaceId, activeListId])
+
   return (
-    <TodoList todos={todos}
+    <TodoList todos={filtered}
       emptyTitle="Horizon is clear"
       emptySubtitle="Future tasks will show up here" />
-  )
-}
-
-function SpaceView() {
-  const activeSpaceId = useUiStore((s) => s.activeSpaceId)
-  const visible = useVisibleTodos()
-  const todos = useMemo(() => visible.filter((t) => t.spaceId === activeSpaceId), [visible, activeSpaceId])
-  return (
-    <TodoList todos={todos}
-      emptyTitle="No tasks in this space"
-      emptySubtitle="Add a task below" />
-  )
-}
-
-function ListView() {
-  const activeListId = useUiStore((s) => s.activeListId)
-  const lists = useListStore((s) => s.lists)
-  const visible = useVisibleTodos()
-  const todos = useMemo(() => visible.filter((t) => t.listId === activeListId), [visible, activeListId])
-  const list = lists.find((l) => l.id === activeListId)
-  return (
-    <TodoList todos={todos} isChecklist={list?.type === 'checklist'}
-      emptyTitle={`No items in ${list?.name || 'this list'}`}
-      emptySubtitle="Add one below" />
   )
 }
 
 const VIEWS = {
   today: TodayView,
   upcoming: UpcomingView,
-  space: SpaceView,
-  list: ListView,
 }
 
 function AppContent() {
