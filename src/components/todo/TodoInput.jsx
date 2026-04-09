@@ -30,8 +30,10 @@ export default function TodoInput() {
     setSending(true)
     setTimeout(() => {
       addTodo(text.trim(), { listId: effectiveListId, spaceId: effectiveSpaceId, priority, dueDate, dueTime })
-      setText(''); setPriority(0); setDueDate(null); setDueTime(null); setSpaceId(null); setListId(null)
-      setSending(false); setFocused(false); inputRef.current?.blur()
+      setText(''); setPriority(0); setDueDate(null); setDueTime(null)
+      setSending(false)
+      // Keep focused for rapid entry — re-focus the input
+      inputRef.current?.focus()
     }, 250)
   }, [text, sending, effectiveListId, effectiveSpaceId, priority, dueDate, addTodo])
 
