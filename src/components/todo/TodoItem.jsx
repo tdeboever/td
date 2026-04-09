@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react'
 import { emitExplosion } from './ParticleCanvas'
 import { useTodoStore } from '../../stores/todoStore'
+import { useSpaceStore } from '../../stores/spaceStore'
+import SpaceAvatar from '../common/SpaceAvatar'
 import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, getSnoozeLaterToday, getSnoozeTomorrow } from '../../lib/utils'
 
@@ -19,7 +21,10 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const showUndo = useUiStore((s) => s.showUndo)
   const spawnBall = useUiStore((s) => s.spawnBall)
   const activeView = useUiStore((s) => s.activeView)
+  const spaces = useSpaceStore((s) => s.spaces)
+  const updateTodo = useTodoStore((s) => s.updateTodo)
   const [showActions, setShowActions] = useState(false)
+  const [showMoveMenu, setShowMoveMenu] = useState(false)
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
 
@@ -57,11 +62,35 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         boxShadow: '0 0 0 1px var(--border-subtle)',
       }}>
         <p style={{ fontSize: 12, color: 'var(--text-ghost)', marginBottom: 10 }} className="truncate">{todo.text}</p>
+
+        {/* Move to space */}
+        {showMoveMenu ? (
+          <div className="animate-slide-down" style={{ marginBottom: 10 }}>
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Move to</p>
+            <div className="flex gap-2 flex-wrap">
+              {todo.spaceId && (
+                <button onClick={() => { updateTodo(todo.id, { spaceId: null, listId: null }); setShowActions(false); showUndo('Moved to Today', () => updateTodo(todo.id, { spaceId: todo.spaceId })) }}
+                  style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--text-secondary)' }}>
+                  No space
+                </button>
+              )}
+              {spaces.filter((s) => s.id !== todo.spaceId).map((s) => (
+                <button key={s.id} onClick={() => { updateTodo(todo.id, { spaceId: s.id }); setShowActions(false); showUndo(`Moved to ${s.name}`, () => updateTodo(todo.id, { spaceId: todo.spaceId })) }}
+                  className="flex items-center gap-2"
+                  style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--text-secondary)' }}>
+                  <SpaceAvatar space={s} size={16} /> {s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         <div className="flex gap-5">
-          {!isDone && <button onClick={() => handleSnooze(getSnoozeLaterToday())} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Later today</button>}
-          {!isDone && <button onClick={() => handleSnooze(getSnoozeTomorrow())} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Tomorrow</button>}
+          {!isDone && <button onClick={() => handleSnooze(getSnoozeLaterToday())} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Later</button>}
+          {!isDone && <button onClick={() => handleSnooze(getSnoozeTomorrow())} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Tmrw</button>}
+          {spaces.length > 0 && <button onClick={() => setShowMoveMenu(!showMoveMenu)} style={{ fontSize: 13, color: 'var(--accent-lavender)' }}>Move</button>}
           <button onClick={() => { deleteTodo(todo.id); setShowActions(false) }} style={{ fontSize: 13, color: 'var(--color-danger)', opacity: 0.6 }}>Delete</button>
-          <button onClick={() => setShowActions(false)} style={{ fontSize: 13, color: 'var(--text-ghost)', marginLeft: 'auto' }}>Cancel</button>
+          <button onClick={() => { setShowActions(false); setShowMoveMenu(false) }} style={{ fontSize: 13, color: 'var(--text-ghost)', marginLeft: 'auto' }}>✕</button>
         </div>
       </div>
     )
