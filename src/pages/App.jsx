@@ -14,10 +14,7 @@ import Login from './Login'
 
 function useVisibleTodos() {
   const todos = useTodoStore((s) => s.todos)
-  return useMemo(() => {
-    const now = new Date().toISOString()
-    return todos.filter((t) => !t.snoozedUntil || t.snoozedUntil <= now)
-  }, [todos])
+  return todos
 }
 
 // Today = due today + unscheduled (no date = available now)

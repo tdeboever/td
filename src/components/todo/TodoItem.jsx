@@ -4,7 +4,7 @@ import { useTodoStore } from '../../stores/todoStore'
 import { useSpaceStore } from '../../stores/spaceStore'
 import SpaceAvatar from '../common/SpaceAvatar'
 import { useUiStore } from '../../stores/uiStore'
-import { formatRelativeDate, getSnoozeLaterToday, getSnoozeTomorrow } from '../../lib/utils'
+import { formatRelativeDate, toLocalDateStr } from '../../lib/utils'
 
 const DOTS = {
   1: { bg: 'radial-gradient(circle at 35% 35%, #ff8a8a, #ff6b6b)', shadow: '0 0 8px rgba(255,107,107,0.5)' },
@@ -16,7 +16,6 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const completeTodo = useTodoStore((s) => s.completeTodo)
   const uncompleteTodo = useTodoStore((s) => s.uncompleteTodo)
   const ghostTodo = useTodoStore((s) => s.ghostTodo)
-  const snoozeTodo = useTodoStore((s) => s.snoozeTodo)
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
   const showUndo = useUiStore((s) => s.showUndo)
   const spawnBall = useUiStore((s) => s.spawnBall)
@@ -52,7 +51,26 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   }
 
   const handleCheckbox = () => isDone ? uncompleteTodo(todo.id) : handleComplete()
-  const handleSnooze = (until) => { snoozeTodo(todo.id, until); setShowActions(false); showUndo('Snoozed', () => snoozeTodo(todo.id, null)) }
+
+  const handleLater = () => {
+    const now = new Date()
+    const laterHour = Math.min(now.getHours() + 3, 21)
+    const time = `${String(laterHour).padStart(2, '0')}:00`
+    const oldDate = todo.dueDate
+    const oldTime = todo.dueTime
+    updateTodo(todo.id, { dueDate: toLocalDateStr(now), dueTime: time })
+    setShowActions(false)
+    showUndo(`Set to ${time}`, () => updateTodo(todo.id, { dueDate: oldDate, dueTime: oldTime }))
+  }
+
+  const handleTomorrow = () => {
+    const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1)
+    const oldDate = todo.dueDate
+    const oldTime = todo.dueTime
+    updateTodo(todo.id, { dueDate: toLocalDateStr(tmrw), dueTime: null })
+    setShowActions(false)
+    showUndo('Moved to tomorrow', () => updateTodo(todo.id, { dueDate: oldDate, dueTime: oldTime }))
+  }
 
   if (showActions) {
     return (
@@ -86,8 +104,8 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         ) : null}
 
         <div className="flex gap-5">
-          {!isDone && <button onClick={() => handleSnooze(getSnoozeLaterToday())} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Later</button>}
-          {!isDone && <button onClick={() => handleSnooze(getSnoozeTomorrow())} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Tmrw</button>}
+          {!isDone && <button onClick={handleLater} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Later</button>}
+          {!isDone && <button onClick={handleTomorrow} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Tmrw</button>}
           {spaces.length > 0 && <button onClick={() => setShowMoveMenu(!showMoveMenu)} style={{ fontSize: 13, color: 'var(--accent-lavender)' }}>Move</button>}
           <button onClick={() => { deleteTodo(todo.id); setShowActions(false) }} style={{ fontSize: 13, color: 'var(--color-danger)', opacity: 0.6 }}>Delete</button>
           <button onClick={() => { setShowActions(false); setShowMoveMenu(false) }} style={{ fontSize: 13, color: 'var(--text-ghost)', marginLeft: 'auto' }}>✕</button>
