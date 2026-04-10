@@ -106,8 +106,8 @@ export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChan
         </div>
       )}
 
-      {/* Lists within selected space — only show if more than one */}
-      {spaceLists.length > 1 && (
+      {/* Lists within selected space */}
+      {spaceLists.length > 0 && (
         <div style={{ display: 'flex', gap: 6 }} className="animate-slide-down">
           {spaceLists.map((l) => (
             <Opt key={l.id} active={listId === l.id} small onClick={() => onListChange?.(listId === l.id ? null : l.id)}>
