@@ -23,17 +23,17 @@ function TodayView() {
   const checklistIds = useMemo(() => new Set(lists.filter(l => l.type === 'checklist').map(l => l.id)), [lists])
 
   const filtered = useMemo(() => {
+    // Start with all tasks (not notes), exclude checklist items unless viewing that list
     let t = todos.filter((t) => t.type !== 'note')
-    if (activeListId) {
-      // Viewing a specific list — show all items in that list
-      t = t.filter((t) => t.listId === activeListId)
-    } else if (activeSpaceId) {
-      // Viewing a space — exclude checklist items
-      t = t.filter((t) => t.spaceId === activeSpaceId && (!t.listId || !checklistIds.has(t.listId)))
-    } else {
-      // Unfiltered Today — ONLY items with no space and no list
-      t = t.filter((t) => !t.spaceId && !t.listId)
-    }
+    t = t.filter((t) => !t.listId || !checklistIds.has(t.listId) || t.listId === activeListId)
+
+    // Filter: due today OR no due date (actionable now)
+    t = t.filter((t) => !t.dueDate || isToday(t.dueDate))
+
+    // Space/list filter narrows further
+    if (activeListId) t = t.filter((t) => t.listId === activeListId)
+    else if (activeSpaceId) t = t.filter((t) => t.spaceId === activeSpaceId)
+
     return t
   }, [todos, activeSpaceId, activeListId, checklistIds])
 
