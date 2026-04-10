@@ -22,13 +22,14 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const [hovered, setHovered] = useState(null)
   const hoveredRef = useRef(null)
   const [nearSpaceId, setNearSpaceId] = useState(null)
+  const lockedNearRef = useRef(null)
   const [entered, setEntered] = useState(false)
   const [flying, setFlying] = useState(null)
   const [, rerender] = useState(0)
 
   const W = window.innerWidth
   const H = window.innerHeight
-  const MID = H * 0.45 // threshold — above this, you're "reaching" toward spaces
+  const MID = H * 0.6 // threshold — above this, you're "reaching" toward spaces
 
   const act = (label, data) => () => {
     const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
@@ -48,7 +49,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   // BOTTOM: default actions OR lists for the near space
   const nearSpace = spaces.find(s => `sp-${s.id}` === nearSpaceId)
   const spaceLists = nearSpace ? allLists.filter(l => l.spaceId === nearSpace.id) : []
-  const showingLists = spaceLists.length > 0 && py.current < MID
+  const showingLists = spaceLists.length > 0 && (py.current < MID || lockedNearRef.current)
 
   const actionZones = [
     { id: 'later', label: 'Later', r: 35, color: '#60a5fa', icon: '⏰',
@@ -96,15 +97,17 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       }
       px.current = t.clientX; py.current = t.clientY
 
-      // Detect nearest space when in upper half
+      // Detect nearest space when in upper region
       if (py.current < MID) {
         let nearest = null, nearD = 200
         for (const z of spaceZones) {
           const d = Math.abs(px.current - z.x)
           if (d < nearD) { nearest = z.id; nearD = d }
         }
+        lockedNearRef.current = nearest
         setNearSpaceId(nearest)
-      } else {
+      } else if (!lockedNearRef.current) {
+        // Only clear if we never locked in — once lists appear, they stay for the fling
         setNearSpaceId(null)
       }
 
