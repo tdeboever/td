@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import Header from './Header'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
@@ -10,28 +9,9 @@ import SpaceRow from './SpaceRow'
 import InstallPrompt from '../common/InstallPrompt'
 import OfflineIndicator from '../common/OfflineIndicator'
 import { useUiStore } from '../../stores/uiStore'
-import { useSwipe } from '../../hooks/useSwipe'
-
-const VIEW_ORDER = ['today', 'upcoming', 'notes']
 
 export default function AppShell({ children }) {
-  const { inputFocused, activeView, setView } = useUiStore()
-
-  const { toggleSidebar } = useUiStore()
-
-  const swipeToView = useCallback((direction) => {
-    const idx = VIEW_ORDER.indexOf(activeView)
-    if (idx === -1) return
-    const next = idx + direction
-    // Swipe right past Today → open spaces sidebar
-    if (next < 0) { toggleSidebar(); return }
-    if (next >= 0 && next < VIEW_ORDER.length) setView(VIEW_ORDER[next])
-  }, [activeView, setView, toggleSidebar])
-
-  const swipeHandlers = useSwipe({
-    onSwipeLeft: () => swipeToView(1),
-    onSwipeRight: () => swipeToView(-1),
-  })
+  const inputFocused = useUiStore((s) => s.inputFocused)
 
   return (
     <div className="h-full flex justify-center">
@@ -40,12 +20,12 @@ export default function AppShell({ children }) {
         <Sidebar />
         <Header />
         <SpaceRow />
-        <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar" {...swipeHandlers}>
+        <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
           {children}
         </main>
         <div style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           <TodoInput />
-          {!inputFocused && <BottomNav />}
+          <BottomNav hidden={inputFocused} />
         </div>
         <UndoToast />
         <FallenBall />

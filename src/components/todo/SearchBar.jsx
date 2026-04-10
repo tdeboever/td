@@ -1,12 +1,25 @@
 import { useState, useRef, useMemo } from 'react'
 import { useTodoStore } from '../../stores/todoStore'
+import { useSpaceStore } from '../../stores/spaceStore'
+import { useListStore } from '../../stores/listStore'
 import { useUiStore } from '../../stores/uiStore'
 
 export default function SearchBar({ onClose }) {
   const [query, setQuery] = useState('')
   const inputRef = useRef(null)
   const todos = useTodoStore((s) => s.todos)
+  const spaces = useSpaceStore((s) => s.spaces)
+  const lists = useListStore((s) => s.lists)
   const setView = useUiStore((s) => s.setView)
+
+  const handleTap = (todo) => {
+    if (todo.listId) {
+      setView('list', { spaceId: todo.spaceId, listId: todo.listId })
+    } else if (todo.spaceId) {
+      useUiStore.setState({ activeSpaceId: todo.spaceId, activeListId: null })
+    }
+    onClose()
+  }
 
   const results = useMemo(() => {
     if (!query.trim() || query.length < 2) return []
@@ -44,24 +57,31 @@ export default function SearchBar({ onClose }) {
           {query.length >= 2 && results.length === 0 && (
             <p style={{ textAlign: 'center', color: 'var(--text-ghost)', fontSize: 14, marginTop: 40 }}>No tasks found</p>
           )}
-          {results.map((todo) => (
-            <div key={todo.id} style={{
-              padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)',
-              display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <span style={{
-                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                background: todo.status === 'done' ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'var(--border-visible)',
-              }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{
-                  fontSize: 14, fontWeight: 500, color: todo.status === 'done' ? 'var(--text-done)' : 'var(--text-primary)',
-                  textDecoration: todo.status === 'done' ? 'line-through' : 'none',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>{todo.text}</p>
-              </div>
-            </div>
-          ))}
+          {results.map((todo) => {
+            const space = todo.spaceId ? spaces.find(s => s.id === todo.spaceId) : null
+            const list = todo.listId ? lists.find(l => l.id === todo.listId) : null
+            const loc = [space?.name, list?.name].filter(Boolean).join(' › ')
+            return (
+              <button key={todo.id} onClick={() => handleTap(todo)} className="w-full text-left" style={{
+                padding: '12px 16px', borderBottom: '1px solid var(--border-subtle)',
+                display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                <span style={{
+                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                  background: todo.status === 'done' ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : (space?.color || 'var(--border-visible)'),
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontSize: 14, fontWeight: 500, color: todo.status === 'done' ? 'var(--text-done)' : 'var(--text-primary)',
+                    textDecoration: todo.status === 'done' ? 'line-through' : 'none',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{todo.text}</p>
+                  {loc && <p style={{ fontSize: 11, color: 'var(--text-ghost)', marginTop: 2 }}>{loc}</p>}
+                </div>
+                <span style={{ fontSize: 14, color: 'var(--text-ghost)' }}>›</span>
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
