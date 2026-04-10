@@ -43,7 +43,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
     x: spacePad * (i + 1), y: 90, r: 40,
     icon: <SpaceAvatar space={s} size={28} />,
-    action: act(`→ ${s.name}`, { spaceId: s.id }),
+    action: act(`→ ${s.name}`, { spaceId: s.id, listId: null }),
   }))
 
   // BOTTOM: default actions OR lists for the near space
