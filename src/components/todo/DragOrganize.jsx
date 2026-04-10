@@ -5,7 +5,6 @@ import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 import { toLocalDateStr } from '../../lib/utils'
-import { emitExplosion } from './ParticleCanvas'
 import SpaceAvatar from '../common/SpaceAvatar'
 
 export default function DragOrganize({ todo, startPos, onDone }) {
@@ -118,8 +117,6 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       setFlying({ x: z.x, y: z.y })
       if (navigator.vibrate) navigator.vibrate(8)
       setTimeout(() => {
-        emitExplosion(z.x, z.y, 600, 14)
-        if (navigator.vibrate) navigator.vibrate(12)
         z.action()
         setTimeout(onDone, 100)
       }, 280)

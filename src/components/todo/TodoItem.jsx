@@ -7,6 +7,7 @@ import SpaceAvatar from '../common/SpaceAvatar'
 import { useUiStore } from '../../stores/uiStore'
 import { formatRelativeDate, toLocalDateStr } from '../../lib/utils'
 import DragOrganize from './DragOrganize'
+import TaskEditSheet from './TaskEditSheet'
 
 const DOTS = {
   1: { bg: 'radial-gradient(circle at 35% 35%, #ff8a8a, #ff6b6b)', shadow: '0 0 8px rgba(255,107,107,0.5)' },
@@ -30,6 +31,8 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState('')
   const [dragging, setDragging] = useState(null)
+  const [showEditSheet, setShowEditSheet] = useState(false)
+  const longPressTimer = useRef(null)
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
 
@@ -151,22 +154,31 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const handleTouchStart2 = (e) => {
     if (isDone || phase) return
     const t = e.touches[0]
-    touchStart.current = { x: t.clientX, y: t.clientY, scrolled: false }
+    touchStart.current = { x: t.clientX, y: t.clientY }
+    // Long-press timer for edit sheet
+    longPressTimer.current = setTimeout(() => {
+      if (navigator.vibrate) navigator.vibrate(15)
+      setShowEditSheet(true)
+      touchStart.current = null
+    }, 500)
   }
   const handleTouchMove2 = (e) => {
     if (!touchStart.current || dragging) return
     const t = e.touches[0]
     const dx = Math.abs(t.clientX - touchStart.current.x)
     const dy = Math.abs(t.clientY - touchStart.current.y)
-    // If vertical > horizontal, it's a scroll — ignore
+    // Any movement cancels long-press
+    if (dx > 8 || dy > 8) { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }
+    // If vertical > horizontal, it's a scroll
     if (dy > 15 && dy > dx) { touchStart.current = null; return }
-    // Any horizontal movement > 10px — stop it from reaching the view swipe
+    // Horizontal movement — stop view swipe
     if (dx > 10 && dx > dy) { e.stopPropagation() }
     // Horizontal threshold to detach into drag mode
     if (dx > 30 && dx > dy * 1.5) {
       if (navigator.vibrate) navigator.vibrate(8)
       setDragging({ x: t.clientX, y: t.clientY })
       touchStart.current = null
+      if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
     }
   }
 
@@ -184,7 +196,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         transition: isCollapsing ? 'opacity 200ms, max-height 200ms, transform 200ms' : 'all 200ms',
         background: 'transparent', borderRadius: 16,
       }}
-      onTouchEnd={() => { touchStart.current = null }}
+      onTouchEnd={() => { touchStart.current = null; if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
       onClick={() => { if (!phase && !isDone && !dragging) { setEditText(todo.text); setEditing(true) } }}
       onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
@@ -256,9 +268,8 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   return (
     <>
       {taskRow}
-      {dragging && (
-        <DragOrganize todo={todo} startPos={dragging} onDone={() => setDragging(null)} />
-      )}
+      {dragging && <DragOrganize todo={todo} startPos={dragging} onDone={() => setDragging(null)} />}
+      {showEditSheet && <TaskEditSheet todo={todo} onClose={() => setShowEditSheet(false)} />}
     </>
   )
 }
