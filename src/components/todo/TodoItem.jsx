@@ -186,7 +186,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       onTouchEnd={() => { touchStart.current = null }}
       onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
-      onContextMenu={(e) => { e.preventDefault(); setShowActions(true) }}
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* Checkbox — celebration on check */}
       <button ref={checkboxRef} onClick={(e) => { e.stopPropagation(); handleCheckbox() }}

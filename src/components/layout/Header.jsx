@@ -17,6 +17,14 @@ export default function Header() {
 
   const [showSearch, setShowSearch] = useState(false)
   let title = VIEW_TITLES[activeView] || 'Today'
+  // Override title when filtering by space/list
+  if (activeListId) {
+    const list = lists.find(l => l.id === activeListId)
+    if (list) title = list.name
+  } else if (activeSpaceId) {
+    const space = spaces.find(s => s.id === activeSpaceId)
+    if (space) title = space.name
+  }
   let activeCount = 0, doneCount = 0
   const c = (fn) => { const m = todos.filter(fn); activeCount = m.filter((t) => t.status === 'active').length; doneCount = m.filter((t) => t.status === 'done' || t.status === 'ghost').length }
 

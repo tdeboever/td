@@ -21,6 +21,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const velY = useRef(0)
   const lastT = useRef({ x: startPos.x, y: startPos.y, t: Date.now() })
   const [hovered, setHovered] = useState(null)
+  const hoveredRef = useRef(null)
   const [nearSpace, setNearSpace] = useState(null)
   const [entered, setEntered] = useState(false)
   const [flying, setFlying] = useState(null) // { x, y, action } — pill flies to target
@@ -90,6 +91,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       px.current = t.clientX; py.current = t.clientY
 
       const hit = hitTest(px.current, py.current)
+      hoveredRef.current = hit
       setHovered(hit)
 
       // Track which space we're near (for showing lists)
@@ -114,9 +116,10 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
     const end = () => {
       if (flying) return
-      // Direct drop on target
-      if (hovered) {
-        const z = allZones.find(z => z.id === hovered)
+      // Direct drop on target — use ref for current value
+      const currentHovered = hoveredRef.current
+      if (currentHovered) {
+        const z = allZones.find(z => z.id === currentHovered)
         if (z) { flyTo(z); return }
       }
       // Fling — generous radius

@@ -18,9 +18,17 @@ function TodayView() {
   const { activeSpaceId, activeListId } = useUiStore()
 
   const filtered = useMemo(() => {
-    let t = todos.filter((t) => t.type !== 'note' && (!t.dueDate || isToday(t.dueDate)))
-    if (activeListId) t = t.filter((t) => t.listId === activeListId)
-    else if (activeSpaceId) t = t.filter((t) => t.spaceId === activeSpaceId)
+    let t = todos.filter((t) => t.type !== 'note')
+    if (activeListId) {
+      // Viewing a specific list — show all items in that list
+      t = t.filter((t) => t.listId === activeListId)
+    } else if (activeSpaceId) {
+      // Viewing a space — show all items in that space
+      t = t.filter((t) => t.spaceId === activeSpaceId)
+    } else {
+      // Unfiltered Today — show items WITHOUT a space + items due today from any space
+      t = t.filter((t) => !t.spaceId || isToday(t.dueDate))
+    }
     return t
   }, [todos, activeSpaceId, activeListId])
 
