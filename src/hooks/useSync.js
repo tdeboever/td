@@ -141,7 +141,18 @@ export function useSync(userId) {
 
       // Remote is source of truth — use remote items, add any local-only items (not yet synced)
       const localItems = storeMap[table].getState()
-      const remoteConverted = (remoteItems || []).map(toCamel)
+      const localMap = new Map(localItems.map(i => [i.id, i]))
+      const remoteConverted = (remoteItems || []).map(item => {
+        const camel = toCamel(item)
+        // Preserve local-only fields that may not exist in DB yet (e.g. subtasks)
+        if (table === 'todos') {
+          const local = localMap.get(camel.id)
+          if (local?.subtasks?.length > 0 && !camel.subtasks?.length) {
+            camel.subtasks = local.subtasks
+          }
+        }
+        return camel
+      })
       const remoteIds = new Set(remoteConverted.map(i => i.id))
       // Keep local items that don't exist remotely yet (new, unsynced)
       const localOnly = localItems.filter(i => !remoteIds.has(i.id) && isUUID(i.id))
