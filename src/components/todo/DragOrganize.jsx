@@ -56,11 +56,13 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       action: act('Later', (() => { const n=new Date(); return { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` } })()) },
     { id: 'tmrw', label: 'Tmrw', r: 35, color: '#a78bfa', icon: '📅',
       action: act('Tomorrow', (() => { const d=new Date(); d.setDate(d.getDate()+1); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
-    { id: 'note', label: 'Note', r: 35, color: '#60a5fa', icon: '✎',
-      action: act('→ Note', { type: 'note' }) },
-    { id: 'del', label: 'Delete', r: 35, color: '#ff6b6b', icon: '✕',
-      action: () => deleteTodo(todo.id) },
+    { id: 'week', label: 'Next wk', r: 35, color: '#34d399', icon: '📆',
+      action: act('Next week', (() => { const d=new Date(); d.setDate(d.getDate()+7); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
   ]
+
+  const deleteZone = { id: 'del', label: 'Delete', r: 35, color: '#ff6b6b', icon: '✕',
+    x: W - 50, y: H / 2,
+    action: () => deleteTodo(todo.id) }
 
   const listZones = spaceLists.map((l, i) => ({
     id: `list-${l.id}`, label: l.name, r: 35, color: nearSpace?.color || '#a78bfa',
@@ -72,7 +74,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const bottomPad = W / (bottomItems.length + 1)
   const bottomZones = bottomItems.map((z, i) => ({ ...z, x: bottomPad * (i + 1), y: H - 130 }))
 
-  const allZones = [...spaceZones, ...bottomZones]
+  const allZones = [...spaceZones, ...bottomZones, deleteZone]
   const allZonesRef = useRef(allZones)
   allZonesRef.current = allZones
 
@@ -195,6 +197,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
       {/* Bottom: actions OR lists (swap based on proximity to spaces) */}
       {bottomZones.map((z, i) => renderZone(z, showingLists ? 0 : 60 + i * 30))}
+
+      {/* Delete — right side */}
+      {renderZone(deleteZone, 80)}
 
       {/* Pill */}
       <div style={{
