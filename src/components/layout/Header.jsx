@@ -17,10 +17,14 @@ export default function Header() {
 
   const [showSearch, setShowSearch] = useState(false)
   let title = VIEW_TITLES[activeView] || 'Today'
-  // Override title when filtering by space/list
+  let breadcrumb = null
   if (activeListId) {
     const list = lists.find(l => l.id === activeListId)
-    if (list) title = list.name
+    if (list) {
+      title = list.name
+      const space = spaces.find(s => s.id === list.spaceId)
+      if (space) breadcrumb = space.name
+    }
   } else if (activeSpaceId) {
     const space = spaces.find(s => s.id === activeSpaceId)
     if (space) title = space.name
@@ -47,6 +51,12 @@ export default function Header() {
 
   return (
     <header className="safe-top" style={{ padding: '16px 20px 12px' }}>
+      {breadcrumb && (
+        <button onClick={() => useUiStore.setState({ activeListId: null })}
+          style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
+          ← {breadcrumb}
+        </button>
+      )}
       <div className="flex items-baseline justify-between">
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
         <div className="flex items-center gap-4">

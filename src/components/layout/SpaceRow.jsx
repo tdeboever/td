@@ -10,6 +10,8 @@ export default function SpaceRow() {
   const setState = useUiStore.setState
 
   if (spaces.length === 0) return null
+  // Hide when viewing a specific list — header shows the name
+  if (activeListId) return null
 
   const handleSpaceTap = (id) => {
     if (activeSpaceId === id) {
