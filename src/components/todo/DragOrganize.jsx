@@ -1,7 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useSpaceStore } from '../../stores/spaceStore'
-import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 import { toLocalDateStr } from '../../lib/utils'
@@ -9,7 +8,6 @@ import SpaceAvatar from '../common/SpaceAvatar'
 
 export default function DragOrganize({ todo, startPos, onDone }) {
   const spaces = useSpaceStore((s) => s.spaces)
-  const allLists = useListStore((s) => s.lists)
   const updateTodo = useTodoStore((s) => s.updateTodo)
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
   const showUndo = useUiStore((s) => s.showUndo)
@@ -21,14 +19,12 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const touchHistory = useRef([])
   const [hovered, setHovered] = useState(null)
   const hoveredRef = useRef(null)
-  const [nearSpace, setNearSpace] = useState(null)
   const [entered, setEntered] = useState(false)
   const [flying, setFlying] = useState(null)
   const [, rerender] = useState(0)
 
   const W = window.innerWidth
   const H = window.innerHeight
-  const midY = H * 0.45
 
   const act = (label, data) => () => {
     const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
@@ -36,45 +32,28 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     showUndo(label, () => updateTodo(todo.id, old))
   }
 
-  // LEFT: Spaces stacked vertically
-  const spaceZones = spaces.map((s, i) => ({
-    id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
-    x: 50, y: midY - ((spaces.length - 1) * 35) + i * 70,
-    r: 35, spaceId: s.id,
-    icon: <SpaceAvatar space={s} size={26} />,
-    action: act(`→ ${s.name}`, { spaceId: s.id, listId: null }),
-  }))
-
-  // Lists expand RIGHT from hovered space
-  const hoveredSpaceId = nearSpace
-  const spaceLists = hoveredSpaceId ? allLists.filter(l => l.spaceId === hoveredSpaceId) : []
-  const spaceZone = spaceZones.find(z => z.spaceId === hoveredSpaceId)
-  const listZones = spaceLists.map((l, i) => ({
-    id: `list-${l.id}`, label: l.name, color: spaceZone?.color || '#a78bfa',
-    x: 130 + i * 80, y: spaceZone?.y || midY,
-    r: 30,
-    action: act(`→ ${l.name}`, { spaceId: hoveredSpaceId, listId: l.id }),
-  }))
-
-  // RIGHT: Time options
-  const timeZones = [
-    { id: 'later', label: 'Later', x: W - 50, y: midY - 35, r: 30, color: '#60a5fa', icon: '⏰',
+  // TOP: Spaces spread horizontally
+  const pad = W / (spaces.length + 1)
+  const zones = [
+    ...spaces.map((s, i) => ({
+      id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
+      x: pad * (i + 1), y: 90, r: 40,
+      icon: <SpaceAvatar space={s} size={28} />,
+      action: act(`→ ${s.name}`, { spaceId: s.id }),
+    })),
+    // BOTTOM: actions spread horizontally
+    { id: 'later', label: 'Later', x: W * 0.15, y: H - 130, r: 35, color: '#60a5fa', icon: '⏰',
       action: act('Later', (() => { const n=new Date(); return { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` } })()) },
-    { id: 'tmrw', label: 'Tmrw', x: W - 50, y: midY + 35, r: 30, color: '#a78bfa', icon: '📅',
+    { id: 'tmrw', label: 'Tmrw', x: W * 0.38, y: H - 130, r: 35, color: '#a78bfa', icon: '📅',
       action: act('Tomorrow', (() => { const d=new Date(); d.setDate(d.getDate()+1); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
-  ]
-
-  // BOTTOM: Note + Delete
-  const bottomZones = [
-    { id: 'note', label: 'Note', x: W * 0.35, y: H - 140, r: 30, color: '#60a5fa', icon: '✎',
+    { id: 'note', label: 'Note', x: W * 0.62, y: H - 130, r: 35, color: '#60a5fa', icon: '✎',
       action: act('→ Note', { type: 'note' }) },
-    { id: 'del', label: 'Delete', x: W * 0.65, y: H - 140, r: 30, color: '#ff6b6b', icon: '✕',
+    { id: 'del', label: 'Delete', x: W * 0.85, y: H - 130, r: 35, color: '#ff6b6b', icon: '✕',
       action: () => deleteTodo(todo.id) },
   ]
 
-  const allZones = [...spaceZones, ...listZones, ...timeZones, ...bottomZones]
-  const allZonesRef = useRef(allZones)
-  allZonesRef.current = allZones
+  const allZonesRef = useRef(zones)
+  allZonesRef.current = zones
 
   const hitTest = (x, y, extra = 0) => {
     for (const z of allZonesRef.current) {
@@ -99,12 +78,6 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       const hit = hitTest(px.current, py.current)
       hoveredRef.current = hit
       setHovered(hit)
-      // Track nearest space for list expansion
-      let near = null
-      for (const z of spaceZones) {
-        if (Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2) < 90) { near = z.spaceId; break }
-      }
-      setNearSpace(near)
       rerender(n => n + 1)
     }
 
@@ -145,7 +118,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         transition: `all 350ms cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
       }}>
         <div style={{
-          width: h ? 56 : 48, height: h ? 56 : 48,
+          width: h ? 58 : 50, height: h ? 58 : 50,
           borderRadius: h ? 18 : 14,
           background: h ? z.color : 'rgba(255,255,255,0.07)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -170,17 +143,11 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         opacity: entered ? 1 : 0, transition: 'opacity 200ms',
       }} />
 
-      {/* Left: Spaces */}
-      {spaceZones.map((z, i) => renderZone(z, i * 40))}
+      {/* Spaces — top */}
+      {zones.filter(z => z.id.startsWith('sp-')).map((z, i) => renderZone(z, i * 40))}
 
-      {/* Lists expanding right from hovered space */}
-      {listZones.map((z, i) => renderZone(z, 100 + i * 30))}
-
-      {/* Right: Time */}
-      {timeZones.map((z, i) => renderZone(z, 60 + i * 30))}
-
-      {/* Bottom: Note + Delete */}
-      {bottomZones.map((z, i) => renderZone(z, 80 + i * 30))}
+      {/* Actions — bottom */}
+      {zones.filter(z => !z.id.startsWith('sp-')).map((z, i) => renderZone(z, 60 + i * 30))}
 
       {/* Pill */}
       <div style={{
@@ -189,25 +156,17 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         top: (flying ? flying.y : py.current) - 18,
         width: 140, padding: '9px 14px', borderRadius: 20,
         background: hovered
-          ? (allZonesRef.current.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
+          ? (zones.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
           : 'linear-gradient(135deg, #f472b6, #ff7b54)',
         boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
         color: 'white', fontSize: 12, fontWeight: 600,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
         transform: (hovered || flying) ? 'scale(0.8)' : 'scale(1)',
         opacity: flying ? 0.5 : 1,
-        transition: flying ? 'all 280ms cubic-bezier(0.16,1,0.3,1)' : 'transform 200ms cubic-bezier(0.16,1,0.3,1), background 150ms',
+        transition: flying ? 'all 280ms cubic-bezier(0.16,1,0.3,1)' : 'transform 200ms, background 150ms',
       }}>
         {todo.text}
       </div>
-
-      {/* Labels */}
-      {entered && (
-        <>
-          <div style={{ position: 'absolute', left: 20, top: midY - ((spaces.length-1)*35) - 50, fontSize: 10, fontWeight: 600, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Where</div>
-          <div style={{ position: 'absolute', right: 20, top: midY - 65, fontSize: 10, fontWeight: 600, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.1em', textAlign: 'right' }}>When</div>
-        </>
-      )}
     </div>,
     document.body
   )
