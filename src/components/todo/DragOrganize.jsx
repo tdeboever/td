@@ -29,7 +29,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
   const W = window.innerWidth
   const H = window.innerHeight
-  const MID = H * 0.6 // threshold — above this, you're "reaching" toward spaces
+  const RISE = 60 // px upward from start to trigger list reveal
 
   const act = (label, data) => () => {
     const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
@@ -49,7 +49,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   // BOTTOM: default actions OR lists for the near space
   const nearSpace = spaces.find(s => `sp-${s.id}` === nearSpaceId)
   const spaceLists = nearSpace ? allLists.filter(l => l.spaceId === nearSpace.id) : []
-  const showingLists = spaceLists.length > 0 && (py.current < MID || lockedNearRef.current)
+  const showingLists = spaceLists.length > 0 && !!lockedNearRef.current
 
   const actionZones = [
     { id: 'later', label: 'Later', r: 35, color: '#60a5fa', icon: '⏰',
@@ -97,8 +97,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       }
       px.current = t.clientX; py.current = t.clientY
 
-      // Detect nearest space when in upper region
-      if (py.current < MID) {
+      // Detect nearest space only when finger has moved UP from start
+      const risen = startPos.y - py.current > RISE
+      if (risen) {
         let nearest = null, nearD = 200
         for (const z of spaceZones) {
           const d = Math.abs(px.current - z.x)
@@ -107,7 +108,6 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         lockedNearRef.current = nearest
         setNearSpaceId(nearest)
       } else if (!lockedNearRef.current) {
-        // Only clear if we never locked in — once lists appear, they stay for the fling
         setNearSpaceId(null)
       }
 
