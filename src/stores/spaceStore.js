@@ -48,7 +48,11 @@ export const useSpaceStore = create((set, get) => ({
       storage.set(STORAGE_KEY, spaces)
       return { spaces }
     })
-    if (isSupabaseConfigured()) supabase.from('spaces').delete().eq('id', id)
+    if (isSupabaseConfigured()) {
+      supabase.from('spaces').delete().eq('id', id).then(({ error }) => {
+        if (error) console.error('Delete space error:', error.message)
+      })
+    }
   },
 
   reorderSpaces: (spaces) => {

@@ -85,10 +85,10 @@ export function useSync(userId) {
   }
 
   // Push all local data to Supabase (upsert)
+  const isUUID = (s) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
+
   const pushAll = useCallback(async () => {
     if (!isSupabaseConfigured() || !userId) return
-
-    const isUUID = (s) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)
 
     for (const table of TABLES) {
       const localItems = storeMap[table].getState()
@@ -139,9 +139,13 @@ export function useSync(userId) {
         continue
       }
 
+      // Remote is source of truth — use remote items, add any local-only items (not yet synced)
       const localItems = storeMap[table].getState()
-      const merged = reconcile(localItems, (remoteItems || []).map(toCamel))
-      storeMap[table].setState(merged)
+      const remoteConverted = (remoteItems || []).map(toCamel)
+      const remoteIds = new Set(remoteConverted.map(i => i.id))
+      // Keep local items that don't exist remotely yet (new, unsynced)
+      const localOnly = localItems.filter(i => !remoteIds.has(i.id) && isUUID(i.id))
+      storeMap[table].setState([...remoteConverted, ...localOnly])
     }
   }, [userId])
 

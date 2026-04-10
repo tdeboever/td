@@ -120,7 +120,11 @@ export const useTodoStore = create((set, get) => ({
       storage.set(STORAGE_KEY, todos)
       return { todos }
     })
-    if (isSupabaseConfigured()) supabase.from('todos').delete().eq('id', id)
+    if (isSupabaseConfigured()) {
+      supabase.from('todos').delete().eq('id', id).then(({ error }) => {
+        if (error) console.error('Delete todo error:', error.message)
+      })
+    }
   },
 
   reorderTodos: (orderedIds) => {

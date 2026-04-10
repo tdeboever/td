@@ -45,7 +45,11 @@ export const useListStore = create((set, get) => ({
       storage.set(STORAGE_KEY, lists)
       return { lists }
     })
-    if (isSupabaseConfigured()) supabase.from('lists').delete().eq('id', id)
+    if (isSupabaseConfigured()) {
+      supabase.from('lists').delete().eq('id', id).then(({ error }) => {
+        if (error) console.error('Delete list error:', error.message)
+      })
+    }
   },
 
   getSpaceLists: (spaceId) => {
