@@ -20,6 +20,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const velX = useRef(0)
   const velY = useRef(0)
   const lastT = useRef({ x: startPos.x, y: startPos.y, t: Date.now() })
+  const touchHistory = useRef([]) // sliding window for velocity
   const [hovered, setHovered] = useState(null)
   const hoveredRef = useRef(null)
   const [nearSpace, setNearSpace] = useState(null)
@@ -71,6 +72,8 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   }))
 
   const allZones = [...zones, ...listZones]
+  const allZonesRef = useRef(allZones)
+  allZonesRef.current = allZones
 
   const hitTest = (x, y, radius = 0) => {
     for (const z of allZones) {
@@ -85,10 +88,18 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     const move = (e) => {
       e.preventDefault()
       const t = e.touches[0]; const now = Date.now()
-      const dt = (now - lastT.current.t) / 1000
-      if (dt > 0) { velX.current = (t.clientX - lastT.current.x) / dt; velY.current = (t.clientY - lastT.current.y) / dt }
       lastT.current = { x: t.clientX, y: t.clientY, t: now }
       px.current = t.clientX; py.current = t.clientY
+      // Track sliding window for velocity (last 5 points)
+      touchHistory.current.push({ x: t.clientX, y: t.clientY, t: now })
+      if (touchHistory.current.length > 5) touchHistory.current.shift()
+      // Calculate velocity from window
+      const h = touchHistory.current
+      if (h.length >= 2) {
+        const first = h[0], last = h[h.length - 1]
+        const dt = (last.t - first.t) / 1000
+        if (dt > 0) { velX.current = (last.x - first.x) / dt; velY.current = (last.y - first.y) / dt }
+      }
 
       const hit = hitTest(px.current, py.current)
       hoveredRef.current = hit
@@ -116,22 +127,33 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
     const end = () => {
       if (flying) return
-      // Direct drop on target — use ref for current value
+      const az = allZonesRef.current
+      const findZone = (id) => az.find(z => z.id === id)
+
+      // Direct drop on target
       const currentHovered = hoveredRef.current
       if (currentHovered) {
-        const z = allZones.find(z => z.id === currentHovered)
+        const z = findZone(currentHovered)
         if (z) { flyTo(z); return }
       }
-      // Fling — generous radius
+
+      // Fling — very forgiving: low speed threshold, big projection, wide hit area
       const speed = Math.sqrt(velX.current ** 2 + velY.current ** 2)
-      if (speed > 300) {
-        const pX = px.current + velX.current * 0.35, pY = py.current + velY.current * 0.35
-        const hit = hitTest(pX, pY, 40)
-        if (hit) {
-          const z = allZones.find(z => z.id === hit)
-          if (z) { flyTo(z); return }
+      if (speed > 150) {
+        // Project position forward based on velocity
+        const projTime = Math.min(0.5, 200 / Math.max(speed, 1))
+        const pX = px.current + velX.current * projTime
+        const pY = py.current + velY.current * projTime
+
+        // Find nearest zone to projected position
+        let best = null, bestDist = 150 // very generous radius
+        for (const z of az) {
+          const d = Math.sqrt((pX - z.x) ** 2 + (pY - z.y) ** 2)
+          if (d < bestDist) { best = z; bestDist = d }
         }
+        if (best) { flyTo(best); return }
       }
+
       onDone()
     }
     document.addEventListener('touchmove', move, { passive: false })
