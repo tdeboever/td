@@ -64,6 +64,10 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     x: W - 50, y: H / 2,
     action: () => deleteTodo(todo.id) }
 
+  const noteZone = { id: 'note', label: 'Note', r: 35, color: '#60a5fa', icon: '✎',
+    x: 50, y: H / 2,
+    action: act('→ Note', { type: 'note' }) }
+
   const listZones = spaceLists.map((l, i) => ({
     id: `list-${l.id}`, label: l.name, r: 35, color: nearSpace?.color || '#a78bfa',
     action: act(`→ ${l.name}`, { spaceId: nearSpace.id, listId: l.id }),
@@ -74,7 +78,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const bottomPad = W / (bottomItems.length + 1)
   const bottomZones = bottomItems.map((z, i) => ({ ...z, x: bottomPad * (i + 1), y: H - 130 }))
 
-  const allZones = [...spaceZones, ...bottomZones, deleteZone]
+  const allZones = [...spaceZones, ...bottomZones, deleteZone, noteZone]
   const allZonesRef = useRef(allZones)
   allZonesRef.current = allZones
 
@@ -198,7 +202,8 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       {/* Bottom: actions OR lists (swap based on proximity to spaces) */}
       {bottomZones.map((z, i) => renderZone(z, showingLists ? 0 : 60 + i * 30))}
 
-      {/* Delete — right side */}
+      {/* Side zones */}
+      {renderZone(noteZone, 70)}
       {renderZone(deleteZone, 80)}
 
       {/* Pill */}
