@@ -24,10 +24,10 @@ export default function Sidebar() {
   const [newListName, setNewListName] = useState('')
   const [newListType, setNewListType] = useState('tasks')
 
+  const swipeHandlers = useSwipe({ onSwipeRight: closeSidebar })
   const deleteSpace = useSpaceStore((s) => s.deleteSpace)
   const deleteList = useListStore((s) => s.deleteList)
   const { user, signOut } = useAuth()
-  const swipeHandlers = useSwipe({ onSwipeRight: closeSidebar })
   const updateSpace = useSpaceStore((s) => s.updateSpace)
   const [renamingSpace, setRenamingSpace] = useState(null)
   const [renameText, setRenameText] = useState('')
@@ -117,16 +117,17 @@ export default function Sidebar() {
               style={{ fontSize: 14, color: 'var(--text-ghost)', padding: '8px 0' }} />
           </form>
 
-          {/* Sign out */}
-          {user && (
-            <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: 12, color: 'var(--text-ghost)', marginBottom: 8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user.email}
-              </div>
-              <button onClick={signOut} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Sign out</button>
-            </div>
-          )}
         </nav>
+
+        {/* Sign out — fixed at bottom */}
+        {user && (
+          <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border-subtle)' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-ghost)', marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user.email}
+            </div>
+            <button onClick={signOut} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Sign out</button>
+          </div>
+        )}
       </aside>
     </>
   )
