@@ -48,20 +48,7 @@ export default function Sidebar() {
       <aside {...swipeHandlers} className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col transform transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ width: '80%', maxWidth: 320, background: 'rgba(26,22,37,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRight: '1px solid var(--border-subtle)' }}>
         <nav className="flex-1 overflow-y-auto no-scrollbar" style={{ paddingTop: 48 }}>
-          <p style={{ padding: '0 20px 12px', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)' }}>Views</p>
-          {SMART_VIEWS.map((v) => {
-            const a = activeView === v.id
-            return (
-              <button key={v.id} onClick={() => navigate(v.id)} className="w-full flex items-center gap-4 text-left transition-colors"
-                style={{ height: 48, padding: '0 20px', fontSize: 15, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}`, color: a ? 'var(--accent-lavender)' : 'var(--text-primary)', fontWeight: a ? 600 : 400 }}>
-                <span className="w-5 text-center" style={{ opacity: 0.6 }}>{v.icon}</span>
-                <span className="flex-1">{v.label}</span>
-                {smartCounts[v.id] > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{smartCounts[v.id]}</span>}
-              </button>
-            )
-          })}
-          <div style={{ height: 2, margin: '20px 20px', borderRadius: 1, opacity: 0.5, background: 'linear-gradient(90deg, transparent, #ff7b54 15%, #f472b6 40%, #a78bfa 65%, #60a5fa 85%, transparent)' }} />
-          <p style={{ padding: '0 20px 12px', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-secondary)' }}>Spaces</p>
+          <p style={{ padding: '0 20px 16px', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Spaces</p>
           {spaces.map((space) => {
             const spaceLists = lists.filter((l) => l.spaceId === space.id).sort((a, b) => a.position - b.position)
             const a = activeView === 'space' && activeSpaceId === space.id
