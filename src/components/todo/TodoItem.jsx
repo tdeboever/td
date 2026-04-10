@@ -154,7 +154,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   // Horizontal swipe detection — detaches task into drag mode
   const touchStart = useRef(null)
   const handleTouchStart2 = (e) => {
-    if (isDone || phase) return
+    if (isDone || phase || editing) return
     const t = e.touches[0]
     touchStart.current = { x: t.clientX, y: t.clientY }
     // Long-press timer for edit sheet
