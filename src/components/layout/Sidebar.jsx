@@ -31,6 +31,8 @@ export default function Sidebar() {
   const updateSpace = useSpaceStore((s) => s.updateSpace)
   const [renamingSpace, setRenamingSpace] = useState(null)
   const [renameText, setRenameText] = useState('')
+  const [renameColor, setRenameColor] = useState(null)
+  const SPACE_COLORS = ['#ff7b54', '#f472b6', '#60a5fa', '#4ade80', '#fbbf24', '#a78bfa', '#f87171', '#38bdf8', '#c084fc', '#fb923c']
   const cnt = (fn) => todos.filter((t) => t.status === 'active' && fn(t)).length
   const navigate = (v, o) => { setView(v, o); closeSidebar() }
   const selectSpace = (id) => { useUiStore.setState({ activeSpaceId: id, activeListId: null }); closeSidebar() }
@@ -57,16 +59,29 @@ export default function Sidebar() {
               <div key={space.id}>
                 <div className="flex items-center" style={{ height: 48, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}` }}>
                   {renamingSpace === space.id ? (
-                    <form onSubmit={(e) => { e.preventDefault(); if (renameText.trim()) { updateSpace(space.id, { name: renameText.trim() }); setRenamingSpace(null) } }}
-                      style={{ flex: 1, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 12, height: '100%' }}>
-                      <SpaceAvatar space={{ ...space, name: renameText || space.name }} size={24} />
-                      <input autoFocus value={renameText} onChange={(e) => setRenameText(e.target.value)}
-                        onBlur={() => { if (renameText.trim()) updateSpace(space.id, { name: renameText.trim() }); setRenamingSpace(null) }}
-                        className="flex-1 bg-transparent outline-none" style={{ fontSize: 15, color: 'var(--text-primary)' }} />
-                    </form>
+                    <div style={{ flex: 1, padding: '0 20px' }}>
+                      <form onSubmit={(e) => { e.preventDefault(); if (renameText.trim()) { updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) } }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, height: 48 }}>
+                        <SpaceAvatar space={{ ...space, name: renameText || space.name, color: renameColor }} size={24} />
+                        <input autoFocus value={renameText} onChange={(e) => setRenameText(e.target.value)}
+                          onBlur={() => { if (renameText.trim()) updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) }}
+                          className="flex-1 bg-transparent outline-none" style={{ fontSize: 15, color: 'var(--text-primary)' }} />
+                      </form>
+                      <div className="flex gap-2 pb-2" style={{ paddingLeft: 36 }}>
+                        {SPACE_COLORS.map(c => (
+                          <button key={c} onMouseDown={(e) => e.preventDefault()} onClick={() => setRenameColor(c)}
+                            style={{
+                              width: 20, height: 20, borderRadius: '50%', background: c, flexShrink: 0,
+                              border: renameColor === c ? '2px solid white' : '2px solid transparent',
+                              boxShadow: renameColor === c ? `0 0 8px ${c}60` : 'none',
+                              transition: 'all 150ms',
+                            }} />
+                        ))}
+                      </div>
+                    </div>
                   ) : (
                     <button onClick={() => selectSpace(space.id)}
-                      onDoubleClick={() => { setRenamingSpace(space.id); setRenameText(space.name) }}
+                      onDoubleClick={() => { setRenamingSpace(space.id); setRenameText(space.name); setRenameColor(space.color || '#a78bfa') }}
                       className="flex-1 flex items-center gap-4 text-left transition-colors"
                       style={{ padding: '0 0 0 20px', fontSize: 15, color: a ? 'var(--accent-lavender)' : 'var(--text-primary)', fontWeight: a ? 600 : 400, height: '100%' }}>
                       <SpaceAvatar space={space} size={24} />
