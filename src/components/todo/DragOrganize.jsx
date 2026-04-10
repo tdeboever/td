@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useSpaceStore } from '../../stores/spaceStore'
+import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 import { toLocalDateStr } from '../../lib/utils'
@@ -8,6 +9,7 @@ import SpaceAvatar from '../common/SpaceAvatar'
 
 export default function DragOrganize({ todo, startPos, onDone }) {
   const spaces = useSpaceStore((s) => s.spaces)
+  const allLists = useListStore((s) => s.lists)
   const updateTodo = useTodoStore((s) => s.updateTodo)
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
   const showUndo = useUiStore((s) => s.showUndo)
@@ -19,12 +21,14 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const touchHistory = useRef([])
   const [hovered, setHovered] = useState(null)
   const hoveredRef = useRef(null)
+  const [nearSpaceId, setNearSpaceId] = useState(null)
   const [entered, setEntered] = useState(false)
   const [flying, setFlying] = useState(null)
   const [, rerender] = useState(0)
 
   const W = window.innerWidth
   const H = window.innerHeight
+  const MID = H * 0.45 // threshold — above this, you're "reaching" toward spaces
 
   const act = (label, data) => () => {
     const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
@@ -32,28 +36,44 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     showUndo(label, () => updateTodo(todo.id, old))
   }
 
-  // TOP: Spaces spread horizontally
-  const pad = W / (spaces.length + 1)
-  const zones = [
-    ...spaces.map((s, i) => ({
-      id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
-      x: pad * (i + 1), y: 90, r: 40,
-      icon: <SpaceAvatar space={s} size={28} />,
-      action: act(`→ ${s.name}`, { spaceId: s.id }),
-    })),
-    // BOTTOM: actions spread horizontally
-    { id: 'later', label: 'Later', x: W * 0.15, y: H - 130, r: 35, color: '#60a5fa', icon: '⏰',
+  // TOP: Spaces
+  const spacePad = W / (spaces.length + 1)
+  const spaceZones = spaces.map((s, i) => ({
+    id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
+    x: spacePad * (i + 1), y: 90, r: 40,
+    icon: <SpaceAvatar space={s} size={28} />,
+    action: act(`→ ${s.name}`, { spaceId: s.id }),
+  }))
+
+  // BOTTOM: default actions OR lists for the near space
+  const nearSpace = spaces.find(s => `sp-${s.id}` === nearSpaceId)
+  const spaceLists = nearSpace ? allLists.filter(l => l.spaceId === nearSpace.id) : []
+  const showingLists = spaceLists.length > 0 && py.current < MID
+
+  const actionZones = [
+    { id: 'later', label: 'Later', r: 35, color: '#60a5fa', icon: '⏰',
       action: act('Later', (() => { const n=new Date(); return { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` } })()) },
-    { id: 'tmrw', label: 'Tmrw', x: W * 0.38, y: H - 130, r: 35, color: '#a78bfa', icon: '📅',
+    { id: 'tmrw', label: 'Tmrw', r: 35, color: '#a78bfa', icon: '📅',
       action: act('Tomorrow', (() => { const d=new Date(); d.setDate(d.getDate()+1); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
-    { id: 'note', label: 'Note', x: W * 0.62, y: H - 130, r: 35, color: '#60a5fa', icon: '✎',
+    { id: 'note', label: 'Note', r: 35, color: '#60a5fa', icon: '✎',
       action: act('→ Note', { type: 'note' }) },
-    { id: 'del', label: 'Delete', x: W * 0.85, y: H - 130, r: 35, color: '#ff6b6b', icon: '✕',
+    { id: 'del', label: 'Delete', r: 35, color: '#ff6b6b', icon: '✕',
       action: () => deleteTodo(todo.id) },
   ]
 
-  const allZonesRef = useRef(zones)
-  allZonesRef.current = zones
+  const listZones = spaceLists.map((l, i) => ({
+    id: `list-${l.id}`, label: l.name, r: 35, color: nearSpace?.color || '#a78bfa',
+    action: act(`→ ${l.name}`, { spaceId: nearSpace.id, listId: l.id }),
+  }))
+
+  // Position bottom items
+  const bottomItems = showingLists ? listZones : actionZones
+  const bottomPad = W / (bottomItems.length + 1)
+  const bottomZones = bottomItems.map((z, i) => ({ ...z, x: bottomPad * (i + 1), y: H - 130 }))
+
+  const allZones = [...spaceZones, ...bottomZones]
+  const allZonesRef = useRef(allZones)
+  allZonesRef.current = allZones
 
   const hitTest = (x, y, extra = 0) => {
     for (const z of allZonesRef.current) {
@@ -75,6 +95,19 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         if (dt > 0) { velX.current = (l.x - f.x) / dt; velY.current = (l.y - f.y) / dt }
       }
       px.current = t.clientX; py.current = t.clientY
+
+      // Detect nearest space when in upper half
+      if (py.current < MID) {
+        let nearest = null, nearD = 200
+        for (const z of spaceZones) {
+          const d = Math.abs(px.current - z.x)
+          if (d < nearD) { nearest = z.id; nearD = d }
+        }
+        setNearSpaceId(nearest)
+      } else {
+        setNearSpaceId(null)
+      }
+
       const hit = hitTest(px.current, py.current)
       hoveredRef.current = hit
       setHovered(hit)
@@ -122,14 +155,14 @@ export default function DragOrganize({ todo, startPos, onDone }) {
           borderRadius: h ? 18 : 14,
           background: h ? z.color : 'rgba(255,255,255,0.07)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 20, color: 'white',
-          boxShadow: h ? `0 0 24px ${z.color}50, 0 4px 16px rgba(0,0,0,0.3)` : '0 2px 8px rgba(0,0,0,0.2)',
+          fontSize: typeof z.icon === 'string' ? 20 : 16, color: 'white',
+          boxShadow: h ? `0 0 24px ${z.color}50` : '0 2px 8px rgba(0,0,0,0.2)',
           transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
           border: `2px solid ${h ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)'}`,
         }}>
           {typeof z.icon === 'string' ? z.icon : z.icon}
         </div>
-        <span style={{ fontSize: 9, fontWeight: 600, marginTop: 4, color: h ? '#fff' : 'var(--text-ghost)', transition: 'color 150ms' }}>{z.label}</span>
+        <span style={{ fontSize: 9, fontWeight: 600, marginTop: 4, color: h ? '#fff' : 'var(--text-ghost)', transition: 'color 150ms', whiteSpace: 'nowrap' }}>{z.label}</span>
       </div>
     )
   }
@@ -143,11 +176,22 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         opacity: entered ? 1 : 0, transition: 'opacity 200ms',
       }} />
 
-      {/* Spaces — top */}
-      {zones.filter(z => z.id.startsWith('sp-')).map((z, i) => renderZone(z, i * 40))}
+      {/* Top: Spaces */}
+      {spaceZones.map((z, i) => renderZone(z, i * 40))}
 
-      {/* Actions — bottom */}
-      {zones.filter(z => !z.id.startsWith('sp-')).map((z, i) => renderZone(z, 60 + i * 30))}
+      {/* Hint: which space's lists are showing */}
+      {showingLists && nearSpace && entered && (
+        <div className="animate-fade-in" style={{
+          position: 'absolute', left: 0, right: 0, top: H - 185,
+          textAlign: 'center', fontSize: 10, fontWeight: 600,
+          color: nearSpace.color, letterSpacing: '0.08em', textTransform: 'uppercase',
+        }}>
+          {nearSpace.name} lists
+        </div>
+      )}
+
+      {/* Bottom: actions OR lists (swap based on proximity to spaces) */}
+      {bottomZones.map((z, i) => renderZone(z, showingLists ? 0 : 60 + i * 30))}
 
       {/* Pill */}
       <div style={{
@@ -156,7 +200,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         top: (flying ? flying.y : py.current) - 18,
         width: 140, padding: '9px 14px', borderRadius: 20,
         background: hovered
-          ? (zones.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
+          ? (allZonesRef.current.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
           : 'linear-gradient(135deg, #f472b6, #ff7b54)',
         boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
         color: 'white', fontSize: 12, fontWeight: 600,
