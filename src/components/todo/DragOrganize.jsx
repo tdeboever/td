@@ -10,7 +10,7 @@ import SpaceAvatar from '../common/SpaceAvatar'
 
 export default function DragOrganize({ todo, startPos, onDone }) {
   const spaces = useSpaceStore((s) => s.spaces)
-  const lists = useListStore((s) => s.lists)
+  const allLists = useListStore((s) => s.lists)
   const updateTodo = useTodoStore((s) => s.updateTodo)
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
   const showUndo = useUiStore((s) => s.showUndo)
@@ -21,58 +21,99 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const velY = useRef(0)
   const lastT = useRef({ x: startPos.x, y: startPos.y, t: Date.now() })
   const [hovered, setHovered] = useState(null)
+  const [nearSpace, setNearSpace] = useState(null) // for showing lists
   const [entered, setEntered] = useState(false)
   const [, rerender] = useState(0)
-  const zonesRef = useRef([])
 
   const W = window.innerWidth
   const H = window.innerHeight
 
-  // Build zones from DOM positions after render
-  const registerZone = (id, el, action, color) => {
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    const existing = zonesRef.current.find(z => z.id === id)
-    const zone = { id, x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, action, color }
-    if (existing) Object.assign(existing, zone)
-    else zonesRef.current.push(zone)
+  const act = (label, data) => () => {
+    const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
+    updateTodo(todo.id, data)
+    showUndo(label, () => updateTodo(todo.id, old))
   }
 
-  const hitTest = (x, y) => {
-    for (const z of zonesRef.current) {
-      if (Math.abs(x - z.x) < z.w / 2 + 10 && Math.abs(y - z.y) < z.h / 2 + 10) return z.id
+  // Spatial layout — spread for tossing
+  const pad = W / (spaces.length + 1)
+  const zones = [
+    // Spaces — horizontal row at top
+    ...spaces.map((s, i) => ({
+      id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
+      x: pad * (i + 1), y: 100,
+      r: 40, // hit radius
+      icon: <SpaceAvatar space={s} size={30} />,
+      spaceId: s.id,
+      action: act(`→ ${s.name}`, { spaceId: s.id, listId: null }),
+    })),
+    // Actions — spread at bottom
+    { id: 'later', label: 'Later', x: W * 0.15, y: H - 130, r: 35, color: '#60a5fa', icon: '⏰',
+      action: act('Later', (() => { const n=new Date(); return { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` } })()) },
+    { id: 'tmrw', label: 'Tmrw', x: W * 0.4, y: H - 130, r: 35, color: '#a78bfa', icon: '📅',
+      action: act('Tomorrow', (() => { const d=new Date(); d.setDate(d.getDate()+1); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
+    { id: 'note', label: 'Note', x: W * 0.65, y: H - 130, r: 35, color: '#60a5fa', icon: '✎',
+      action: act('→ Note', { type: 'note' }) },
+    { id: 'del', label: 'Delete', x: W * 0.88, y: H - 130, r: 35, color: '#ff6b6b', icon: '✕',
+      action: () => deleteTodo(todo.id) },
+  ]
+
+  // Lists for hovered space — fan out below the space
+  const hoveredSpaceId = nearSpace
+  const spaceLists = hoveredSpaceId ? allLists.filter(l => l.spaceId === hoveredSpaceId) : []
+  const spaceZone = zones.find(z => z.spaceId === hoveredSpaceId)
+  const listZones = spaceLists.map((l, i) => ({
+    id: `list-${l.id}`, label: l.name, color: spaceZone?.color || '#a78bfa',
+    x: (spaceZone?.x || W/2) + (i - (spaceLists.length - 1) / 2) * 70,
+    y: 180, r: 30,
+    action: act(`→ ${l.name}`, { spaceId: hoveredSpaceId, listId: l.id }),
+  }))
+
+  const allZones = [...zones, ...listZones]
+
+  const hitTest = (x, y, radius = 0) => {
+    for (const z of allZones) {
+      const dist = Math.sqrt((x - z.x) ** 2 + (y - z.y) ** 2)
+      if (dist < (z.r || 40) + radius) return z.id
     }
     return null
   }
 
-  const triggerZone = (id) => {
-    const z = zonesRef.current.find(z => z.id === id)
-    if (!z) return
-    emitExplosion(z.x, z.y, 400, 10)
-    if (navigator.vibrate) navigator.vibrate(12)
-    z.action()
-  }
-
   useEffect(() => {
-    setTimeout(() => setEntered(true), 30)
+    setTimeout(() => setEntered(true), 20)
     const move = (e) => {
       e.preventDefault()
-      const t = e.touches[0]
-      const now = Date.now()
+      const t = e.touches[0]; const now = Date.now()
       const dt = (now - lastT.current.t) / 1000
       if (dt > 0) { velX.current = (t.clientX - lastT.current.x) / dt; velY.current = (t.clientY - lastT.current.y) / dt }
       lastT.current = { x: t.clientX, y: t.clientY, t: now }
       px.current = t.clientX; py.current = t.clientY
-      setHovered(hitTest(px.current, py.current))
+
+      const hit = hitTest(px.current, py.current)
+      setHovered(hit)
+
+      // Track which space we're near (for showing lists)
+      let near = null
+      for (const z of zones) {
+        if (z.spaceId && Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2) < 100) { near = z.spaceId; break }
+      }
+      setNearSpace(near)
+
       rerender(n => n + 1)
     }
     const end = () => {
-      if (hovered) { triggerZone(hovered); onDone(); return }
+      if (hovered) {
+        const z = allZones.find(z => z.id === hovered)
+        if (z) { emitExplosion(z.x, z.y, 500, 12); if (navigator.vibrate) navigator.vibrate(12); z.action(); onDone(); return }
+      }
+      // Fling — generous radius
       const speed = Math.sqrt(velX.current ** 2 + velY.current ** 2)
-      if (speed > 500) {
-        const pX = px.current + velX.current * 0.2, pY = py.current + velY.current * 0.2
-        const hit = hitTest(pX, pY)
-        if (hit) { triggerZone(hit); onDone(); return }
+      if (speed > 400) {
+        const pX = px.current + velX.current * 0.3, pY = py.current + velY.current * 0.3
+        const hit = hitTest(pX, pY, 30) // extra 30px radius for flings
+        if (hit) {
+          const z = allZones.find(z => z.id === hit)
+          if (z) { emitExplosion(z.x, z.y, 600, 15); if (navigator.vibrate) navigator.vibrate(15); z.action(); onDone(); return }
+        }
       }
       onDone()
     }
@@ -81,129 +122,66 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     return () => { document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end) }
   })
 
-  // Actions
-  const makeAction = (type, data) => () => {
-    const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
-    updateTodo(todo.id, data)
-    showUndo(type, () => updateTodo(todo.id, old))
+  const renderZone = (z, delay = 0) => {
+    const h = hovered === z.id
+    return (
+      <div key={z.id} className="absolute flex flex-col items-center" style={{
+        left: z.x - 32, top: z.y - 32, width: 64,
+        opacity: entered ? 1 : 0,
+        transform: entered ? 'scale(1)' : 'scale(0.4)',
+        transition: `all 350ms cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
+      }}>
+        <div style={{
+          width: h ? 60 : 52, height: h ? 60 : 52,
+          borderRadius: h ? 20 : 16,
+          background: h ? z.color : 'rgba(255,255,255,0.07)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 22, color: 'white',
+          boxShadow: h ? `0 0 30px ${z.color}60, 0 4px 20px rgba(0,0,0,0.3)` : '0 2px 8px rgba(0,0,0,0.2)',
+          transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
+          border: `2px solid ${h ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)'}`,
+        }}>
+          {typeof z.icon === 'string' ? z.icon : z.icon}
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 600, marginTop: 5, color: h ? '#fff' : 'var(--text-ghost)', transition: 'color 150ms' }}>{z.label}</span>
+      </div>
+    )
   }
 
-  const h = hovered
-
-  const overlay = (
+  return createPortal(
     <div className="fixed inset-0 z-50" style={{ touchAction: 'none', pointerEvents: 'none' }}>
-      {/* Backdrop */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(26,22,37,0.85)',
+        background: 'rgba(26,22,37,0.82)',
         backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         opacity: entered ? 1 : 0, transition: 'opacity 200ms',
       }} />
 
-      {/* === DESTINATION SHELF === */}
-      <div style={{
-        position: 'absolute', top: 60, left: 16, right: 16,
-        opacity: entered ? 1 : 0, transform: entered ? 'translateY(0)' : 'translateY(-20px)',
-        transition: 'all 350ms cubic-bezier(0.16,1,0.3,1)',
-      }}>
-        {/* Space cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {spaces.map((s) => {
-            const spaceLists = lists.filter(l => l.spaceId === s.id)
-            return (
-              <div key={s.id} style={{
-                background: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: '10px 14px',
-                boxShadow: '0 0 0 1px rgba(255,255,255,0.06)',
-              }}>
-                {/* Space header — drop target */}
-                <div ref={el => registerZone(`sp-${s.id}`, el, makeAction(`→ ${s.name}`, { spaceId: s.id, listId: null }), s.color)}
-                  className="flex items-center gap-3" style={{
-                    padding: '8px 10px', borderRadius: 12, marginBottom: spaceLists.length ? 6 : 0,
-                    background: h === `sp-${s.id}` ? (s.color || 'var(--accent-lavender)') : 'transparent',
-                    boxShadow: h === `sp-${s.id}` ? `0 0 20px ${s.color || '#a78bfa'}50` : 'none',
-                    transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
-                    transform: h === `sp-${s.id}` ? 'scale(1.02)' : 'scale(1)',
-                  }}>
-                  <SpaceAvatar space={s} size={28} />
-                  <span style={{ fontSize: 15, fontWeight: 600, color: h === `sp-${s.id}` ? 'white' : 'var(--text-primary)' }}>{s.name}</span>
-                </div>
+      {/* Space zones — top row */}
+      {zones.filter(z => z.spaceId).map((z, i) => renderZone(z, i * 40))}
 
-                {/* Lists */}
-                {spaceLists.length > 0 && (
-                  <div className="flex gap-2 flex-wrap" style={{ paddingLeft: 4 }}>
-                    {spaceLists.map(l => (
-                      <div key={l.id} ref={el => registerZone(`list-${l.id}`, el, makeAction(`→ ${l.name}`, { spaceId: s.id, listId: l.id }), s.color)}
-                        style={{
-                          padding: '6px 14px', borderRadius: 10, fontSize: 12, fontWeight: 500,
-                          background: h === `list-${l.id}` ? (s.color || 'var(--accent-lavender)') : 'rgba(255,255,255,0.04)',
-                          color: h === `list-${l.id}` ? 'white' : 'var(--text-secondary)',
-                          boxShadow: h === `list-${l.id}` ? `0 0 16px ${s.color || '#a78bfa'}40` : 'none',
-                          transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
-                          transform: h === `list-${l.id}` ? 'scale(1.05)' : 'scale(1)',
-                        }}>
-                        {l.name}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      {/* List zones — fan out below hovered space */}
+      {listZones.map((z, i) => renderZone(z, 150 + i * 30))}
 
-      {/* === ACTION BAR === */}
-      <div style={{
-        position: 'absolute', bottom: 80, left: 16, right: 16,
-        display: 'flex', gap: 8,
-        opacity: entered ? 1 : 0, transform: entered ? 'translateY(0)' : 'translateY(20px)',
-        transition: 'all 400ms cubic-bezier(0.16,1,0.3,1) 100ms',
-      }}>
-        {[
-          { id: 'later', label: 'Later', icon: '⏰', color: '#60a5fa',
-            action: makeAction('Later', (() => { const n=new Date(); return { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` } })()) },
-          { id: 'tmrw', label: 'Tmrw', icon: '📅', color: '#a78bfa',
-            action: makeAction('Tomorrow', (() => { const d=new Date(); d.setDate(d.getDate()+1); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
-          { id: 'note', label: 'Note', icon: '✎', color: '#60a5fa',
-            action: makeAction('→ Note', { type: 'note' }) },
-          { id: 'del', label: 'Delete', icon: '✕', color: '#ff6b6b',
-            action: () => deleteTodo(todo.id) },
-        ].map(a => (
-          <div key={a.id} ref={el => registerZone(a.id, el, a.action, a.color)}
-            className="flex-1 flex flex-col items-center justify-center gap-1"
-            style={{
-              height: 60, borderRadius: 14,
-              background: h === a.id ? a.color : 'rgba(255,255,255,0.06)',
-              boxShadow: h === a.id ? `0 0 20px ${a.color}50` : 'none',
-              transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
-              transform: h === a.id ? 'scale(1.05)' : 'scale(1)',
-              border: `1px solid ${h === a.id ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.04)'}`,
-            }}>
-            <span style={{ fontSize: 18 }}>{a.icon}</span>
-            <span style={{ fontSize: 9, fontWeight: 600, color: h === a.id ? 'white' : 'var(--text-ghost)' }}>{a.label}</span>
-          </div>
-        ))}
-      </div>
+      {/* Action zones — bottom */}
+      {zones.filter(z => !z.spaceId).map((z, i) => renderZone(z, 80 + i * 30))}
 
-      {/* === FLOATING PILL === */}
+      {/* Pill */}
       <div style={{
-        position: 'absolute',
-        left: px.current - 80, top: py.current - 22,
-        width: 160, padding: '10px 16px',
-        borderRadius: 22,
+        position: 'absolute', left: px.current - 75, top: py.current - 20,
+        width: 150, padding: '10px 16px', borderRadius: 22,
         background: hovered
-          ? (zonesRef.current.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
+          ? (allZones.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
           : 'linear-gradient(135deg, #f472b6, #ff7b54)',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+        boxShadow: '0 14px 44px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
         color: 'white', fontSize: 13, fontWeight: 600,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
-        transform: hovered ? 'scale(0.88)' : 'scale(1)',
-        transition: 'transform 200ms cubic-bezier(0.16,1,0.3,1), background 150ms, border-radius 150ms',
+        transform: hovered ? 'scale(0.85)' : 'scale(1)',
+        transition: 'transform 200ms cubic-bezier(0.16,1,0.3,1), background 150ms',
       }}>
         {todo.text}
       </div>
-    </div>
+    </div>,
+    document.body
   )
-
-  return createPortal(overlay, document.body)
 }
