@@ -17,12 +17,16 @@ const VIEW_ORDER = ['today', 'upcoming', 'notes']
 export default function AppShell({ children }) {
   const { inputFocused, activeView, setView } = useUiStore()
 
+  const { toggleSidebar } = useUiStore()
+
   const swipeToView = useCallback((direction) => {
     const idx = VIEW_ORDER.indexOf(activeView)
     if (idx === -1) return
     const next = idx + direction
+    // Swipe right past Today → open spaces sidebar
+    if (next < 0) { toggleSidebar(); return }
     if (next >= 0 && next < VIEW_ORDER.length) setView(VIEW_ORDER[next])
-  }, [activeView, setView])
+  }, [activeView, setView, toggleSidebar])
 
   const swipeHandlers = useSwipe({
     onSwipeLeft: () => swipeToView(1),
