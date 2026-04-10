@@ -9,11 +9,6 @@ export default function Login({ onSignIn }) {
           animationDelay: '0ms',
         }}>Whim</h1>
 
-        <p className="animate-task-enter" style={{
-          fontSize: 15, color: 'var(--text-secondary)', marginTop: 8,
-          letterSpacing: '0.02em',
-          animationDelay: '80ms',
-        }}>tasks, simplified</p>
 
         {/* Sign in button */}
         <button

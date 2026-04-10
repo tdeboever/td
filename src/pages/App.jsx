@@ -3,6 +3,7 @@ import AppShell from '../components/layout/AppShell'
 import TodoList from '../components/todo/TodoList'
 import NotesList from '../components/todo/NotesList'
 import { useTodoStore } from '../stores/todoStore'
+import { useListStore } from '../stores/listStore'
 import { useUiStore } from '../stores/uiStore'
 import { useAuth } from '../hooks/useAuth'
 import { useSync } from '../hooks/useSync'
@@ -15,7 +16,11 @@ import Login from './Login'
 // Today = tasks (not notes) due today + unscheduled, filtered by space
 function TodayView() {
   const todos = useTodoStore((s) => s.todos)
+  const lists = useListStore((s) => s.lists)
   const { activeSpaceId, activeListId } = useUiStore()
+
+  // Checklist list IDs — items in checklists only show when viewing that specific list
+  const checklistIds = useMemo(() => new Set(lists.filter(l => l.type === 'checklist').map(l => l.id)), [lists])
 
   const filtered = useMemo(() => {
     let t = todos.filter((t) => t.type !== 'note')
@@ -23,14 +28,15 @@ function TodayView() {
       // Viewing a specific list — show all items in that list
       t = t.filter((t) => t.listId === activeListId)
     } else if (activeSpaceId) {
-      // Viewing a space — show all items in that space
-      t = t.filter((t) => t.spaceId === activeSpaceId)
+      // Viewing a space — exclude checklist items
+      t = t.filter((t) => t.spaceId === activeSpaceId && (!t.listId || !checklistIds.has(t.listId)))
     } else {
-      // Unfiltered Today — show items WITHOUT a space + items due today from any space
-      t = t.filter((t) => !t.spaceId || isToday(t.dueDate))
+      // Unfiltered Today — no space items, no checklist items, + due today from anywhere
+      t = t.filter((t) => (!t.spaceId && !t.listId) || isToday(t.dueDate))
+      t = t.filter((t) => !t.listId || !checklistIds.has(t.listId) || isToday(t.dueDate))
     }
     return t
-  }, [todos, activeSpaceId, activeListId])
+  }, [todos, activeSpaceId, activeListId, checklistIds])
 
   return <TodoList todos={filtered} emptyTitle="All clear" emptySubtitle="Nothing to do — enjoy it" />
 }
