@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { storage } from '../lib/storage'
 import { uid } from '../lib/utils'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const STORAGE_KEY = 'lists'
 
@@ -44,6 +45,7 @@ export const useListStore = create((set, get) => ({
       storage.set(STORAGE_KEY, lists)
       return { lists }
     })
+    if (isSupabaseConfigured()) supabase.from('lists').delete().eq('id', id)
   },
 
   getSpaceLists: (spaceId) => {

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { storage } from '../lib/storage'
 import { uid, isToday, isFuture } from '../lib/utils'
+import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 const STORAGE_KEY = 'todos'
 
@@ -119,6 +120,7 @@ export const useTodoStore = create((set, get) => ({
       storage.set(STORAGE_KEY, todos)
       return { todos }
     })
+    if (isSupabaseConfigured()) supabase.from('todos').delete().eq('id', id)
   },
 
   reorderTodos: (orderedIds) => {
