@@ -21,8 +21,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const velY = useRef(0)
   const lastT = useRef({ x: startPos.x, y: startPos.y, t: Date.now() })
   const [hovered, setHovered] = useState(null)
-  const [nearSpace, setNearSpace] = useState(null) // for showing lists
+  const [nearSpace, setNearSpace] = useState(null)
   const [entered, setEntered] = useState(false)
+  const [flying, setFlying] = useState(null) // { x, y, action } — pill flies to target
   const [, rerender] = useState(0)
 
   const W = window.innerWidth
@@ -100,19 +101,32 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
       rerender(n => n + 1)
     }
+    const flyTo = (z) => {
+      setFlying({ x: z.x, y: z.y })
+      if (navigator.vibrate) navigator.vibrate(8)
+      setTimeout(() => {
+        emitExplosion(z.x, z.y, 600, 14)
+        if (navigator.vibrate) navigator.vibrate(12)
+        z.action()
+        setTimeout(onDone, 100)
+      }, 280)
+    }
+
     const end = () => {
+      if (flying) return
+      // Direct drop on target
       if (hovered) {
         const z = allZones.find(z => z.id === hovered)
-        if (z) { emitExplosion(z.x, z.y, 500, 12); if (navigator.vibrate) navigator.vibrate(12); z.action(); onDone(); return }
+        if (z) { flyTo(z); return }
       }
       // Fling — generous radius
       const speed = Math.sqrt(velX.current ** 2 + velY.current ** 2)
-      if (speed > 400) {
-        const pX = px.current + velX.current * 0.3, pY = py.current + velY.current * 0.3
-        const hit = hitTest(pX, pY, 30) // extra 30px radius for flings
+      if (speed > 300) {
+        const pX = px.current + velX.current * 0.35, pY = py.current + velY.current * 0.35
+        const hit = hitTest(pX, pY, 40)
         if (hit) {
           const z = allZones.find(z => z.id === hit)
-          if (z) { emitExplosion(z.x, z.y, 600, 15); if (navigator.vibrate) navigator.vibrate(15); z.action(); onDone(); return }
+          if (z) { flyTo(z); return }
         }
       }
       onDone()
@@ -166,18 +180,23 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       {/* Action zones — bottom */}
       {zones.filter(z => !z.spaceId).map((z, i) => renderZone(z, 80 + i * 30))}
 
-      {/* Pill */}
+      {/* Pill — flies to target when released */}
       <div style={{
-        position: 'absolute', left: px.current - 75, top: py.current - 20,
+        position: 'absolute',
+        left: (flying ? flying.x : px.current) - 75,
+        top: (flying ? flying.y : py.current) - 20,
         width: 150, padding: '10px 16px', borderRadius: 22,
-        background: hovered
+        background: (hovered || flying)
           ? (allZones.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
           : 'linear-gradient(135deg, #f472b6, #ff7b54)',
         boxShadow: '0 14px 44px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
         color: 'white', fontSize: 13, fontWeight: 600,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
-        transform: hovered ? 'scale(0.85)' : 'scale(1)',
-        transition: 'transform 200ms cubic-bezier(0.16,1,0.3,1), background 150ms',
+        transform: (hovered || flying) ? 'scale(0.7)' : 'scale(1)',
+        transition: flying
+          ? 'all 280ms cubic-bezier(0.16, 1, 0.3, 1)'
+          : 'transform 200ms cubic-bezier(0.16,1,0.3,1), background 150ms',
+        opacity: flying ? 0.6 : 1,
       }}>
         {todo.text}
       </div>
