@@ -8,7 +8,7 @@ import { useTodoStore } from '../../stores/todoStore'
 const VIEW_TITLES = { today: 'Today', upcoming: 'Upcoming', notes: 'Notes' }
 
 export default function Header() {
-  const { activeView, activeSpaceId, activeListId, inputFocused } = useUiStore()
+  const { activeView, activeSpaceId, activeListId, inputFocused, toggleSidebar } = useUiStore()
   const spaces = useSpaceStore((s) => s.spaces)
   const lists = useListStore((s) => s.lists)
   const todos = useTodoStore((s) => s.todos)
@@ -58,7 +58,10 @@ export default function Header() {
         </button>
       )}
       <div className="flex items-baseline justify-between">
-        <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
+        <div className="flex items-center gap-3">
+          <button onClick={toggleSidebar} style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1, marginBottom: -2 }}>◫</button>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
+        </div>
         <div className="flex items-center gap-4">
           <button data-search-trigger onClick={() => setShowSearch(true)} style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1 }}>⌕</button>
           {(activeCount > 0 || doneCount > 0) && (
