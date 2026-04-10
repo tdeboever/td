@@ -3,6 +3,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { useTodoStore } from '../stores/todoStore'
 import { useListStore } from '../stores/listStore'
 import { useSpaceStore } from '../stores/spaceStore'
+import { useUiStore } from '../stores/uiStore'
 import { storage } from '../lib/storage'
 
 const TABLES = ['todos', 'lists', 'spaces']
@@ -172,9 +173,11 @@ export function useSync(userId) {
       const now = new Date().toISOString()
       setLastSynced(now)
       storage.set(LAST_SYNC_KEY, now)
+      useUiStore.setState({ initialSynced: true })
     } catch (e) {
       console.error('Sync error:', e)
       setError(e.message)
+      useUiStore.setState({ initialSynced: true }) // still mark done so UI isn't stuck
     } finally {
       setSyncing(false)
     }

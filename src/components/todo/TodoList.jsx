@@ -3,6 +3,7 @@ import TodoItem from './TodoItem'
 import GhostItem from './GhostItem'
 import EmptyState from '../common/EmptyState'
 import { useTodoStore } from '../../stores/todoStore'
+import { useUiStore } from '../../stores/uiStore'
 
 export default function TodoList({ todos, isChecklist = false, emptyTitle, emptySubtitle }) {
   const active = todos.filter((t) => t.status === 'active')
@@ -37,6 +38,8 @@ export default function TodoList({ todos, isChecklist = false, emptyTitle, empty
     setOverIdx(null)
   }, [dragIdx, overIdx, sorted, reorderTodos])
 
+  const initialSynced = useUiStore((s) => s.initialSynced)
+  if (todos.length === 0 && !initialSynced) return null
   if (todos.length === 0) return <EmptyState title={emptyTitle} subtitle={emptySubtitle} />
 
   const showAllClear = active.length === 0 && done.length > 0

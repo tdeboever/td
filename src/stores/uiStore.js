@@ -13,6 +13,9 @@ export const useUiStore = create((set, get) => ({
   inputFocused: false,
   setInputFocused: (v) => set({ inputFocused: v }),
 
+  // Sync state — hides empty states until first sync completes
+  initialSynced: false,
+
   // Completion ball — drops from checkbox, sits at bottom, optionally play basketball
   completionBall: null, // { x, y, startTime }
   spawnBall: (x, y) => set({ completionBall: { x, y, startTime: Date.now() } }),

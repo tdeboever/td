@@ -11,6 +11,7 @@ import { isSupabaseConfigured } from '../lib/supabase'
 import { isToday, isFuture } from '../lib/utils'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useNotifications } from '../hooks/useNotifications'
+import { useEffect } from 'react'
 import Login from './Login'
 
 // Today = tasks (not notes) due today + unscheduled, filtered by space
@@ -82,6 +83,7 @@ export default function App() {
   const { user, loading, signIn } = useAuth()
   useSync(user?.id ?? null)
 
+  useEffect(() => { if (!isSupabaseConfigured()) useUiStore.setState({ initialSynced: true }) }, [])
   if (!isSupabaseConfigured()) return <AppContent />
   if (loading) return <div className="h-full flex items-center justify-center" style={{ background: 'var(--bg-deep)' }}><div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Loading...</div></div>
   if (!user) return <Login onSignIn={signIn} />

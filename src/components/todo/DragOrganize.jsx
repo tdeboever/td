@@ -40,16 +40,16 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   }
 
   // Arc helper: slight curve for a row of items
-  // For top row: items at edges curve UP (lower y value = higher on screen)
-  // For bottom row: items at edges curve DOWN (higher y value = lower on screen)
-  const arcY = (baseY, i, count, arcHeight, invert = false) => {
+  // Top row: edges drop down (toward screen center) — a smile shape
+  // Bottom row: edges rise up (toward screen center) — a frown shape
+  const arcY = (baseY, i, count, arcHeight, smileDown = true) => {
     if (count <= 1) return baseY
     const t = (i - (count - 1) / 2) / ((count - 1) / 2) // -1 to 1
     const offset = arcHeight * t * t // parabola, 0 at center, arcHeight at edges
-    return invert ? baseY - offset : baseY + offset
+    return smileDown ? baseY + offset : baseY - offset
   }
 
-  // TOP: Spaces (arc curves up at edges)
+  // TOP: Spaces (edges drop down toward center)
   const spacePad = W / (spaces.length + 1)
   const spaceZones = spaces.map((s, i) => ({
     id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
@@ -115,7 +115,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const bottomZones = bottomItems.map((z, i) => ({
     ...z,
     x: bottomPad * (i + 1),
-    y: arcY(H - 130, i, bottomItems.length, 18),
+    y: arcY(H - 130, i, bottomItems.length, 18, false),
   }))
 
   const allZones = [...spaceZones, ...bottomZones, deleteZone, noteZone]
