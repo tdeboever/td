@@ -44,7 +44,7 @@ export default function InstallPrompt() {
         background: 'var(--bg-float)',
         backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         boxShadow: '0 0 0 1px var(--border-visible), 0 12px 40px rgba(0,0,0,0.3)',
-        borderRadius: 20, padding: '20px 20px 16px',
+        borderRadius: 20, padding: '20px',
       }}>
         <div className="flex items-start gap-4">
           <div style={{
