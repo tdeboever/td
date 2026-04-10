@@ -199,7 +199,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         background: 'transparent', borderRadius: 16,
       }}
       onTouchEnd={() => { touchStart.current = null; if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
-      onClick={() => { if (!phase && !isDone && !dragging) { setEditText(todo.text); setEditing(true) } }}
+      onDoubleClick={() => { if (!phase && !isDone && !dragging) { setEditText(todo.text); setEditing(true) } }}
       onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
       onContextMenu={(e) => e.preventDefault()}
