@@ -10,6 +10,7 @@ import SpaceAvatar from '../common/SpaceAvatar'
 export default function DragOrganize({ todo, startPos, onDone }) {
   const spaces = useSpaceStore((s) => s.spaces)
   const allLists = useListStore((s) => s.lists)
+  const allTodos = useTodoStore((s) => s.todos)
   const updateTodo = useTodoStore((s) => s.updateTodo)
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
   const showUndo = useUiStore((s) => s.showUndo)
@@ -25,11 +26,12 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const lockedNearRef = useRef(null)
   const [entered, setEntered] = useState(false)
   const [flying, setFlying] = useState(null)
+  const [listPicker, setListPicker] = useState(null) // { spaceId, lists[] } for "Other" popup
   const [, rerender] = useState(0)
 
   const W = window.innerWidth
   const H = window.innerHeight
-  const RISE = 60 // px upward from start to trigger list reveal
+  const RISE = 60
 
   const act = (label, data) => () => {
     const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
@@ -37,19 +39,45 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     showUndo(label, () => updateTodo(todo.id, old))
   }
 
-  // TOP: Spaces
+  // Arc helper: slight curve for a row of items
+  // For top row: items at edges curve UP (lower y value = higher on screen)
+  // For bottom row: items at edges curve DOWN (higher y value = lower on screen)
+  const arcY = (baseY, i, count, arcHeight, invert = false) => {
+    if (count <= 1) return baseY
+    const t = (i - (count - 1) / 2) / ((count - 1) / 2) // -1 to 1
+    const offset = arcHeight * t * t // parabola, 0 at center, arcHeight at edges
+    return invert ? baseY - offset : baseY + offset
+  }
+
+  // TOP: Spaces (arc curves up at edges)
   const spacePad = W / (spaces.length + 1)
   const spaceZones = spaces.map((s, i) => ({
     id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
-    x: spacePad * (i + 1), y: 90, r: 40,
+    x: spacePad * (i + 1), y: arcY(90, i, spaces.length, 20, true), r: 40,
     icon: <SpaceAvatar space={s} size={28} />,
     action: act(`→ ${s.name}`, { spaceId: s.id, listId: null }),
   }))
 
-  // BOTTOM: default actions OR lists for the near space
+  // Determine which lists to show for near space
   const nearSpace = spaces.find(s => `sp-${s.id}` === nearSpaceId)
   const spaceLists = nearSpace ? allLists.filter(l => l.spaceId === nearSpace.id) : []
   const showingLists = spaceLists.length > 0 && !!lockedNearRef.current
+
+  // Sort lists by recent activity (most recent todo update in that list)
+  const listActivity = (list) => {
+    const latest = allTodos
+      .filter(t => t.listId === list.id)
+      .reduce((max, t) => {
+        const d = new Date(t.updatedAt || t.createdAt).getTime()
+        return d > max ? d : max
+      }, 0)
+    return latest || new Date(list.createdAt).getTime()
+  }
+
+  const sortedLists = [...spaceLists].sort((a, b) => listActivity(b) - listActivity(a))
+  const hasOverflow = sortedLists.length > 4
+  const visibleLists = hasOverflow ? sortedLists.slice(0, 3) : sortedLists.slice(0, 4)
+  const overflowLists = hasOverflow ? sortedLists.slice(3) : []
 
   const actionZones = [
     { id: 'later', label: 'Later', r: 35, color: '#60a5fa', icon: '⏰',
@@ -61,22 +89,34 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   ]
 
   const deleteZone = { id: 'del', label: 'Delete', r: 35, color: '#ff6b6b', icon: '✕',
-    x: W - 50, y: H / 2,
-    action: () => deleteTodo(todo.id) }
+    x: W - 50, y: H / 2, action: () => deleteTodo(todo.id) }
 
   const noteZone = { id: 'note', label: 'Note', r: 35, color: '#60a5fa', icon: '✎',
-    x: 50, y: H / 2,
-    action: act('→ Note', { type: 'note' }) }
+    x: 50, y: H / 2, action: act('→ Note', { type: 'note' }) }
 
-  const listZones = spaceLists.map((l, i) => ({
+  const listZones = visibleLists.map((l) => ({
     id: `list-${l.id}`, label: l.name, r: 35, color: nearSpace?.color || '#a78bfa',
     action: act(`→ ${l.name}`, { spaceId: nearSpace.id, listId: l.id }),
   }))
 
-  // Position bottom items
+  // Add "Other" zone if overflow
+  if (hasOverflow && nearSpace) {
+    listZones.push({
+      id: 'other-list', label: 'Other…', r: 35, color: 'rgba(255,255,255,0.2)', icon: '•••',
+      action: () => {
+        setListPicker({ spaceId: nearSpace.id, spaceName: nearSpace.name, lists: overflowLists })
+      },
+    })
+  }
+
+  // Position bottom items with arc (curves down at edges)
   const bottomItems = showingLists ? listZones : actionZones
   const bottomPad = W / (bottomItems.length + 1)
-  const bottomZones = bottomItems.map((z, i) => ({ ...z, x: bottomPad * (i + 1), y: H - 130 }))
+  const bottomZones = bottomItems.map((z, i) => ({
+    ...z,
+    x: bottomPad * (i + 1),
+    y: arcY(H - 130, i, bottomItems.length, 18),
+  }))
 
   const allZones = [...spaceZones, ...bottomZones, deleteZone, noteZone]
   const allZonesRef = useRef(allZones)
@@ -90,6 +130,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   }
 
   useEffect(() => {
+    if (listPicker) return // pause gesture handling when picker is showing
     setTimeout(() => setEntered(true), 20)
     const move = (e) => {
       e.preventDefault()
@@ -103,7 +144,6 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       }
       px.current = t.clientX; py.current = t.clientY
 
-      // Detect nearest space only when finger has moved UP from start
       const risen = startPos.y - py.current > RISE
       if (risen) {
         let nearest = null, nearD = 200
@@ -126,7 +166,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     const flyTo = (z) => {
       setFlying({ x: z.x, y: z.y })
       if (navigator.vibrate) navigator.vibrate(8)
-      setTimeout(() => { z.action(); setTimeout(onDone, 100) }, 280)
+      setTimeout(() => { z.action(); if (z.id !== 'other-list') setTimeout(onDone, 100) }, 280)
     }
 
     const end = () => {
@@ -149,6 +189,14 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     document.addEventListener('touchend', end)
     return () => { document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end) }
   })
+
+  // Handle list picker selection
+  const handlePickList = (list) => {
+    const old = { spaceId: todo.spaceId, listId: todo.listId }
+    updateTodo(todo.id, { spaceId: listPicker.spaceId, listId: list.id })
+    showUndo(`→ ${list.name}`, () => updateTodo(todo.id, old))
+    onDone()
+  }
 
   const renderZone = (z, delay = 0) => {
     const h = hovered === z.id
@@ -176,6 +224,43 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     )
   }
 
+  // List picker popup (shown after flinging to "Other…")
+  if (listPicker) {
+    return createPortal(
+      <div className="fixed inset-0 z-50" style={{ touchAction: 'none' }}>
+        <div className="absolute inset-0 animate-fade-in" style={{
+          background: 'rgba(26,22,37,0.85)',
+          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        }} onClick={onDone} />
+        <div className="absolute animate-slide-up" style={{
+          bottom: 0, left: 0, right: 0,
+          background: 'var(--bg-mid)', borderRadius: '24px 24px 0 0',
+          padding: '20px 20px 40px', maxHeight: '50vh', overflowY: 'auto',
+          boxShadow: '0 -8px 40px rgba(0,0,0,0.3)',
+        }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-visible)', margin: '0 auto 16px' }} />
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+            {listPicker.spaceName} — pick a list
+          </p>
+          {listPicker.lists.map(l => (
+            <button key={l.id} onClick={() => handlePickList(l)} className="w-full text-left" style={{
+              padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)',
+              fontSize: 15, fontWeight: 500, color: 'var(--text-primary)',
+            }}>
+              {l.name}
+            </button>
+          ))}
+          <button onClick={onDone} className="w-full" style={{
+            marginTop: 12, padding: '12px', borderRadius: 14,
+            fontSize: 14, fontWeight: 500, color: 'var(--text-secondary)',
+            background: 'var(--surface-card)',
+          }}>Cancel</button>
+        </div>
+      </div>,
+      document.body
+    )
+  }
+
   return createPortal(
     <div className="fixed inset-0 z-50" style={{ touchAction: 'none', pointerEvents: 'none' }}>
       <div style={{
@@ -185,7 +270,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         opacity: entered ? 1 : 0, transition: 'opacity 200ms',
       }} />
 
-      {/* Top: Spaces */}
+      {/* Top: Spaces (arc) */}
       {spaceZones.map((z, i) => renderZone(z, i * 40))}
 
       {/* Hint: which space's lists are showing */}
@@ -199,7 +284,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         </div>
       )}
 
-      {/* Bottom: actions OR lists (swap based on proximity to spaces) */}
+      {/* Bottom: actions OR lists (arc) */}
       {bottomZones.map((z, i) => renderZone(z, showingLists ? 0 : 60 + i * 30))}
 
       {/* Side zones */}
