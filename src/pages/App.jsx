@@ -31,9 +31,8 @@ function TodayView() {
       // Viewing a space — exclude checklist items
       t = t.filter((t) => t.spaceId === activeSpaceId && (!t.listId || !checklistIds.has(t.listId)))
     } else {
-      // Unfiltered Today — no space items, no checklist items, + due today from anywhere
-      t = t.filter((t) => (!t.spaceId && !t.listId) || isToday(t.dueDate))
-      t = t.filter((t) => !t.listId || !checklistIds.has(t.listId) || isToday(t.dueDate))
+      // Unfiltered Today — ONLY items with no space and no list
+      t = t.filter((t) => !t.spaceId && !t.listId)
     }
     return t
   }, [todos, activeSpaceId, activeListId, checklistIds])

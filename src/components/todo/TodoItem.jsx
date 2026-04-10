@@ -160,9 +160,10 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     const dy = Math.abs(t.clientY - touchStart.current.y)
     // If vertical > horizontal, it's a scroll — ignore
     if (dy > 15 && dy > dx) { touchStart.current = null; return }
-    // Horizontal threshold to detach
+    // Any horizontal movement > 10px — stop it from reaching the view swipe
+    if (dx > 10 && dx > dy) { e.stopPropagation() }
+    // Horizontal threshold to detach into drag mode
     if (dx > 30 && dx > dy * 1.5) {
-      e.stopPropagation()
       if (navigator.vibrate) navigator.vibrate(8)
       setDragging({ x: t.clientX, y: t.clientY })
       touchStart.current = null
