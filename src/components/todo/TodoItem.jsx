@@ -185,6 +185,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         background: 'transparent', borderRadius: 16,
       }}
       onTouchEnd={() => { touchStart.current = null }}
+      onClick={() => { if (!phase && !isDone && !dragging) { setEditText(todo.text); setEditing(true) } }}
       onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
       onContextMenu={(e) => e.preventDefault()}
@@ -221,12 +222,22 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
           {!isDone && !isChecked && dot && (
             <span className="inline-block rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: dot.bg, boxShadow: dot.shadow }} />
           )}
-          <p style={{
-            fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.4,
-            color: isDone ? 'var(--text-done)' : 'var(--text-primary)',
-            textDecoration: (isDone || isChecked) ? 'line-through' : 'none',
-            textDecorationColor: 'rgba(244,240,237,0.1)',
-          }}>{todo.text}</p>
+          {editing ? (
+            <form onSubmit={(e) => { e.preventDefault(); if (editText.trim()) updateTodo(todo.id, { text: editText.trim() }); setEditing(false) }}
+              onClick={(e) => e.stopPropagation()}>
+              <input autoFocus value={editText} onChange={(e) => setEditText(e.target.value)}
+                onBlur={() => { if (editText.trim() && editText !== todo.text) updateTodo(todo.id, { text: editText.trim() }); setEditing(false) }}
+                className="w-full bg-transparent outline-none"
+                style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text-primary)', borderBottom: '1px solid var(--accent-coral)', paddingBottom: 2 }} />
+            </form>
+          ) : (
+            <p style={{
+              fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.4,
+              color: isDone ? 'var(--text-done)' : 'var(--text-primary)',
+              textDecoration: (isDone || isChecked) ? 'line-through' : 'none',
+              textDecorationColor: 'rgba(244,240,237,0.1)',
+            }}>{todo.text}</p>
+          )}
         </div>
         {!isDone && !isChecked && showDate && (
           <span style={{
