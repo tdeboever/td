@@ -37,6 +37,8 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const checkboxRef = useRef(null)
 
   const isDone = todo.status === 'done' || todo.status === 'ghost'
+  const taskSpace = todo.spaceId ? spaces.find(s => s.id === todo.spaceId) : null
+  const spaceColor = taskSpace?.color || null
   const dot = DOTS[todo.priority]
   const dateLabel = formatRelativeDate(todo.dueDate)
   const isOverdue = todo.dueDate && !isDone && new Date(todo.dueDate) < new Date(new Date().toDateString())
@@ -208,13 +210,13 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         style={{
           width: 22, height: 22,
           transition: 'all 250ms cubic-bezier(0.34,1.56,0.64,1)',
-          border: isChecked ? '2px solid transparent' : isDone ? '2px solid transparent' : '2px solid rgba(255,255,255,0.15)',
+          border: isChecked ? '2px solid transparent' : isDone ? '2px solid transparent' : `2px solid ${spaceColor ? spaceColor + '40' : 'rgba(255,255,255,0.15)'}`,
           background: isChecked ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : isDone ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'transparent',
           transform: isChecked && !isCollapsing ? 'scale(1.3)' : 'scale(1)',
           boxShadow: (isChecked || isDone) ? '0 0 12px rgba(244,114,182,0.30)' : 'none',
         }}
         onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'var(--accent-rose)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(244,114,182,0.12)'; e.currentTarget.style.transform = 'scale(1.08)' } }}
-        onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)' } }}
+        onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = spaceColor ? spaceColor + '40' : 'rgba(255,255,255,0.15)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)' } }}
       >
         {(isDone || isChecked) && (
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"
@@ -251,7 +253,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
             }}>{todo.text}</p>
           )}
         </div>
-        {!isDone && !isChecked && showDate && (
+        {!isDone && !isChecked && (showDate || todo.dueTime) && (
           <span style={{
             display: 'inline-block', marginTop: 6,
             fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em',
@@ -259,7 +261,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
             background: isOverdue ? 'rgba(255,107,107,0.10)' : 'rgba(96,165,250,0.10)',
             border: `1px solid ${isOverdue ? 'rgba(255,107,107,0.15)' : 'rgba(96,165,250,0.15)'}`,
             padding: '2px 8px', borderRadius: 10,
-          }}>{dateLabel}{todo.dueTime && ` ${todo.dueTime}`}</span>
+          }}>{showDate ? dateLabel : ''}{todo.dueTime && `${showDate ? ' ' : ''}${todo.dueTime}`}</span>
         )}
         {!isDone && !isChecked && todo.subtasks?.length > 0 && (
           <span style={{
