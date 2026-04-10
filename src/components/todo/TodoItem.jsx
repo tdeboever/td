@@ -261,6 +261,18 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
             padding: '2px 8px', borderRadius: 10,
           }}>{dateLabel}{todo.dueTime && ` ${todo.dueTime}`}</span>
         )}
+        {!isDone && !isChecked && todo.subtasks?.length > 0 && (
+          <span style={{
+            display: 'inline-block', marginTop: 6, marginLeft: showDate ? 6 : 0,
+            fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em',
+            color: 'var(--accent-rose)',
+            background: 'rgba(244,114,182,0.10)',
+            border: '1px solid rgba(244,114,182,0.15)',
+            padding: '2px 8px', borderRadius: 10,
+          }}>
+            {todo.subtasks.filter(s => s.done).length}/{todo.subtasks.length}
+          </span>
+        )}
       </div>
     </div>
   )

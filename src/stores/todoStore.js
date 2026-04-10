@@ -21,6 +21,7 @@ export const useTodoStore = create((set, get) => ({
       spaceId,
       dueDate,
       dueTime,
+      subtasks: [],
       snoozedUntil: null,
       position: get().todos.filter((t) => t.status === 'active').length,
       completionCount: 0,

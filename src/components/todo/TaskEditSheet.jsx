@@ -19,12 +19,29 @@ export default function TaskEditSheet({ todo, onClose }) {
   const [dueTime, setDueTime] = useState(todo.dueTime || '')
   const [spaceId, setSpaceId] = useState(todo.spaceId)
   const [listId, setListId] = useState(todo.listId)
+  const [subtasks, setSubtasks] = useState(todo.subtasks || [])
+  const [newSubtask, setNewSubtask] = useState('')
 
   const spaceLists = spaceId ? lists.filter(l => l.spaceId === spaceId) : []
+
+  const addSubtask = () => {
+    if (!newSubtask.trim()) return
+    setSubtasks([...subtasks, { id: Date.now().toString(36), text: newSubtask.trim(), done: false }])
+    setNewSubtask('')
+  }
+
+  const toggleSubtask = (id) => {
+    setSubtasks(subtasks.map(s => s.id === id ? { ...s, done: !s.done } : s))
+  }
+
+  const removeSubtask = (id) => {
+    setSubtasks(subtasks.filter(s => s.id !== id))
+  }
 
   const save = () => {
     const updates = {}
     if (text.trim() !== todo.text) updates.text = text.trim()
+    updates.subtasks = subtasks
     if (dueDate !== (todo.dueDate || '')) updates.dueDate = dueDate || null
     if (dueTime !== (todo.dueTime || '')) updates.dueTime = dueTime || null
     if (spaceId !== todo.spaceId) updates.spaceId = spaceId
@@ -114,6 +131,39 @@ export default function TaskEditSheet({ todo, onClose }) {
             </div>
           </div>
         )}
+
+        {/* Subtasks */}
+        <div style={{ marginTop: 20 }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+            Subtasks {subtasks.length > 0 && `(${subtasks.filter(s => s.done).length}/${subtasks.length})`}
+          </p>
+
+          {subtasks.map(s => (
+            <div key={s.id} className="flex items-center gap-3" style={{ padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
+              <button onClick={() => toggleSubtask(s.id)} style={{
+                width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                border: s.done ? '2px solid transparent' : '2px solid var(--border-visible)',
+                background: s.done ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {s.done && <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M2 5.5l2 2L8 3" /></svg>}
+              </button>
+              <span style={{
+                flex: 1, fontSize: 14, color: s.done ? 'var(--text-done)' : 'var(--text-primary)',
+                textDecoration: s.done ? 'line-through' : 'none',
+              }}>{s.text}</span>
+              <button onClick={() => removeSubtask(s.id)} style={{ color: 'var(--text-ghost)', fontSize: 14, padding: '0 4px' }}>×</button>
+            </div>
+          ))}
+
+          <form onSubmit={(e) => { e.preventDefault(); addSubtask() }} className="flex items-center gap-3" style={{ marginTop: 8 }}>
+            <span style={{ color: 'var(--accent-coral)', fontSize: 14 }}>+</span>
+            <input value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)}
+              placeholder="Add subtask..."
+              className="flex-1 bg-transparent outline-none"
+              style={{ fontSize: 14, color: 'var(--text-primary)', border: 'none' }} />
+          </form>
+        </div>
 
         {/* Actions */}
         <div className="flex gap-3" style={{ marginTop: 24 }}>

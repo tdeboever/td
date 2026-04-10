@@ -99,7 +99,7 @@ export function useSync(userId) {
       if (validItems.length === 0) continue
 
       // Only include columns that exist in the DB
-      const TODO_COLS = ['id','text','type','status','priority','list_id','space_id','due_date','due_time','snoozed_until','position','completion_count','last_completed_at','user_id','created_at','updated_at']
+      const TODO_COLS = ['id','text','type','status','priority','list_id','space_id','due_date','due_time','subtasks','snoozed_until','position','completion_count','last_completed_at','user_id','created_at','updated_at']
       const SPACE_COLS = ['id','name','icon','color','position','user_id','created_at','updated_at']
       const LIST_COLS = ['id','name','type','space_id','position','user_id','created_at','updated_at']
       const colMap = { todos: TODO_COLS, spaces: SPACE_COLS, lists: LIST_COLS }
