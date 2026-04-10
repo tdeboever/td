@@ -6,7 +6,7 @@ export default function UndoToast() {
   if (!undoAction) return null
 
   return (
-    <div className="fixed top-12 left-0 right-0 z-30 flex justify-center animate-slide-down safe-top" style={{ padding: '0 20px' }}>
+    <div className="fixed z-30 flex justify-center animate-slide-up" style={{ bottom: 140, left: 0, right: 0, padding: '0 20px' }}>
       <div style={{
         background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
         boxShadow: '0 0 0 1px rgba(255,255,255,0.10), 0 8px 32px rgba(0,0,0,0.25)',
