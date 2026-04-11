@@ -10,12 +10,9 @@ export default function SpaceRow() {
   const setState = useUiStore.setState
 
   if (spaces.length === 0) return null
-  // Hide when viewing a specific list — header shows the name
-  if (activeListId) return null
 
   const handleSpaceTap = (id) => {
     if (activeSpaceId === id) {
-      // Deselect — show all
       setState({ activeSpaceId: null, activeListId: null })
     } else {
       setState({ activeSpaceId: id, activeListId: null })
@@ -30,35 +27,44 @@ export default function SpaceRow() {
     }
   }
 
-  // Lists for selected space
-  const spaceLists = activeSpaceId ? lists.filter((l) => l.spaceId === activeSpaceId).sort((a, b) => a.position - b.position) : []
+  // Determine which space's lists to show
+  const effectiveSpaceId = activeListId
+    ? lists.find(l => l.id === activeListId)?.spaceId
+    : activeSpaceId
+  const spaceLists = effectiveSpaceId
+    ? lists.filter((l) => l.spaceId === effectiveSpaceId).sort((a, b) => a.position - b.position)
+    : []
+
+  const isInsideSpace = !!activeSpaceId || !!activeListId
 
   return (
     <div style={{ padding: '0 20px 14px' }}>
-      {/* Spaces */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {spaces.map((s) => {
-          const active = activeSpaceId === s.id
-          return (
-            <button key={s.id} onClick={() => handleSpaceTap(s.id)}
-              className="flex items-center gap-2"
-              style={{
-                flexShrink: 0, padding: '6px 14px', borderRadius: 9999,
-                fontSize: 13, fontWeight: 500,
-                background: active ? 'linear-gradient(135deg, var(--accent-lavender), var(--accent-sky))' : 'var(--surface-card)',
-                color: active ? 'white' : 'var(--text-secondary)',
-                boxShadow: active ? '0 2px 10px rgba(167,139,250,0.2)' : 'none',
-                transition: 'all 150ms',
-              }}>
-              <SpaceAvatar space={s} size={18} /> {s.name}
-            </button>
-          )
-        })}
-      </div>
+      {/* Space chips — only on top-level views (Today, Upcoming, Notes) */}
+      {!isInsideSpace && (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {spaces.map((s) => {
+            const active = activeSpaceId === s.id
+            return (
+              <button key={s.id} onClick={() => handleSpaceTap(s.id)}
+                className="flex items-center gap-2"
+                style={{
+                  flexShrink: 0, padding: '6px 14px', borderRadius: 9999,
+                  fontSize: 13, fontWeight: 500,
+                  background: active ? 'linear-gradient(135deg, var(--accent-lavender), var(--accent-sky))' : 'var(--surface-card)',
+                  color: active ? 'white' : 'var(--text-secondary)',
+                  boxShadow: active ? '0 2px 10px rgba(167,139,250,0.2)' : 'none',
+                  transition: 'all 150ms',
+                }}>
+                <SpaceAvatar space={s} size={18} /> {s.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
-      {/* Lists under selected space */}
-      {spaceLists.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar animate-slide-down" style={{ marginTop: 16 }}>
+      {/* List chips — show when inside a space or viewing a list */}
+      {spaceLists.length > 1 && isInsideSpace && (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
           <button onClick={() => setState({ activeListId: null })}
             style={{
               flexShrink: 0, padding: '5px 14px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
