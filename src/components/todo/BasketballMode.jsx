@@ -238,7 +238,7 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
 
       {p === 'score' && (
         <div className="absolute inset-0 flex items-center justify-center animate-slide-up" style={{ zIndex: 10 }}>
-          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28 }}>Task complete</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 24 }}>Task complete</p>
         </div>
       )}
 

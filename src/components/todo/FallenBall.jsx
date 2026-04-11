@@ -328,7 +328,7 @@ export default function FallenBall() {
       {/* Score */}
       {p === 'score' && (
         <div className="fixed inset-0 z-40 flex items-center justify-center animate-slide-up">
-          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28 }}>Task complete</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 24 }}>Task complete</p>
         </div>
       )}
 
