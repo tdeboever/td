@@ -1,18 +1,67 @@
+import { useState, useRef } from 'react'
+
 export default function Login({ onSignIn }) {
+  const [revving, setRevving] = useState(false)
+  const titleRef = useRef(null)
+  const trailRef = useRef(null)
+
+  const handleSignIn = () => {
+    setRevving(true)
+    // Vibrate the title
+    if (titleRef.current) {
+      titleRef.current.style.animation = 'whimRevv 0.3s ease-in-out 3'
+    }
+    // After revving, zoom off with trail
+    setTimeout(() => {
+      if (titleRef.current) {
+        titleRef.current.style.animation = 'whimZoom 0.6s cubic-bezier(0.4, 0, 0, 1) forwards'
+      }
+      if (trailRef.current) {
+        trailRef.current.style.opacity = '1'
+        trailRef.current.style.animation = 'whimTrail 0.6s cubic-bezier(0.4, 0, 0, 1) forwards'
+      }
+    }, 900)
+    // Trigger actual sign in after animation
+    setTimeout(() => onSignIn(), 1600)
+  }
+
   return (
     <div className="h-full flex flex-col items-center justify-center" style={{ padding: '0 40px' }}>
+      <style>{`
+        @keyframes whimRevv {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-3px) rotate(-1deg); }
+          75% { transform: translateX(3px) rotate(1deg); }
+        }
+        @keyframes whimZoom {
+          0% { transform: translateX(0) scale(1); opacity: 1; }
+          100% { transform: translateX(120vw) scale(0.6); opacity: 0; }
+        }
+        @keyframes whimTrail {
+          0% { transform: translateX(0); opacity: 0.6; }
+          100% { transform: translateX(100vw); opacity: 0; }
+        }
+      `}</style>
       <div className="text-center" style={{ marginTop: -60 }}>
         {/* Brand */}
-        <h1 className="animate-task-enter" style={{
-          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 52,
-          letterSpacing: '-0.04em', color: 'var(--text-primary)',
-          animationDelay: '0ms',
-        }}>Whim</h1>
-
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          <h1 ref={titleRef} className="animate-task-enter" style={{
+            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 52,
+            letterSpacing: '-0.04em', color: 'var(--text-primary)',
+            animationDelay: '0ms',
+          }}>Whim</h1>
+          <span ref={trailRef} style={{
+            position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)',
+            fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 28,
+            color: 'var(--text-ghost)', opacity: 0, whiteSpace: 'nowrap',
+            letterSpacing: '0.15em', pointerEvents: 'none',
+          }}>mmmm</span>
+        </div>
 
         {/* Sign in button */}
         <button
-          onClick={onSignIn}
+          onClick={handleSignIn}
+          disabled={revving}
           className="animate-task-enter"
           style={{
             display: 'flex', alignItems: 'center', gap: 12, margin: '48px auto 0',
@@ -21,6 +70,7 @@ export default function Login({ onSignIn }) {
             boxShadow: '0 0 0 1px var(--border-visible), 0 1px 2px rgba(0,0,0,0.15)',
             transition: 'all 200ms',
             animationDelay: '160ms',
+            opacity: revving ? 0.5 : 1,
           }}
         >
           <svg width="20" height="20" viewBox="0 0 18 18">
