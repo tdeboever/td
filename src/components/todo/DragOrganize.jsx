@@ -63,7 +63,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   // Near space & lists
   const nearSpace = spaces.find(s => `sp-${s.id}` === nearSpaceId)
   const spaceLists = nearSpace ? allLists.filter(l => l.spaceId === nearSpace.id) : []
-  const showingLists = spaceLists.length > 0 && !!lockedNearRef.current
+  const showingLists = spaceLists.length > 0 && !!nearSpaceId
 
   const listActivity = (list) => {
     const latest = allTodos
@@ -136,9 +136,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   spaceZonesRef.current = spaceZones
 
   const hitTest = (x, y, extra = 0) => {
-    // Check wall zones first
-    if (x > W - 30) return 'wall-del'
-    if (x < 30) return 'wall-note'
+    // Check wall zones — narrow strip at edges
+    if (x > W - 15) return 'wall-del'
+    if (x < 15) return 'wall-note'
     for (const z of allZonesRef.current) {
       if (Math.sqrt((x - z.x) ** 2 + (y - z.y) ** 2) < (z.r || 35) + extra) return z.id
     }
@@ -347,32 +347,32 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
       {/* Left wall — Note */}
       <div style={{
-        position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 5, borderRadius: '0 4px 4px 0',
-        background: isNearLeft ? '#60a5fa' : 'rgba(96,165,250,0.25)',
-        boxShadow: isNearLeft ? '0 0 20px rgba(96,165,250,0.5)' : 'none',
+        position: 'absolute', left: 0, top: '35%', bottom: '35%', width: 3, borderRadius: '0 3px 3px 0',
+        background: isNearLeft ? '#60a5fa' : 'rgba(96,165,250,0.15)',
+        boxShadow: isNearLeft ? '0 0 12px rgba(96,165,250,0.4)' : 'none',
         transition: 'all 200ms',
         opacity: entered ? 1 : 0,
       }} />
       {isNearLeft && entered && (
         <div style={{
-          position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 10, fontWeight: 600, color: '#60a5fa', letterSpacing: '0.05em',
+          position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 9, fontWeight: 600, color: '#60a5fa', letterSpacing: '0.05em',
           writingMode: 'vertical-rl', textOrientation: 'mixed',
         }}>Note</div>
       )}
 
       {/* Right wall — Delete */}
       <div style={{
-        position: 'absolute', right: 0, top: '20%', bottom: '20%', width: 5, borderRadius: '4px 0 0 4px',
-        background: isNearRight ? '#ff6b6b' : 'rgba(255,107,107,0.25)',
-        boxShadow: isNearRight ? '0 0 20px rgba(255,107,107,0.5)' : 'none',
+        position: 'absolute', right: 0, top: '35%', bottom: '35%', width: 3, borderRadius: '3px 0 0 3px',
+        background: isNearRight ? '#ff6b6b' : 'rgba(255,107,107,0.15)',
+        boxShadow: isNearRight ? '0 0 12px rgba(255,107,107,0.4)' : 'none',
         transition: 'all 200ms',
         opacity: entered ? 1 : 0,
       }} />
       {isNearRight && entered && (
         <div style={{
-          position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 10, fontWeight: 600, color: '#ff6b6b', letterSpacing: '0.05em',
+          position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 9, fontWeight: 600, color: '#ff6b6b', letterSpacing: '0.05em',
           writingMode: 'vertical-rl', textOrientation: 'mixed',
         }}>Delete</div>
       )}
