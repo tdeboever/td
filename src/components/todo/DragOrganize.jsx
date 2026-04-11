@@ -162,14 +162,35 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       }
       px.current = t.clientX; py.current = t.clientY
 
-      // Lock to a space when finger gets close to one (within 80px)
       if (!lockedSpaceId.current) {
+        // Method 1: Direct proximity (within 80px of a space)
         let nearest = null, nearD = 80
         for (const z of spaceZonesRef.current) {
           const d = Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2)
           if (d < nearD) { nearest = z.id; nearD = d }
         }
+
+        // Method 2: Moving upward? Project trajectory to find target space
+        if (!nearest && velY.current < -100 && startPos.y - py.current > 30) {
+          const projT = 0.3
+          const projX = px.current + velX.current * projT
+          const projY = py.current + velY.current * projT
+          let bestProj = null, bestProjD = 200
+          for (const z of spaceZonesRef.current) {
+            const d = Math.sqrt((projX - z.x) ** 2 + (projY - z.y) ** 2)
+            if (d < bestProjD) { bestProj = z.id; bestProjD = d }
+          }
+          if (bestProj) nearest = bestProj
+        }
+
         if (nearest) lockedSpaceId.current = nearest
+      } else {
+        // Already locked — only switch if finger directly touches a different space (within 50px)
+        for (const z of spaceZonesRef.current) {
+          if (z.id === lockedSpaceId.current) continue
+          const d = Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2)
+          if (d < 50) { lockedSpaceId.current = z.id; break }
+        }
       }
 
       hoveredRef.current = hitTest(px.current, py.current)
@@ -315,20 +336,6 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         opacity: entered ? 1 : 0, transition: 'opacity 200ms',
       }} />
-
-      {/* DEBUG — remove after fixing */}
-      <div style={{
-        position: 'absolute', top: H / 2 - 40, left: 20, right: 20,
-        background: 'rgba(0,0,0,0.8)', color: '#0f0', fontSize: 11, fontFamily: 'monospace',
-        padding: 8, borderRadius: 8, zIndex: 999,
-      }}>
-        locked: {String(lockedSpaceId.current)}<br/>
-        nearSpace: {nearSpace?.name || 'null'}<br/>
-        lists: {allLists.length} total, {spaceLists.length} for space<br/>
-        showing: {String(showingLists)}<br/>
-        spaces: {spaces.map(s => s.name).join(', ')}<br/>
-        py: {Math.round(py.current)} startY: {Math.round(startPos.y)} diff: {Math.round(startPos.y - py.current)}
-      </div>
 
       {/* Left wall — Note */}
       <div style={{
