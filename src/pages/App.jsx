@@ -70,11 +70,11 @@ function NotesView() {
 
 const VIEWS = { today: TodayView, upcoming: UpcomingView, notes: NotesView }
 
-function AppContent() {
+function AppContent({ userId = null }) {
   const activeView = useUiStore((s) => s.activeView)
   const ViewComponent = VIEWS[activeView] || TodayView
   useKeyboardShortcuts()
-  useNotifications()
+  useNotifications(userId)
 
   return <AppShell><ViewComponent /></AppShell>
 }
@@ -87,5 +87,5 @@ export default function App() {
   if (!isSupabaseConfigured()) return <AppContent />
   if (loading) return <div className="h-full flex items-center justify-center" style={{ background: 'var(--bg-deep)' }}><div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Loading...</div></div>
   if (!user) return <Login onSignIn={signIn} />
-  return <AppContent />
+  return <AppContent userId={user.id} />
 }
