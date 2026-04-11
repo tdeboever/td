@@ -3,27 +3,54 @@ import { useState, useRef } from 'react'
 export default function Login({ onSignIn }) {
   const [revving, setRevving] = useState(false)
   const titleRef = useRef(null)
-  const trailRef = useRef(null)
-  const dustRef = useRef(null)
+  const containerRef = useRef(null)
 
   const handleSignIn = () => {
     setRevving(true)
     if (titleRef.current) {
       titleRef.current.style.animation = 'whimRevv 0.15s ease-in-out 3'
     }
-    // After short rev, zoom off
+
     setTimeout(() => {
-      if (titleRef.current) {
-        titleRef.current.style.animation = 'whimZoom 0.5s cubic-bezier(0.4, 0, 0, 1) forwards'
-      }
-      if (trailRef.current) {
-        trailRef.current.style.animation = 'whimTrail 0.8s ease-out forwards'
-      }
-      if (dustRef.current) {
-        dustRef.current.style.animation = 'whimDust 0.7s ease-out forwards'
+      if (!titleRef.current || !containerRef.current) return
+
+      // Start the zoom
+      titleRef.current.style.animation = 'whimZoom 0.6s cubic-bezier(0.3, 0, 0, 1) forwards'
+
+      // Spawn m's along the path as Whim flies away
+      const container = containerRef.current
+      const startRect = titleRef.current.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      const startX = startRect.right - containerRect.left
+      const y = startRect.top - containerRect.top + startRect.height / 2
+
+      const mCount = 7
+      for (let i = 0; i < mCount; i++) {
+        setTimeout(() => {
+          const m = document.createElement('span')
+          m.textContent = 'm'
+          m.style.cssText = `
+            position: absolute;
+            left: ${startX - (i * startRect.width * 0.15)}px;
+            top: ${y}px;
+            transform: translateY(-50%);
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 52px;
+            letter-spacing: -0.04em;
+            color: var(--text-primary);
+            opacity: ${0.5 - i * 0.065};
+            pointer-events: none;
+            animation: mFade 0.6s ease-out forwards;
+            animation-delay: ${i * 0.02}s;
+          `
+          container.appendChild(m)
+          setTimeout(() => m.remove(), 800)
+        }, i * 40)
       }
     }, 500)
-    setTimeout(() => onSignIn(), 1200)
+
+    setTimeout(() => onSignIn(), 1300)
   }
 
   return (
@@ -38,52 +65,20 @@ export default function Login({ onSignIn }) {
           0% { transform: translateX(0) scale(1); opacity: 1; }
           100% { transform: translateX(-120vw) scale(0.7); opacity: 0; }
         }
-        @keyframes whimTrail {
-          0% { opacity: 0; transform: translateY(-50%); }
-          15% { opacity: 1; }
-          100% { opacity: 0; transform: translateY(-65%); }
-        }
-        @keyframes whimDust {
-          0% { opacity: 0; transform: scale(0.3); }
-          20% { opacity: 0.3; }
-          100% { opacity: 0; transform: scale(2.5) translateY(-10px); }
+        @keyframes mFade {
+          0% { opacity: inherit; transform: translateY(-50%); }
+          100% { opacity: 0; transform: translateY(-60%); }
         }
       `}</style>
       <div className="text-center" style={{ marginTop: -60 }}>
-        {/* Brand */}
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
           <h1 ref={titleRef} className="animate-task-enter" style={{
             fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 52,
             letterSpacing: '-0.04em', color: 'var(--text-primary)',
             animationDelay: '0ms',
           }}>Whim</h1>
-
-          {/* Trail of m's — same font, fading left to right */}
-          <span ref={trailRef} style={{
-            position: 'absolute', left: '20%', top: '50%', transform: 'translateY(-50%)',
-            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 52,
-            letterSpacing: '-0.04em', opacity: 0, whiteSpace: 'nowrap',
-            pointerEvents: 'none', display: 'flex',
-          }}>
-            <span style={{ opacity: 0.5 }}>m</span>
-            <span style={{ opacity: 0.4 }}>m</span>
-            <span style={{ opacity: 0.3 }}>m</span>
-            <span style={{ opacity: 0.2 }}>m</span>
-            <span style={{ opacity: 0.12 }}>m</span>
-            <span style={{ opacity: 0.06 }}>m</span>
-            <span style={{ opacity: 0.03 }}>m</span>
-          </span>
-
-          {/* Dust puff */}
-          <div ref={dustRef} style={{
-            position: 'absolute', left: '10%', top: '50%',
-            width: 40, height: 40, marginTop: -20, marginLeft: -20,
-            borderRadius: '50%', opacity: 0, pointerEvents: 'none',
-            background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 40%, transparent 70%)',
-          }} />
         </div>
 
-        {/* Sign in button */}
         <button
           onClick={handleSignIn}
           disabled={revving}
@@ -107,7 +102,6 @@ export default function Login({ onSignIn }) {
           Sign in with Google
         </button>
 
-        {/* Skip */}
         <button
           onClick={() => window.location.reload()}
           className="animate-task-enter"
