@@ -6,9 +6,19 @@ const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+const PUSH_FUNCTION_SECRET = Deno.env.get('PUSH_FUNCTION_SECRET')
+
 webPush.setVapidDetails('mailto:whim@whim.app', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  // Auth: require shared secret
+  if (PUSH_FUNCTION_SECRET) {
+    const secret = req.headers.get('x-function-secret')
+    if (secret !== PUSH_FUNCTION_SECRET) {
+      return json({ error: 'Unauthorized' }, 401)
+    }
+  }
+
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
