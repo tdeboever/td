@@ -31,7 +31,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
   const W = window.innerWidth
   const H = window.innerHeight
-  const RISE = 60
+  const RISE = 30
 
   const act = (label, data) => () => {
     const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
@@ -115,7 +115,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const bottomZones = bottomItems.map((z, i) => ({
     ...z,
     x: bottomPad * (i + 1),
-    y: arcY(H - 130, i, bottomItems.length, 18, false),
+    y: arcY(H - 200, i, bottomItems.length, 18, false),
   }))
 
   const allZones = [...spaceZones, ...bottomZones, deleteZone, noteZone]
@@ -145,15 +145,16 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       px.current = t.clientX; py.current = t.clientY
 
       const risen = startPos.y - py.current > RISE
-      if (risen) {
-        let nearest = null, nearD = 200
+      if (risen && !lockedNearRef.current) {
+        // Lock in the nearest space ONCE — don't change it after
+        let nearest = null, nearD = Infinity
         for (const z of spaceZones) {
           const d = Math.abs(px.current - z.x)
           if (d < nearD) { nearest = z.id; nearD = d }
         }
         lockedNearRef.current = nearest
         setNearSpaceId(nearest)
-      } else if (!lockedNearRef.current) {
+      } else if (!risen && !lockedNearRef.current) {
         setNearSpaceId(null)
       }
 
@@ -276,7 +277,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       {/* Hint: which space's lists are showing */}
       {showingLists && nearSpace && entered && (
         <div className="animate-fade-in" style={{
-          position: 'absolute', left: 0, right: 0, top: H - 185,
+          position: 'absolute', left: 0, right: 0, top: H - 255,
           textAlign: 'center', fontSize: 10, fontWeight: 600,
           color: nearSpace.color, letterSpacing: '0.08em', textTransform: 'uppercase',
         }}>
