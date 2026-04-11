@@ -11,7 +11,7 @@ export default function BottomNav() {
 
   return (
     <nav style={{
-      minHeight: 64, paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      minHeight: 64,
       background: 'var(--surface-glass)',
       backdropFilter: 'blur(24px) saturate(1.3)',
       WebkitBackdropFilter: 'blur(24px) saturate(1.3)',
