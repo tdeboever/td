@@ -4,6 +4,7 @@ import SearchBar from '../todo/SearchBar'
 import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
+import SpaceAvatar from '../common/SpaceAvatar'
 
 const VIEW_TITLES = { today: 'Today', upcoming: 'Upcoming', notes: 'Notes' }
 
@@ -60,7 +61,19 @@ export default function Header() {
       )}
       <div className="flex items-baseline justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={toggleSidebar} style={{ fontSize: 18, color: (activeSpaceId || activeListId) ? 'var(--accent-lavender)' : 'var(--text-secondary)', lineHeight: 1, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>◫</button>
+          <button onClick={toggleSidebar} style={{ minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {(activeSpaceId || activeListId) ? (
+              <SpaceAvatar space={(() => {
+                if (activeListId) {
+                  const list = lists.find(l => l.id === activeListId)
+                  if (list) return spaces.find(s => s.id === list.spaceId) || spaces[0]
+                }
+                return spaces.find(s => s.id === activeSpaceId) || spaces[0]
+              })()} size={24} />
+            ) : (
+              <div style={{ width: 24, height: 24, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.16)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--text-secondary)' }}>⁘</div>
+            )}
+          </button>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
         </div>
         <div className="flex items-center gap-4">

@@ -61,7 +61,7 @@ export default function SpaceRow() {
         <div className="flex gap-2 mt-4 overflow-x-auto no-scrollbar animate-slide-down">
           <button onClick={() => setState({ activeListId: null })}
             style={{
-              flexShrink: 0, padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
+              flexShrink: 0, padding: '5px 14px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
               background: !activeListId ? 'var(--surface-active)' : 'transparent',
               color: !activeListId ? 'var(--text-primary)' : 'var(--text-secondary)',
               border: !activeListId ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(255,255,255,0.06)',
@@ -69,7 +69,7 @@ export default function SpaceRow() {
           {spaceLists.map((l) => (
             <button key={l.id} onClick={() => handleListTap(l.id)}
               style={{
-                flexShrink: 0, padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
+                flexShrink: 0, padding: '5px 14px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
                 background: activeListId === l.id ? 'var(--surface-active)' : 'transparent',
                 color: activeListId === l.id ? 'var(--text-primary)' : 'var(--text-secondary)',
                 border: activeListId === l.id ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(255,255,255,0.06)',

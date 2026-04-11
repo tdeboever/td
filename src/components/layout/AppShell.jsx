@@ -41,7 +41,7 @@ export default function AppShell({ children }) {
         <main className="flex-1 min-h-0 overflow-y-auto no-scrollbar">
           {children}
         </main>
-        <div {...swipeHandlers} style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div {...swipeHandlers} style={{ borderTop: '1px solid rgba(255,255,255,0.04)', flexShrink: 0 }}>
           <TodoInput />
           {!inputFocused && <BottomNav />}
         </div>
