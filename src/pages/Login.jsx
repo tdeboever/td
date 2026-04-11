@@ -4,7 +4,7 @@ export default function Login({ onSignIn }) {
       <div className="text-center" style={{ marginTop: -60 }}>
         {/* Brand */}
         <h1 className="animate-task-enter" style={{
-          fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 52,
+          fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 52,
           letterSpacing: '-0.04em', color: 'var(--text-primary)',
           animationDelay: '0ms',
         }}>Whim</h1>

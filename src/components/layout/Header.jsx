@@ -60,7 +60,7 @@ export default function Header() {
       <div className="flex items-baseline justify-between">
         <div className="flex items-center gap-3">
           <button onClick={toggleSidebar} style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1, marginBottom: -2 }}>◫</button>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
         </div>
         <div className="flex items-center gap-4">
           <button data-search-trigger onClick={() => setShowSearch(true)} style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1 }}>⌕</button>

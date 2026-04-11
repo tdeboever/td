@@ -50,7 +50,7 @@ export default function Sidebar() {
       <aside {...swipeHandlers} className={`fixed top-0 left-0 bottom-0 z-50 flex flex-col transform transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
         style={{ width: '80%', maxWidth: 320, background: 'rgba(26,22,37,0.95)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', borderRight: '1px solid var(--border-subtle)' }}>
         <nav className="flex-1 overflow-y-auto no-scrollbar" style={{ paddingTop: 48 }}>
-          <p style={{ padding: '0 20px 16px', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Spaces</p>
+          <p style={{ padding: '0 20px 16px', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 24, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>Spaces</p>
           {spaces.map((space) => {
             const spaceLists = lists.filter((l) => l.spaceId === space.id).sort((a, b) => a.position - b.position)
             const a = activeView === 'space' && activeSpaceId === space.id
