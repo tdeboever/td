@@ -44,15 +44,17 @@ async function subscribeToPush(userId) {
       })
     }
 
-    // Save to Supabase if not already saved
-    const subKey = `${SUB_SAVED_KEY}_${subscription.endpoint.slice(-20)}`
+    // Save/update subscription in Supabase
+    const subKey = `${SUB_SAVED_KEY}_tz_${subscription.endpoint.slice(-20)}`
     if (localStorage.getItem(subKey)) return
 
     const subJson = subscription.toJSON()
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'
     const { error } = await supabase.from('push_subscriptions').upsert({
       user_id: userId,
       endpoint: subscription.endpoint,
       keys: subJson.keys,
+      timezone: tz,
     }, { onConflict: 'endpoint' })
 
     if (!error) {

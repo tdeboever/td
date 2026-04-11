@@ -12,77 +12,87 @@ Deno.serve(async (_req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-    // Get all active todos with a due_time set for today
-    const { data: dueTodos, error: todoErr } = await supabase
+    // Get all push subscriptions with timezone info
+    const { data: subs, error: subErr } = await supabase
+      .from('push_subscriptions')
+      .select('id, user_id, endpoint, keys, timezone')
+
+    if (subErr || !subs || subs.length === 0) {
+      return json({ sent: 0, reason: subErr?.message || 'no subscriptions' })
+    }
+
+    // Get all active todos with due_time
+    const { data: todos, error: todoErr } = await supabase
       .from('todos')
       .select('id, text, due_date, due_time, user_id')
       .eq('status', 'active')
       .not('due_time', 'is', null)
-      .not('due_date', 'is', null)
 
-    if (todoErr) {
-      return new Response(JSON.stringify({ error: todoErr.message }), { status: 500 })
+    if (todoErr || !todos || todos.length === 0) {
+      return json({ sent: 0, reason: todoErr?.message || 'no todos with times' })
     }
 
-    if (!dueTodos || dueTodos.length === 0) {
-      return new Response(JSON.stringify({ sent: 0 }), { status: 200 })
-    }
-
-    // Current UTC time
-    const now = new Date()
-    const nowUTCMinutes = now.getUTCHours() * 60 + now.getUTCMinutes()
-
-    // Filter: due_date is today (in any timezone) and due_time matches now
-    // Since we store times in user's local time but don't know their timezone,
-    // check if the due_time falls within ±1 minute of current time in ANY timezone offset
-    const dueNow = dueTodos.filter(t => {
-      const [h, m] = t.due_time.split(':').map(Number)
-      const dueLocalMinutes = h * 60 + m
-
-      // Check each timezone offset: does this local time correspond to "now" in UTC?
-      for (let offset = -12; offset <= 14; offset++) {
-        const dueUTC = (dueLocalMinutes - offset * 60 + 1440) % 1440
-        if (Math.abs(dueUTC - nowUTCMinutes) <= 1 || Math.abs(dueUTC - nowUTCMinutes) >= 1438) {
-          // Also check that due_date is today in that timezone
-          const tzNow = new Date(now.getTime() + offset * 60 * 60 * 1000)
-          const tzToday = tzNow.toISOString().split('T')[0]
-          if (t.due_date === tzToday) return true
-        }
-      }
-      return false
-    })
-
-    if (dueNow.length === 0) {
-      return new Response(JSON.stringify({ sent: 0, checked: dueTodos.length }), { status: 200 })
-    }
-
-    // Group by user
-    const byUser = new Map<string, typeof dueNow>()
-    for (const todo of dueNow) {
-      const list = byUser.get(todo.user_id) || []
-      list.push(todo)
-      byUser.set(todo.user_id, list)
+    // Group subs by user
+    const subsByUser = new Map<string, typeof subs>()
+    for (const sub of subs) {
+      const list = subsByUser.get(sub.user_id) || []
+      list.push(sub)
+      subsByUser.set(sub.user_id, list)
     }
 
     let sent = 0
     let expired = 0
 
-    for (const [userId, todos] of byUser) {
-      const { data: subs } = await supabase
-        .from('push_subscriptions')
-        .select('id, endpoint, keys')
-        .eq('user_id', userId)
+    for (const [userId, userSubs] of subsByUser) {
+      // Get user's timezone from their first subscription
+      const tz = userSubs[0]?.timezone || 'America/New_York'
 
-      if (!subs || subs.length === 0) continue
+      // Get current time in user's timezone
+      let userNow: Date
+      try {
+        const formatter = new Intl.DateTimeFormat('en-CA', {
+          timeZone: tz,
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', hour12: false,
+        })
+        const parts = formatter.formatToParts(new Date())
+        const get = (t: string) => parts.find(p => p.type === t)?.value || '0'
+        userNow = new Date()
+        // We just need the date string and current H:M in their timezone
+        var userToday = `${get('year')}-${get('month')}-${get('day')}`
+        var userHour = parseInt(get('hour'))
+        var userMinute = parseInt(get('minute'))
+      } catch {
+        continue
+      }
 
-      for (const todo of todos) {
+      const userMinutes = userHour * 60 + userMinute
+
+      // Find todos for this user that are due now
+      const userTodos = todos.filter(t => {
+        if (t.user_id !== userId) return false
+        if (!t.due_time) return false
+
+        // due_date must be today or null (null = today implied)
+        if (t.due_date && t.due_date !== userToday) return false
+
+        const [h, m] = t.due_time.split(':').map(Number)
+        const dueMinutes = h * 60 + m
+
+        // Within 1 minute window
+        return userMinutes >= dueMinutes && userMinutes <= dueMinutes + 1
+      })
+
+      if (userTodos.length === 0) continue
+
+      for (const todo of userTodos) {
         const payload = JSON.stringify({
           title: 'Whim',
           body: todo.text,
           tag: `todo-${todo.id}`,
         })
 
-        for (const sub of subs) {
+        for (const sub of userSubs) {
           try {
             await webPush.sendNotification(
               { endpoint: sub.endpoint, keys: sub.keys },
@@ -91,23 +101,26 @@ Deno.serve(async (_req) => {
             sent++
           } catch (err: any) {
             if (err.statusCode === 410 || err.statusCode === 404) {
-              // Subscription expired — clean up
               await supabase.from('push_subscriptions').delete().eq('id', sub.id)
               expired++
             } else {
-              console.error(`Push failed for ${sub.endpoint}:`, err.message)
+              console.error(`Push failed: ${err.statusCode} ${err.message}`)
             }
           }
         }
       }
     }
 
-    return new Response(
-      JSON.stringify({ sent, expired, checked: dueNow.length }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    )
+    return json({ sent, expired })
   } catch (err) {
     console.error('Function error:', err)
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500 })
+    return json({ error: String(err) }, 500)
   }
 })
+
+function json(data: object, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
