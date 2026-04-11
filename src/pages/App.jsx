@@ -1,17 +1,18 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import AppShell from '../components/layout/AppShell'
 import TodoList from '../components/todo/TodoList'
 import NotesList from '../components/todo/NotesList'
 import { useTodoStore } from '../stores/todoStore'
 import { useListStore } from '../stores/listStore'
+import { useSpaceStore } from '../stores/spaceStore'
 import { useUiStore } from '../stores/uiStore'
 import { useAuth } from '../hooks/useAuth'
 import { useSync } from '../hooks/useSync'
 import { isSupabaseConfigured } from '../lib/supabase'
+import { storage } from '../lib/storage'
 import { isToday, isFuture } from '../lib/utils'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useNotifications } from '../hooks/useNotifications'
-import { useEffect } from 'react'
 import Login from './Login'
 
 // Today = tasks (not notes) due today + unscheduled, filtered by space
@@ -81,6 +82,17 @@ function AppContent({ userId = null }) {
 
 export default function App() {
   const { user, loading, signIn } = useAuth()
+  const scopedRef = useRef(null)
+
+  // Scope localStorage by user ID BEFORE useSync runs
+  if (user && scopedRef.current !== user.id) {
+    storage.setUserId(user.id)
+    useTodoStore.getState().reloadFromStorage()
+    useListStore.getState().reloadFromStorage()
+    useSpaceStore.getState().reloadFromStorage()
+    scopedRef.current = user.id
+  }
+
   useSync(user?.id ?? null)
 
   useEffect(() => { if (!isSupabaseConfigured()) useUiStore.setState({ initialSynced: true }) }, [])

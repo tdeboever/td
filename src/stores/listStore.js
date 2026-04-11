@@ -57,4 +57,8 @@ export const useListStore = create((set, get) => ({
       .lists.filter((l) => l.spaceId === spaceId)
       .sort((a, b) => a.position - b.position)
   },
+
+  reloadFromStorage: () => {
+    set({ lists: loadLists() })
+  },
 }))

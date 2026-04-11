@@ -197,4 +197,8 @@ export const useTodoStore = create((set, get) => ({
       .map((t) => t.text)
       .filter((text, i, arr) => arr.indexOf(text) === i)
   },
+
+  reloadFromStorage: () => {
+    set({ todos: loadTodos() })
+  },
 }))

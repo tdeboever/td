@@ -177,7 +177,6 @@ export function useSync(userId) {
     } catch (e) {
       console.error('Sync error:', e)
       setError(e.message)
-      useUiStore.setState({ initialSynced: true }) // still mark done so UI isn't stuck
     } finally {
       setSyncing(false)
     }
@@ -189,6 +188,11 @@ export function useSync(userId) {
 
     // Initial sync on mount
     sync()
+
+    // Fallback timeout: mark as synced after 10 seconds even if sync hasn't completed
+    const syncTimeout = setTimeout(() => {
+      useUiStore.setState({ initialSynced: true })
+    }, 10000)
 
     // Real-time subscription
     const channel = supabase
@@ -207,6 +211,7 @@ export function useSync(userId) {
     channelRef.current = channel
 
     return () => {
+      clearTimeout(syncTimeout)
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current)
       }

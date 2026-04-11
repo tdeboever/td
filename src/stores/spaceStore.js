@@ -60,4 +60,8 @@ export const useSpaceStore = create((set, get) => ({
     storage.set(STORAGE_KEY, reordered)
     set({ spaces: reordered })
   },
+
+  reloadFromStorage: () => {
+    set({ spaces: loadSpaces() })
+  },
 }))
