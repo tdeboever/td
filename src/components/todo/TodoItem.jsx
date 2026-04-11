@@ -191,7 +191,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
-        borderBottom: isLast ? 'none' : '1px solid var(--border-subtle)',
+        borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.025)',
         opacity: isDone ? 0.3 : isCollapsing ? 0 : 1,
         transform: isCollapsing ? 'scaleY(0)' : 'scaleY(1)',
         maxHeight: isCollapsing ? 0 : 200, overflow: 'hidden', transformOrigin: 'top',

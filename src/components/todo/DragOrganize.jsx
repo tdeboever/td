@@ -53,7 +53,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const spacePad = W / (spaces.length + 1)
   const spaceZones = spaces.map((s, i) => ({
     id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
-    x: spacePad * (i + 1), y: arcY(90, i, spaces.length, 20, true), r: 40,
+    x: spacePad * (i + 1), y: arcY(90, i, spaces.length, 30, true), r: 40,
     icon: <SpaceAvatar space={s} size={28} />,
     action: act(`→ ${s.name}`, { spaceId: s.id, listId: null }),
   }))
@@ -127,7 +127,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const bottomZones = bottomItems.map((z, i) => ({
     ...z,
     x: bottomPad * (i + 1),
-    y: arcY(H - 200, i, bottomItems.length, 18, false),
+    y: arcY(H - 200, i, bottomItems.length, 35, false),
   }))
 
   const allZones = [...spaceZones, ...bottomZones, deleteZone, noteZone]
