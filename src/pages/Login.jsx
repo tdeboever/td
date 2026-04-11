@@ -4,25 +4,26 @@ export default function Login({ onSignIn }) {
   const [revving, setRevving] = useState(false)
   const titleRef = useRef(null)
   const trailRef = useRef(null)
+  const dustRef = useRef(null)
 
   const handleSignIn = () => {
     setRevving(true)
-    // Vibrate the title
     if (titleRef.current) {
-      titleRef.current.style.animation = 'whimRevv 0.3s ease-in-out 3'
+      titleRef.current.style.animation = 'whimRevv 0.15s ease-in-out 3'
     }
-    // After revving, zoom off with trail
+    // After short rev, zoom off
     setTimeout(() => {
       if (titleRef.current) {
-        titleRef.current.style.animation = 'whimZoom 0.6s cubic-bezier(0.4, 0, 0, 1) forwards'
+        titleRef.current.style.animation = 'whimZoom 0.5s cubic-bezier(0.4, 0, 0, 1) forwards'
       }
       if (trailRef.current) {
-        trailRef.current.style.opacity = '1'
-        trailRef.current.style.animation = 'whimTrail 0.6s cubic-bezier(0.4, 0, 0, 1) forwards'
+        trailRef.current.style.animation = 'whimTrail 0.8s ease-out forwards'
       }
-    }, 900)
-    // Trigger actual sign in after animation
-    setTimeout(() => onSignIn(), 1600)
+      if (dustRef.current) {
+        dustRef.current.style.animation = 'whimDust 0.7s ease-out forwards'
+      }
+    }, 500)
+    setTimeout(() => onSignIn(), 1200)
   }
 
   return (
@@ -30,17 +31,22 @@ export default function Login({ onSignIn }) {
       <style>{`
         @keyframes whimRevv {
           0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-3px) rotate(-1deg); }
-          75% { transform: translateX(3px) rotate(1deg); }
+          25% { transform: translateX(-2px) rotate(-0.5deg); }
+          75% { transform: translateX(2px) rotate(0.5deg); }
         }
         @keyframes whimZoom {
           0% { transform: translateX(0) scale(1); opacity: 1; }
-          100% { transform: translateX(-120vw) scale(0.6); opacity: 0; }
+          100% { transform: translateX(-120vw) scale(0.7); opacity: 0; }
         }
         @keyframes whimTrail {
-          0% { opacity: 0; letter-spacing: 0.1em; }
-          20% { opacity: 0.5; }
-          100% { opacity: 0; letter-spacing: 0.8em; }
+          0% { opacity: 0; transform: translateY(-50%) translateX(0); }
+          15% { opacity: 0.4; }
+          100% { opacity: 0; transform: translateY(-70%) translateX(0); }
+        }
+        @keyframes whimDust {
+          0% { opacity: 0; transform: scale(0.3); }
+          20% { opacity: 0.3; }
+          100% { opacity: 0; transform: scale(2.5) translateY(-10px); }
         }
       `}</style>
       <div className="text-center" style={{ marginTop: -60 }}>
@@ -51,12 +57,22 @@ export default function Login({ onSignIn }) {
             letterSpacing: '-0.04em', color: 'var(--text-primary)',
             animationDelay: '0ms',
           }}>Whim</h1>
+
+          {/* Trail of m's — stays in place, drifts up slightly */}
           <span ref={trailRef} style={{
-            position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
-            fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 32,
+            position: 'absolute', left: '20%', top: '50%', transform: 'translateY(-50%)',
+            fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 28,
             color: 'var(--text-ghost)', opacity: 0, whiteSpace: 'nowrap',
-            letterSpacing: '0.15em', pointerEvents: 'none',
+            letterSpacing: '0.12em', pointerEvents: 'none',
           }}>mmmmm</span>
+
+          {/* Dust puff */}
+          <div ref={dustRef} style={{
+            position: 'absolute', left: '10%', top: '50%',
+            width: 40, height: 40, marginTop: -20, marginLeft: -20,
+            borderRadius: '50%', opacity: 0, pointerEvents: 'none',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 40%, transparent 70%)',
+          }} />
         </div>
 
         {/* Sign in button */}
