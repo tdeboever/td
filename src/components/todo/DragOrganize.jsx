@@ -88,8 +88,20 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       action: act('Next week', (() => { const d=new Date(); d.setDate(d.getDate()+7); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
   ]
 
+  const addTodo = useTodoStore((s) => s.addTodo)
   const deleteZone = { id: 'del', label: 'Delete', r: 35, color: '#ff6b6b', icon: '✕',
-    x: W - 50, y: H / 2, action: () => deleteTodo(todo.id) }
+    x: W - 50, y: H / 2, action: () => {
+      const saved = { ...todo }
+      deleteTodo(todo.id)
+      showUndo('Deleted', () => {
+        // Re-add with original properties
+        const restored = addTodo(saved.text, {
+          type: saved.type, listId: saved.listId, spaceId: saved.spaceId,
+          priority: saved.priority, dueDate: saved.dueDate, dueTime: saved.dueTime,
+        })
+        if (saved.subtasks?.length) updateTodo(restored.id, { subtasks: saved.subtasks })
+      })
+    } }
 
   const noteZone = { id: 'note', label: 'Note', r: 35, color: '#60a5fa', icon: '✎',
     x: 50, y: H / 2, action: act('→ Note', { type: 'note' }) }
