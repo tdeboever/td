@@ -30,7 +30,6 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
   const W = window.innerWidth
   const H = window.innerHeight
-  const RISE = 45
 
   const act = useCallback((label, data) => () => {
     const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
@@ -162,14 +161,17 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       }
       px.current = t.clientX; py.current = t.clientY
 
-      // Lock nearest space once finger rises enough
-      if (!lockedSpaceId.current && startPos.y - py.current > RISE) {
-        let nearest = null, nearD = Infinity
-        for (const z of spaceZonesRef.current) {
-          const d = Math.abs(px.current - z.x)
-          if (d < nearD) { nearest = z.id; nearD = d }
+      // Lock nearest space when finger moves upward OR enters upper 60% of screen
+      if (!lockedSpaceId.current) {
+        const risen = startPos.y - py.current > 25 || py.current < H * 0.6
+        if (risen) {
+          let nearest = null, nearD = Infinity
+          for (const z of spaceZonesRef.current) {
+            const d = Math.abs(px.current - z.x)
+            if (d < nearD) { nearest = z.id; nearD = d }
+          }
+          lockedSpaceId.current = nearest
         }
-        lockedSpaceId.current = nearest
       }
 
       hoveredRef.current = hitTest(px.current, py.current)
