@@ -14,23 +14,22 @@ export default function Login({ onSignIn }) {
     setTimeout(() => {
       if (!titleRef.current || !containerRef.current) return
 
-      // Start the zoom
-      titleRef.current.style.animation = 'whimZoom 0.6s cubic-bezier(0.3, 0, 0, 1) forwards'
+      // Slower zoom so m's stay connected
+      titleRef.current.style.animation = 'whimZoom 0.9s cubic-bezier(0.25, 0, 0, 1) forwards'
 
-      // Spawn m's along the path as Whim flies left
+      // Spawn m's as exhaust — tighter spacing, faster fade
       const startRect = titleRef.current.getBoundingClientRect()
       const startRight = startRect.right
       const centerY = startRect.top + startRect.height / 2
-      const screenW = window.innerWidth
 
-      const mCount = 8
+      const mCount = 6
       for (let i = 0; i < mCount; i++) {
         setTimeout(() => {
           const m = document.createElement('span')
           m.textContent = 'm'
-          // Spread from where Whim started across to the left edge
-          const x = startRight - (i + 1) * (screenW * 0.08)
-          const opacity = 0.45 - i * 0.05
+          // Tight spacing — each m about 30px apart
+          const x = startRight - (i + 1) * 32
+          const opacity = 0.4 - i * 0.06
           m.style.cssText = `
             position: fixed;
             left: ${x}px;
@@ -41,18 +40,18 @@ export default function Login({ onSignIn }) {
             font-size: 52px;
             letter-spacing: -0.04em;
             color: var(--text-primary);
-            opacity: ${Math.max(opacity, 0.04)};
+            opacity: ${Math.max(opacity, 0.03)};
             pointer-events: none;
             z-index: 9999;
-            animation: mFade 0.7s ease-out forwards;
+            animation: mFade 0.4s ease-out forwards;
           `
           document.body.appendChild(m)
-          setTimeout(() => m.remove(), 900)
-        }, i * 50)
+          setTimeout(() => m.remove(), 600)
+        }, i * 60)
       }
     }, 500)
 
-    setTimeout(() => onSignIn(), 1300)
+    setTimeout(() => onSignIn(), 1500)
   }
 
   return (
@@ -65,11 +64,12 @@ export default function Login({ onSignIn }) {
         }
         @keyframes whimZoom {
           0% { transform: translateX(0) scale(1); opacity: 1; }
-          100% { transform: translateX(-120vw) scale(0.7); opacity: 0; }
+          60% { opacity: 0.8; }
+          100% { transform: translateX(-110vw) scale(0.8); opacity: 0; }
         }
         @keyframes mFade {
           0% { opacity: inherit; transform: translateY(-50%); }
-          100% { opacity: 0; transform: translateY(-60%); }
+          100% { opacity: 0; transform: translateY(-58%); }
         }
       `}</style>
       <div className="text-center" style={{ marginTop: -60 }}>
