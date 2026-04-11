@@ -39,6 +39,7 @@ export default function Header() {
 
   if (activeView === 'today') c((t) => filterFn(t) && (!t.dueDate || new Date(t.dueDate).toDateString() === new Date().toDateString()))
   else if (activeView === 'upcoming') { const n = new Date(); n.setHours(0,0,0,0); c((t) => filterFn(t) && t.dueDate && new Date(t.dueDate) > n) }
+  else c((t) => filterFn(t))
 
   if (inputFocused) {
     return (
@@ -59,7 +60,7 @@ export default function Header() {
       )}
       <div className="flex items-baseline justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={toggleSidebar} style={{ fontSize: 18, color: 'var(--text-secondary)', lineHeight: 1, marginBottom: -2 }}>◫</button>
+          <button onClick={toggleSidebar} style={{ fontSize: 18, color: (activeSpaceId || activeListId) ? 'var(--accent-lavender)' : 'var(--text-secondary)', lineHeight: 1, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>◫</button>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 34, letterSpacing: '-0.03em' }}>{title}</h1>
         </div>
         <div className="flex items-center gap-4">

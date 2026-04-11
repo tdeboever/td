@@ -34,7 +34,7 @@ export default function SpaceRow() {
   const spaceLists = activeSpaceId ? lists.filter((l) => l.spaceId === activeSpaceId).sort((a, b) => a.position - b.position) : []
 
   return (
-    <div style={{ padding: '0 20px 16px' }}>
+    <div style={{ padding: '0 20px 8px' }}>
       {/* Spaces */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {spaces.map((s) => {
@@ -63,14 +63,16 @@ export default function SpaceRow() {
             style={{
               flexShrink: 0, padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
               background: !activeListId ? 'var(--surface-active)' : 'transparent',
-              color: !activeListId ? 'var(--text-primary)' : 'var(--text-ghost)',
+              color: !activeListId ? 'var(--text-primary)' : 'var(--text-secondary)',
+              border: !activeListId ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(255,255,255,0.06)',
             }}>All</button>
           {spaceLists.map((l) => (
             <button key={l.id} onClick={() => handleListTap(l.id)}
               style={{
                 flexShrink: 0, padding: '4px 12px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
                 background: activeListId === l.id ? 'var(--surface-active)' : 'transparent',
-                color: activeListId === l.id ? 'var(--text-primary)' : 'var(--text-ghost)',
+                color: activeListId === l.id ? 'var(--text-primary)' : 'var(--text-secondary)',
+                border: activeListId === l.id ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(255,255,255,0.06)',
               }}>{l.name}</button>
           ))}
         </div>

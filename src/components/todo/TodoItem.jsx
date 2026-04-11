@@ -210,13 +210,13 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         style={{
           width: 22, height: 22,
           transition: 'all 250ms cubic-bezier(0.34,1.56,0.64,1)',
-          border: isChecked ? '2px solid transparent' : isDone ? '2px solid transparent' : `2px solid ${spaceColor ? spaceColor + '40' : 'rgba(255,255,255,0.15)'}`,
+          border: isChecked ? '2px solid transparent' : isDone ? '2px solid transparent' : `2px solid ${spaceColor ? spaceColor + '50' : 'rgba(255,255,255,0.22)'}`,
           background: isChecked ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : isDone ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'transparent',
           transform: isChecked && !isCollapsing ? 'scale(1.3)' : 'scale(1)',
           boxShadow: (isChecked || isDone) ? '0 0 12px rgba(244,114,182,0.30)' : 'none',
         }}
         onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'var(--accent-rose)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(244,114,182,0.12)'; e.currentTarget.style.transform = 'scale(1.08)' } }}
-        onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = spaceColor ? spaceColor + '40' : 'rgba(255,255,255,0.15)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)' } }}
+        onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = spaceColor ? spaceColor + '50' : 'rgba(255,255,255,0.22)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)' } }}
       >
         {(isDone || isChecked) && (
           <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"
