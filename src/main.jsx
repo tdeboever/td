@@ -9,6 +9,34 @@ window.addEventListener('popstate', () => {
   window.history.pushState(null, '', window.location.href)
 })
 
+// Auto-update: check for new version on load and tab focus
+const APP_VERSION_KEY = 'whim_app_version'
+async function checkForUpdate() {
+  try {
+    const res = await fetch('/version.json?t=' + Date.now())
+    if (!res.ok) return
+    const { v } = await res.json()
+    const stored = localStorage.getItem(APP_VERSION_KEY)
+    if (stored && stored !== String(v)) {
+      // New version detected — clear caches and reload
+      localStorage.setItem(APP_VERSION_KEY, String(v))
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations()
+        await Promise.all(regs.map(r => r.unregister()))
+      }
+      const keys = await caches.keys()
+      await Promise.all(keys.map(k => caches.delete(k)))
+      window.location.reload()
+    } else if (!stored) {
+      localStorage.setItem(APP_VERSION_KEY, String(v))
+    }
+  } catch { /* offline, skip */ }
+}
+checkForUpdate()
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') checkForUpdate()
+})
+
 class ErrorBoundary extends Component {
   state = { error: null }
   static getDerivedStateFromError(e) { return { error: e } }

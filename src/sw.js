@@ -20,6 +20,19 @@ registerRoute(
 self.skipWaiting()
 self.clients.claim()
 
+// On activate: clean up old caches from previous versions
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((names) => {
+      return Promise.all(
+        names
+          .filter((name) => !name.startsWith('workbox-') && name !== 'google-fonts-cache' && name !== 'gstatic-fonts-cache')
+          .map((name) => caches.delete(name))
+      )
+    })
+  )
+})
+
 // Push notification handler
 self.addEventListener('push', (event) => {
   let data = { title: 'Whim', body: 'You have a task due' }

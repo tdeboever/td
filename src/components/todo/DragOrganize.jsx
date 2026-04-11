@@ -135,6 +135,8 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const allZones = [...spaceZones, ...bottomZones, deleteZone, noteZone]
   const allZonesRef = useRef(allZones)
   allZonesRef.current = allZones
+  const spaceZonesRef = useRef(spaceZones)
+  spaceZonesRef.current = spaceZones
 
   const hitTest = (x, y, extra = 0) => {
     for (const z of allZonesRef.current) {
@@ -162,7 +164,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       if (risen) {
         // Find nearest space while above threshold
         let nearest = null, nearD = Infinity
-        for (const z of spaceZones) {
+        for (const z of spaceZonesRef.current) {
           const d = Math.abs(px.current - z.x)
           if (d < nearD) { nearest = z.id; nearD = d }
         }
