@@ -35,11 +35,12 @@ export default function Login({ onSignIn }) {
         }
         @keyframes whimZoom {
           0% { transform: translateX(0) scale(1); opacity: 1; }
-          100% { transform: translateX(120vw) scale(0.6); opacity: 0; }
+          100% { transform: translateX(-120vw) scale(0.6); opacity: 0; }
         }
         @keyframes whimTrail {
-          0% { transform: translateX(0); opacity: 0.6; }
-          100% { transform: translateX(100vw); opacity: 0; }
+          0% { opacity: 0; letter-spacing: 0.1em; }
+          20% { opacity: 0.5; }
+          100% { opacity: 0; letter-spacing: 0.8em; }
         }
       `}</style>
       <div className="text-center" style={{ marginTop: -60 }}>
@@ -51,11 +52,11 @@ export default function Login({ onSignIn }) {
             animationDelay: '0ms',
           }}>Whim</h1>
           <span ref={trailRef} style={{
-            position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)',
-            fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 28,
+            position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
+            fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 32,
             color: 'var(--text-ghost)', opacity: 0, whiteSpace: 'nowrap',
             letterSpacing: '0.15em', pointerEvents: 'none',
-          }}>mmmm</span>
+          }}>mmmmm</span>
         </div>
 
         {/* Sign in button */}
