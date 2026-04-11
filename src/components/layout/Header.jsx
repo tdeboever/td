@@ -61,7 +61,7 @@ export default function Header() {
       )}
       <div className="flex items-baseline justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={toggleSidebar} style={{ minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={toggleSidebar} style={{ padding: '10px 10px 10px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: -2 }}>
             {(activeSpaceId || activeListId) ? (
               <SpaceAvatar space={(() => {
                 if (activeListId) {
