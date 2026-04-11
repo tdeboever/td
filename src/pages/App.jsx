@@ -25,9 +25,10 @@ function TodayView() {
   const checklistIds = useMemo(() => new Set(lists.filter(l => l.type === 'checklist').map(l => l.id)), [lists])
 
   const filtered = useMemo(() => {
-    // Start with all tasks (not notes), exclude checklist items unless viewing that list
+    // Start with all tasks (not notes)
+    // Checklist items hidden from Today UNLESS they have a due date (explicitly scheduled) or you're viewing that list
     let t = todos.filter((t) => t.type !== 'note')
-    t = t.filter((t) => !t.listId || !checklistIds.has(t.listId) || t.listId === activeListId)
+    t = t.filter((t) => !t.listId || !checklistIds.has(t.listId) || t.listId === activeListId || !!t.dueDate)
 
     // Filter: due today OR no due date (actionable now)
     t = t.filter((t) => !t.dueDate || isToday(t.dueDate))
