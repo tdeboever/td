@@ -178,6 +178,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       px.current = t.clientX; py.current = t.clientY
 
       const risen = startPos.y - py.current > RISE
+      console.log('DRAG', { risen, y: py.current, startY: startPos.y, diff: startPos.y - py.current, locked: lockedNearRef.current })
       if (risen && !lockedNearRef.current) {
         // Lock nearest space ONCE — never changes after
         let nearest = null, nearD = Infinity
@@ -185,6 +186,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
           const d = Math.abs(px.current - z.x)
           if (d < nearD) { nearest = z.id; nearD = d }
         }
+        console.log('LOCKING to', nearest, 'spaces:', spaceZonesRef.current.length)
         lockedNearRef.current = nearest
         setNearAndLock(nearest)
       }
