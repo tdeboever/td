@@ -145,9 +145,26 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     return null
   }
 
+  // Refs for callbacks to avoid stale closures
+  const flyingRef = useRef(null)
+  const onDoneRef = useRef(onDone)
+  onDoneRef.current = onDone
+  const wallDeleteRef = useRef(wallDelete)
+  wallDeleteRef.current = wallDelete
+  const wallNoteRef = useRef(wallNote)
+  wallNoteRef.current = wallNote
+  const nearSpaceIdRef = useRef(null)
+
+  const setNearAndLock = (id) => {
+    nearSpaceIdRef.current = id
+    setNearSpaceId(id)
+  }
+
+  // Single effect — attach listeners once, use refs for all mutable data
   useEffect(() => {
     if (listPicker) return
     setTimeout(() => setEntered(true), 20)
+
     const move = (e) => {
       e.preventDefault()
       const t = e.touches[0]; const now = Date.now()
@@ -169,11 +186,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
           if (d < nearD) { nearest = z.id; nearD = d }
         }
         lockedNearRef.current = nearest
-        setNearSpaceId(nearest)
-      } else if (!lockedNearRef.current && !risen) {
-        setNearSpaceId(null)
+        setNearAndLock(nearest)
       }
-      // Once locked, nearSpaceId stays set no matter where finger goes
+      // Once locked, do nothing — nearSpaceId stays set permanently
 
       const hit = hitTest(px.current, py.current)
       hoveredRef.current = hit
@@ -182,38 +197,37 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     }
 
     const flyTo = (z) => {
+      flyingRef.current = { x: z.x, y: z.y }
       setFlying({ x: z.x, y: z.y })
       if (navigator.vibrate) navigator.vibrate(8)
-      setTimeout(() => { z.action(); if (z.id !== 'other-list') setTimeout(onDone, 100) }, 280)
+      setTimeout(() => { z.action(); if (z.id !== 'other-list') setTimeout(() => onDoneRef.current(), 100) }, 280)
     }
 
     const end = () => {
-      if (flying) return
+      if (flyingRef.current) return
       const az = allZonesRef.current
       const cur = hoveredRef.current
 
-      // Wall zones: require fling velocity, not just position
+      // Wall zones: require fling velocity
       if (cur === 'wall-del') {
-        const speed = Math.abs(velX.current)
-        if (speed > 200 && velX.current > 0) {
-          // Flung right hard enough
+        if (velX.current > 200) {
+          flyingRef.current = { x: W + 50, y: py.current }
           setFlying({ x: W + 50, y: py.current })
           if (navigator.vibrate) navigator.vibrate(8)
-          setTimeout(() => { wallDelete(); setTimeout(onDone, 100) }, 280)
+          setTimeout(() => { wallDeleteRef.current(); setTimeout(() => onDoneRef.current(), 100) }, 280)
           return
         }
-        // Not fast enough — cancel
-        onDone(); return
+        onDoneRef.current(); return
       }
       if (cur === 'wall-note') {
-        const speed = Math.abs(velX.current)
-        if (speed > 200 && velX.current < 0) {
+        if (velX.current < -200) {
+          flyingRef.current = { x: -50, y: py.current }
           setFlying({ x: -50, y: py.current })
           if (navigator.vibrate) navigator.vibrate(8)
-          setTimeout(() => { wallNote(); setTimeout(onDone, 100) }, 280)
+          setTimeout(() => { wallNoteRef.current(); setTimeout(() => onDoneRef.current(), 100) }, 280)
           return
         }
-        onDone(); return
+        onDoneRef.current(); return
       }
 
       if (cur) { const z = az.find(z => z.id === cur); if (z) { flyTo(z); return } }
@@ -224,15 +238,17 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
         // Check wall fling projections
         if (pX > W && velX.current > 200) {
+          flyingRef.current = { x: W + 50, y: py.current }
           setFlying({ x: W + 50, y: py.current })
           if (navigator.vibrate) navigator.vibrate(8)
-          setTimeout(() => { wallDelete(); setTimeout(onDone, 100) }, 280)
+          setTimeout(() => { wallDeleteRef.current(); setTimeout(() => onDoneRef.current(), 100) }, 280)
           return
         }
         if (pX < 0 && velX.current < -200) {
+          flyingRef.current = { x: -50, y: py.current }
           setFlying({ x: -50, y: py.current })
           if (navigator.vibrate) navigator.vibrate(8)
-          setTimeout(() => { wallNote(); setTimeout(onDone, 100) }, 280)
+          setTimeout(() => { wallNoteRef.current(); setTimeout(() => onDoneRef.current(), 100) }, 280)
           return
         }
 
@@ -240,13 +256,13 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         for (const z of az) { const d = Math.sqrt((pX-z.x)**2+(pY-z.y)**2); if (d<bestD) { best=z; bestD=d } }
         if (best) { flyTo(best); return }
       }
-      onDone()
+      onDoneRef.current()
     }
 
     document.addEventListener('touchmove', move, { passive: false })
     document.addEventListener('touchend', end)
     return () => { document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end) }
-  })
+  }, [listPicker]) // only re-attach when listPicker changes
 
   const handlePickList = (list) => {
     const old = { spaceId: todo.spaceId, listId: todo.listId }
