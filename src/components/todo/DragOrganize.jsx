@@ -13,6 +13,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const allTodos = useTodoStore((s) => s.todos)
   const updateTodo = useTodoStore((s) => s.updateTodo)
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
+  const addTodo = useTodoStore((s) => s.addTodo)
   const showUndo = useUiStore((s) => s.showUndo)
 
   const px = useRef(startPos.x)
@@ -26,7 +27,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const lockedNearRef = useRef(null)
   const [entered, setEntered] = useState(false)
   const [flying, setFlying] = useState(null)
-  const [listPicker, setListPicker] = useState(null) // { spaceId, lists[] } for "Other" popup
+  const [listPicker, setListPicker] = useState(null)
   const [, rerender] = useState(0)
 
   const W = window.innerWidth
@@ -39,33 +40,31 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     showUndo(label, () => updateTodo(todo.id, old))
   }
 
-  // Arc helper: slight curve for a row of items
-  // Top row: edges drop down (toward screen center) — a smile shape
-  // Bottom row: edges rise up (toward screen center) — a frown shape
+  // Arc helper
   const arcY = (baseY, i, count, arcHeight, smileDown = true) => {
     if (count <= 1) return baseY
-    const t = (i - (count - 1) / 2) / ((count - 1) / 2) // -1 to 1
-    const offset = arcHeight * t * t // parabola, 0 at center, arcHeight at edges
+    const t = (i - (count - 1) / 2) / ((count - 1) / 2)
+    const offset = arcHeight * t * t
     return smileDown ? baseY + offset : baseY - offset
   }
 
-  // TOP: Spaces (edges drop down toward center, spread wider)
-  const spaceMargin = 30 // px from edges
+  // TOP: Spaces — spread edge-to-edge
+  const spaceMargin = 30
   const spaceWidth = W - spaceMargin * 2
   const spacePad = spaces.length > 1 ? spaceWidth / (spaces.length - 1) : 0
   const spaceZones = spaces.map((s, i) => ({
     id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
-    x: spaces.length === 1 ? W / 2 : spaceMargin + spacePad * i, y: arcY(90, i, spaces.length, 30, true), r: 40,
+    x: spaces.length === 1 ? W / 2 : spaceMargin + spacePad * i,
+    y: arcY(90, i, spaces.length, 30, true), r: 40,
     icon: <SpaceAvatar space={s} size={28} />,
     action: act(`→ ${s.name}`, { spaceId: s.id, listId: null }),
   }))
 
-  // Determine which lists to show for near space
+  // Near space & lists
   const nearSpace = spaces.find(s => `sp-${s.id}` === nearSpaceId)
   const spaceLists = nearSpace ? allLists.filter(l => l.spaceId === nearSpace.id) : []
   const showingLists = spaceLists.length > 0 && !!lockedNearRef.current
 
-  // Sort lists by recent activity (most recent todo update in that list)
   const listActivity = (list) => {
     const latest = allTodos
       .filter(t => t.listId === list.id)
@@ -90,30 +89,25 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       action: act('Next week', (() => { const d=new Date(); d.setDate(d.getDate()+7); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
   ]
 
-  const addTodo = useTodoStore((s) => s.addTodo)
-  const deleteZone = { id: 'del', label: 'Delete', r: 35, color: '#ff6b6b', icon: '✕',
-    x: W - 50, y: H / 2, action: () => {
-      const saved = { ...todo }
-      deleteTodo(todo.id)
-      showUndo('Deleted', () => {
-        // Re-add with original properties
-        const restored = addTodo(saved.text, {
-          type: saved.type, listId: saved.listId, spaceId: saved.spaceId,
-          priority: saved.priority, dueDate: saved.dueDate, dueTime: saved.dueTime,
-        })
-        if (saved.subtasks?.length) updateTodo(restored.id, { subtasks: saved.subtasks })
+  // Wall zones — detected by x-position, not circular hit
+  const wallDelete = () => {
+    const saved = { ...todo }
+    deleteTodo(todo.id)
+    showUndo('Deleted', () => {
+      const restored = addTodo(saved.text, {
+        type: saved.type, listId: saved.listId, spaceId: saved.spaceId,
+        priority: saved.priority, dueDate: saved.dueDate, dueTime: saved.dueTime,
       })
-    } }
-
-  const noteZone = { id: 'note', label: 'Note', r: 35, color: '#60a5fa', icon: '✎',
-    x: 50, y: H / 2, action: act('→ Note', { type: 'note' }) }
+      if (saved.subtasks?.length) updateTodo(restored.id, { subtasks: saved.subtasks })
+    })
+  }
+  const wallNote = act('→ Note', { type: 'note' })
 
   const listZones = visibleLists.map((l) => ({
     id: `list-${l.id}`, label: l.name, r: 35, color: nearSpace?.color || '#a78bfa',
     action: act(`→ ${l.name}`, { spaceId: nearSpace.id, listId: l.id }),
   }))
 
-  // Add "Other" zone if overflow
   if (hasOverflow && nearSpace) {
     listZones.push({
       id: 'other-list', label: 'Other…', r: 35, color: 'rgba(255,255,255,0.2)', icon: '•••',
@@ -123,22 +117,28 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     })
   }
 
-  // Position bottom items with arc (curves down at edges)
+  // BOTTOM: spread edge-to-edge like spaces
   const bottomItems = showingLists ? listZones : actionZones
-  const bottomPad = W / (bottomItems.length + 1)
+  const bottomMargin = 40
+  const bottomWidth = W - bottomMargin * 2
+  const bottomPadding = bottomItems.length > 1 ? bottomWidth / (bottomItems.length - 1) : 0
   const bottomZones = bottomItems.map((z, i) => ({
     ...z,
-    x: bottomPad * (i + 1),
+    x: bottomItems.length === 1 ? W / 2 : bottomMargin + bottomPadding * i,
     y: arcY(H - 200, i, bottomItems.length, 35, false),
   }))
 
-  const allZones = [...spaceZones, ...bottomZones, deleteZone, noteZone]
+  // All flingable zones (no wall zones — those are edge-detected)
+  const allZones = [...spaceZones, ...bottomZones]
   const allZonesRef = useRef(allZones)
   allZonesRef.current = allZones
   const spaceZonesRef = useRef(spaceZones)
   spaceZonesRef.current = spaceZones
 
   const hitTest = (x, y, extra = 0) => {
+    // Check wall zones first
+    if (x > W - 30) return 'wall-del'
+    if (x < 30) return 'wall-note'
     for (const z of allZonesRef.current) {
       if (Math.sqrt((x - z.x) ** 2 + (y - z.y) ** 2) < (z.r || 35) + extra) return z.id
     }
@@ -146,7 +146,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   }
 
   useEffect(() => {
-    if (listPicker) return // pause gesture handling when picker is showing
+    if (listPicker) return
     setTimeout(() => setEntered(true), 20)
     const move = (e) => {
       e.preventDefault()
@@ -161,8 +161,8 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       px.current = t.clientX; py.current = t.clientY
 
       const risen = startPos.y - py.current > RISE
-      if (risen) {
-        // Find nearest space while above threshold
+      if (risen && !lockedNearRef.current) {
+        // Lock nearest space ONCE — never changes after
         let nearest = null, nearD = Infinity
         for (const z of spaceZonesRef.current) {
           const d = Math.abs(px.current - z.x)
@@ -170,11 +170,10 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         }
         lockedNearRef.current = nearest
         setNearSpaceId(nearest)
-      } else if (lockedNearRef.current) {
-        // Below threshold but was locked — keep lists showing (sticky)
-      } else {
+      } else if (!lockedNearRef.current && !risen) {
         setNearSpaceId(null)
       }
+      // Once locked, nearSpaceId stays set no matter where finger goes
 
       const hit = hitTest(px.current, py.current)
       hoveredRef.current = hit
@@ -192,11 +191,51 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       if (flying) return
       const az = allZonesRef.current
       const cur = hoveredRef.current
+
+      // Wall zones: require fling velocity, not just position
+      if (cur === 'wall-del') {
+        const speed = Math.abs(velX.current)
+        if (speed > 200 && velX.current > 0) {
+          // Flung right hard enough
+          setFlying({ x: W + 50, y: py.current })
+          if (navigator.vibrate) navigator.vibrate(8)
+          setTimeout(() => { wallDelete(); setTimeout(onDone, 100) }, 280)
+          return
+        }
+        // Not fast enough — cancel
+        onDone(); return
+      }
+      if (cur === 'wall-note') {
+        const speed = Math.abs(velX.current)
+        if (speed > 200 && velX.current < 0) {
+          setFlying({ x: -50, y: py.current })
+          if (navigator.vibrate) navigator.vibrate(8)
+          setTimeout(() => { wallNote(); setTimeout(onDone, 100) }, 280)
+          return
+        }
+        onDone(); return
+      }
+
       if (cur) { const z = az.find(z => z.id === cur); if (z) { flyTo(z); return } }
       const speed = Math.sqrt(velX.current ** 2 + velY.current ** 2)
       if (speed > 150) {
         const projT = Math.min(0.5, 200 / Math.max(speed, 1))
         const pX = px.current + velX.current * projT, pY = py.current + velY.current * projT
+
+        // Check wall fling projections
+        if (pX > W && velX.current > 200) {
+          setFlying({ x: W + 50, y: py.current })
+          if (navigator.vibrate) navigator.vibrate(8)
+          setTimeout(() => { wallDelete(); setTimeout(onDone, 100) }, 280)
+          return
+        }
+        if (pX < 0 && velX.current < -200) {
+          setFlying({ x: -50, y: py.current })
+          if (navigator.vibrate) navigator.vibrate(8)
+          setTimeout(() => { wallNote(); setTimeout(onDone, 100) }, 280)
+          return
+        }
+
         let best = null, bestD = 150
         for (const z of az) { const d = Math.sqrt((pX-z.x)**2+(pY-z.y)**2); if (d<bestD) { best=z; bestD=d } }
         if (best) { flyTo(best); return }
@@ -209,7 +248,6 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     return () => { document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end) }
   })
 
-  // Handle list picker selection
   const handlePickList = (list) => {
     const old = { spaceId: todo.spaceId, listId: todo.listId }
     updateTodo(todo.id, { spaceId: listPicker.spaceId, listId: list.id })
@@ -243,7 +281,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     )
   }
 
-  // List picker popup (shown after flinging to "Other…")
+  const isNearRight = hovered === 'wall-del'
+  const isNearLeft = hovered === 'wall-note'
+
   if (listPicker) {
     return createPortal(
       <div className="fixed inset-0 z-50" style={{ touchAction: 'none' }}>
@@ -289,10 +329,42 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         opacity: entered ? 1 : 0, transition: 'opacity 200ms',
       }} />
 
-      {/* Top: Spaces (arc) */}
+      {/* Left wall — Note */}
+      <div style={{
+        position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 5, borderRadius: '0 4px 4px 0',
+        background: isNearLeft ? '#60a5fa' : 'rgba(96,165,250,0.25)',
+        boxShadow: isNearLeft ? '0 0 20px rgba(96,165,250,0.5)' : 'none',
+        transition: 'all 200ms',
+        opacity: entered ? 1 : 0,
+      }} />
+      {isNearLeft && entered && (
+        <div style={{
+          position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 10, fontWeight: 600, color: '#60a5fa', letterSpacing: '0.05em',
+          writingMode: 'vertical-rl', textOrientation: 'mixed',
+        }}>Note</div>
+      )}
+
+      {/* Right wall — Delete */}
+      <div style={{
+        position: 'absolute', right: 0, top: '20%', bottom: '20%', width: 5, borderRadius: '4px 0 0 4px',
+        background: isNearRight ? '#ff6b6b' : 'rgba(255,107,107,0.25)',
+        boxShadow: isNearRight ? '0 0 20px rgba(255,107,107,0.5)' : 'none',
+        transition: 'all 200ms',
+        opacity: entered ? 1 : 0,
+      }} />
+      {isNearRight && entered && (
+        <div style={{
+          position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)',
+          fontSize: 10, fontWeight: 600, color: '#ff6b6b', letterSpacing: '0.05em',
+          writingMode: 'vertical-rl', textOrientation: 'mixed',
+        }}>Delete</div>
+      )}
+
+      {/* Top: Spaces */}
       {spaceZones.map((z, i) => renderZone(z, i * 40))}
 
-      {/* Hint: which space's lists are showing */}
+      {/* Hint: which space's lists */}
       {showingLists && nearSpace && entered && (
         <div className="animate-fade-in" style={{
           position: 'absolute', left: 0, right: 0, top: H - 255,
@@ -303,12 +375,8 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         </div>
       )}
 
-      {/* Bottom: actions OR lists (arc) */}
+      {/* Bottom: actions OR lists */}
       {bottomZones.map((z, i) => renderZone(z, showingLists ? 0 : 60 + i * 30))}
-
-      {/* Side zones */}
-      {renderZone(noteZone, 70)}
-      {renderZone(deleteZone, 80)}
 
       {/* Pill */}
       <div style={{
@@ -316,8 +384,10 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         left: (flying ? flying.x : px.current) - 70,
         top: (flying ? flying.y : py.current) - 18,
         width: 140, padding: '9px 14px', borderRadius: 20,
-        background: hovered
+        background: hovered && hovered !== 'wall-del' && hovered !== 'wall-note'
           ? (allZonesRef.current.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
+          : isNearRight ? '#ff6b6b'
+          : isNearLeft ? '#60a5fa'
           : 'linear-gradient(135deg, #f472b6, #ff7b54)',
         boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
         color: 'white', fontSize: 12, fontWeight: 600,
