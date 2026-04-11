@@ -58,7 +58,7 @@ export default function SpaceRow() {
 
       {/* Lists under selected space */}
       {spaceLists.length > 1 && (
-        <div className="flex gap-2 mt-6 overflow-x-auto no-scrollbar animate-slide-down">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar animate-slide-down" style={{ marginTop: 16 }}>
           <button onClick={() => setState({ activeListId: null })}
             style={{
               flexShrink: 0, padding: '5px 14px', borderRadius: 9999, fontSize: 12, fontWeight: 500,

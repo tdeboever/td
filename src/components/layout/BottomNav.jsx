@@ -10,8 +10,8 @@ export default function BottomNav() {
   const { activeView, setView } = useUiStore()
 
   return (
-    <nav className="safe-bottom" style={{
-      minHeight: 64,
+    <nav style={{
+      minHeight: 64, paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       background: 'var(--surface-glass)',
       backdropFilter: 'blur(24px) saturate(1.3)',
       WebkitBackdropFilter: 'blur(24px) saturate(1.3)',

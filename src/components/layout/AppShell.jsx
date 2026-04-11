@@ -32,7 +32,7 @@ export default function AppShell({ children }) {
   })
 
   return (
-    <div style={{ height: '100dvh', overflow: 'hidden' }} className="flex justify-center">
+    <div style={{ height: '100dvh', maxHeight: '-webkit-fill-available', overflow: 'hidden' }} className="flex justify-center">
       <div className="app-shell w-full max-w-[480px] flex flex-col relative" style={{ height: '100%', overflow: 'hidden' }}>
         <OfflineIndicator />
         <Sidebar />
