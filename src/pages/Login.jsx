@@ -39,9 +39,9 @@ export default function Login({ onSignIn }) {
           100% { transform: translateX(-120vw) scale(0.7); opacity: 0; }
         }
         @keyframes whimTrail {
-          0% { opacity: 0; transform: translateY(-50%) translateX(0); }
-          15% { opacity: 0.4; }
-          100% { opacity: 0; transform: translateY(-70%) translateX(0); }
+          0% { opacity: 0; transform: translateY(-50%); }
+          15% { opacity: 1; }
+          100% { opacity: 0; transform: translateY(-65%); }
         }
         @keyframes whimDust {
           0% { opacity: 0; transform: scale(0.3); }
@@ -58,13 +58,21 @@ export default function Login({ onSignIn }) {
             animationDelay: '0ms',
           }}>Whim</h1>
 
-          {/* Trail of m's — stays in place, drifts up slightly */}
+          {/* Trail of m's — same font, fading left to right */}
           <span ref={trailRef} style={{
             position: 'absolute', left: '20%', top: '50%', transform: 'translateY(-50%)',
-            fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 28,
-            color: 'var(--text-ghost)', opacity: 0, whiteSpace: 'nowrap',
-            letterSpacing: '0.12em', pointerEvents: 'none',
-          }}>mmmmm</span>
+            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 52,
+            letterSpacing: '-0.04em', opacity: 0, whiteSpace: 'nowrap',
+            pointerEvents: 'none', display: 'flex',
+          }}>
+            <span style={{ opacity: 0.5 }}>m</span>
+            <span style={{ opacity: 0.4 }}>m</span>
+            <span style={{ opacity: 0.3 }}>m</span>
+            <span style={{ opacity: 0.2 }}>m</span>
+            <span style={{ opacity: 0.12 }}>m</span>
+            <span style={{ opacity: 0.06 }}>m</span>
+            <span style={{ opacity: 0.03 }}>m</span>
+          </span>
 
           {/* Dust puff */}
           <div ref={dustRef} style={{
