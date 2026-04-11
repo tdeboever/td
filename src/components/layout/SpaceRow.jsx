@@ -34,7 +34,7 @@ export default function SpaceRow() {
   const spaceLists = activeSpaceId ? lists.filter((l) => l.spaceId === activeSpaceId).sort((a, b) => a.position - b.position) : []
 
   return (
-    <div style={{ padding: '0 20px 8px' }}>
+    <div style={{ padding: '0 20px 14px' }}>
       {/* Spaces */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {spaces.map((s) => {
@@ -58,7 +58,7 @@ export default function SpaceRow() {
 
       {/* Lists under selected space */}
       {spaceLists.length > 1 && (
-        <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar animate-slide-down">
+        <div className="flex gap-2 mt-4 overflow-x-auto no-scrollbar animate-slide-down">
           <button onClick={() => setState({ activeListId: null })}
             style={{
               flexShrink: 0, padding: '5px 14px', borderRadius: 9999, fontSize: 12, fontWeight: 500,
