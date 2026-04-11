@@ -31,7 +31,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
   const W = window.innerWidth
   const H = window.innerHeight
-  const RISE = 30
+  const RISE = 45
 
   const act = (label, data) => () => {
     const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
@@ -49,11 +49,13 @@ export default function DragOrganize({ todo, startPos, onDone }) {
     return smileDown ? baseY + offset : baseY - offset
   }
 
-  // TOP: Spaces (edges drop down toward center)
-  const spacePad = W / (spaces.length + 1)
+  // TOP: Spaces (edges drop down toward center, spread wider)
+  const spaceMargin = 30 // px from edges
+  const spaceWidth = W - spaceMargin * 2
+  const spacePad = spaces.length > 1 ? spaceWidth / (spaces.length - 1) : 0
   const spaceZones = spaces.map((s, i) => ({
     id: `sp-${s.id}`, label: s.name, color: s.color || '#a78bfa',
-    x: spacePad * (i + 1), y: arcY(90, i, spaces.length, 30, true), r: 40,
+    x: spaces.length === 1 ? W / 2 : spaceMargin + spacePad * i, y: arcY(90, i, spaces.length, 30, true), r: 40,
     icon: <SpaceAvatar space={s} size={28} />,
     action: act(`→ ${s.name}`, { spaceId: s.id, listId: null }),
   }))
@@ -157,8 +159,8 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       px.current = t.clientX; py.current = t.clientY
 
       const risen = startPos.y - py.current > RISE
-      if (risen && !lockedNearRef.current) {
-        // Lock in the nearest space ONCE — don't change it after
+      if (risen) {
+        // Find nearest space while above threshold
         let nearest = null, nearD = Infinity
         for (const z of spaceZones) {
           const d = Math.abs(px.current - z.x)
@@ -166,7 +168,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         }
         lockedNearRef.current = nearest
         setNearSpaceId(nearest)
-      } else if (!risen && !lockedNearRef.current) {
+      } else if (lockedNearRef.current) {
+        // Below threshold but was locked — keep lists showing (sticky)
+      } else {
         setNearSpaceId(null)
       }
 
