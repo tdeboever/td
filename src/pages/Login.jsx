@@ -12,46 +12,42 @@ export default function Login({ onSignIn }) {
     }
 
     setTimeout(() => {
-      if (!titleRef.current || !containerRef.current) return
+      if (!titleRef.current) return
 
-      // Slower zoom so m's stay connected
-      titleRef.current.style.animation = 'whimZoom 0.9s cubic-bezier(0.25, 0, 0, 1) forwards'
+      titleRef.current.style.animation = 'whimZoom 0.8s cubic-bezier(0.25, 0, 0, 1) forwards'
 
-      // Spawn m's as exhaust — tighter spacing, faster fade
-      const startRect = titleRef.current.getBoundingClientRect()
-      const startRight = startRect.right
-      const centerY = startRect.top + startRect.height / 2
+      // Track Whim's actual position and drop m's behind it
+      let count = 0
+      const maxMs = 6
+      const interval = setInterval(() => {
+        if (count >= maxMs || !titleRef.current) { clearInterval(interval); return }
+        const rect = titleRef.current.getBoundingClientRect()
+        // Drop an m where the right edge of Whim currently is
+        const m = document.createElement('span')
+        m.textContent = 'm'
+        const opacity = 0.35 - count * 0.05
+        m.style.cssText = `
+          position: fixed;
+          left: ${rect.right}px;
+          top: ${rect.top + rect.height / 2}px;
+          transform: translateY(-50%);
+          font-family: var(--font-display);
+          font-weight: 700;
+          font-size: 52px;
+          letter-spacing: -0.04em;
+          color: var(--text-primary);
+          opacity: ${Math.max(opacity, 0.03)};
+          pointer-events: none;
+          z-index: 9999;
+          animation: mFade 0.5s ease-out forwards;
+        `
+        document.body.appendChild(m)
+        setTimeout(() => m.remove(), 700)
+        count++
+      }, 60)
+    }, 480)
 
-      const mCount = 6
-      for (let i = 0; i < mCount; i++) {
-        setTimeout(() => {
-          const m = document.createElement('span')
-          m.textContent = 'm'
-          // Tight spacing — each m about 30px apart
-          const x = startRight - (i + 1) * 32
-          const opacity = 0.4 - i * 0.06
-          m.style.cssText = `
-            position: fixed;
-            left: ${x}px;
-            top: ${centerY}px;
-            transform: translateY(-50%);
-            font-family: var(--font-display);
-            font-weight: 700;
-            font-size: 52px;
-            letter-spacing: -0.04em;
-            color: var(--text-primary);
-            opacity: ${Math.max(opacity, 0.03)};
-            pointer-events: none;
-            z-index: 9999;
-            animation: mFade 0.4s ease-out forwards;
-          `
-          document.body.appendChild(m)
-          setTimeout(() => m.remove(), 600)
-        }, i * 60)
-      }
-    }, 500)
-
-    setTimeout(() => onSignIn(), 1500)
+    setTimeout(() => onSignIn(), 1400)
   }
 
   return (
@@ -64,8 +60,8 @@ export default function Login({ onSignIn }) {
         }
         @keyframes whimZoom {
           0% { transform: translateX(0) scale(1); opacity: 1; }
-          60% { opacity: 0.8; }
-          100% { transform: translateX(-110vw) scale(0.8); opacity: 0; }
+          50% { opacity: 0.9; }
+          100% { transform: translateX(-110vw) scale(0.85); opacity: 0; }
         }
         @keyframes mFade {
           0% { opacity: inherit; transform: translateY(-50%); }
