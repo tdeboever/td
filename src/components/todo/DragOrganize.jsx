@@ -24,7 +24,8 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const hoveredRef = useRef(null)
   const lockedSpaceId = useRef(null) // once set, never changes
   const flyingRef = useRef(null)
-  const [tick, setTick] = useState(0) // single rerender driver
+  const [tick, setTick] = useState(0)
+  const rafRef = useRef(null)
   const [entered, setEntered] = useState(false)
   const [listPicker, setListPicker] = useState(null)
 
@@ -175,8 +176,13 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       }
 
       hoveredRef.current = hitTest(px.current, py.current)
-      // Single state update drives all rerenders
-      setTick(n => n + 1)
+      // Throttle rerenders to animation frames
+      if (!rafRef.current) {
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = null
+          setTick(n => n + 1)
+        })
+      }
     }
 
     const doFly = (x, y, cb) => {
@@ -312,6 +318,20 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         opacity: entered ? 1 : 0, transition: 'opacity 200ms',
       }} />
+
+      {/* DEBUG — remove after fixing */}
+      <div style={{
+        position: 'absolute', top: H / 2 - 40, left: 20, right: 20,
+        background: 'rgba(0,0,0,0.8)', color: '#0f0', fontSize: 11, fontFamily: 'monospace',
+        padding: 8, borderRadius: 8, zIndex: 999,
+      }}>
+        locked: {String(lockedSpaceId.current)}<br/>
+        nearSpace: {nearSpace?.name || 'null'}<br/>
+        lists: {allLists.length} total, {spaceLists.length} for space<br/>
+        showing: {String(showingLists)}<br/>
+        spaces: {spaces.map(s => s.name).join(', ')}<br/>
+        py: {Math.round(py.current)} startY: {Math.round(startPos.y)} diff: {Math.round(startPos.y - py.current)}
+      </div>
 
       {/* Left wall — Note */}
       <div style={{
