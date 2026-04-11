@@ -17,36 +17,38 @@ export default function Login({ onSignIn }) {
       // Start the zoom
       titleRef.current.style.animation = 'whimZoom 0.6s cubic-bezier(0.3, 0, 0, 1) forwards'
 
-      // Spawn m's along the path as Whim flies away
-      const container = containerRef.current
+      // Spawn m's along the path as Whim flies left
       const startRect = titleRef.current.getBoundingClientRect()
-      const containerRect = container.getBoundingClientRect()
-      const startX = startRect.right - containerRect.left
-      const y = startRect.top - containerRect.top + startRect.height / 2
+      const startRight = startRect.right
+      const centerY = startRect.top + startRect.height / 2
+      const screenW = window.innerWidth
 
-      const mCount = 7
+      const mCount = 8
       for (let i = 0; i < mCount; i++) {
         setTimeout(() => {
           const m = document.createElement('span')
           m.textContent = 'm'
+          // Spread from where Whim started across to the left edge
+          const x = startRight - (i + 1) * (screenW * 0.08)
+          const opacity = 0.45 - i * 0.05
           m.style.cssText = `
-            position: absolute;
-            left: ${startX - (i * startRect.width * 0.15)}px;
-            top: ${y}px;
+            position: fixed;
+            left: ${x}px;
+            top: ${centerY}px;
             transform: translateY(-50%);
             font-family: var(--font-display);
             font-weight: 700;
             font-size: 52px;
             letter-spacing: -0.04em;
             color: var(--text-primary);
-            opacity: ${0.5 - i * 0.065};
+            opacity: ${Math.max(opacity, 0.04)};
             pointer-events: none;
-            animation: mFade 0.6s ease-out forwards;
-            animation-delay: ${i * 0.02}s;
+            z-index: 9999;
+            animation: mFade 0.7s ease-out forwards;
           `
-          container.appendChild(m)
-          setTimeout(() => m.remove(), 800)
-        }, i * 40)
+          document.body.appendChild(m)
+          setTimeout(() => m.remove(), 900)
+        }, i * 50)
       }
     }, 500)
 
