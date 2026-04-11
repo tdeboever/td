@@ -22,10 +22,11 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const velY = useRef(0)
   const touchHistory = useRef([])
   const hoveredRef = useRef(null)
-  const lockedSpaceId = useRef(null) // once set, never changes
+  const lockedSpaceId = useRef(null)
   const flyingRef = useRef(null)
+  const pillRef = useRef(null)
+  const lastLockedRef = useRef(null)
   const [tick, setTick] = useState(0)
-  const rafRef = useRef(null)
   const [entered, setEntered] = useState(false)
   const [listPicker, setListPicker] = useState(null)
 
@@ -193,18 +194,42 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         }
       }
 
-      hoveredRef.current = hitTest(px.current, py.current)
-      // Throttle rerenders to animation frames
-      if (!rafRef.current) {
-        rafRef.current = requestAnimationFrame(() => {
-          rafRef.current = null
-          setTick(n => n + 1)
-        })
+      const newHovered = hitTest(px.current, py.current)
+      const prevHovered = hoveredRef.current
+      hoveredRef.current = newHovered
+
+      // Move pill directly via DOM — no React rerender needed
+      if (pillRef.current) {
+        pillRef.current.style.left = (px.current - 70) + 'px'
+        pillRef.current.style.top = (py.current - 18) + 'px'
+
+        // Update pill color for hover
+        if (newHovered !== prevHovered) {
+          const zone = newHovered ? allZonesRef.current.find(z => z.id === newHovered) : null
+          pillRef.current.style.background = newHovered === 'wall-del' ? '#ff6b6b'
+            : newHovered === 'wall-note' ? '#60a5fa'
+            : zone ? zone.color
+            : 'linear-gradient(135deg, #f472b6, #ff7b54)'
+          pillRef.current.style.transform = newHovered ? 'scale(0.8)' : 'scale(1)'
+        }
+      }
+
+      // Only trigger React rerender when hover or lock state actually changes
+      if (newHovered !== prevHovered || lockedSpaceId.current !== lastLockedRef.current) {
+        lastLockedRef.current = lockedSpaceId.current
+        setTick(n => n + 1)
       }
     }
 
     const doFly = (x, y, cb) => {
       flyingRef.current = { x, y }
+      if (pillRef.current) {
+        pillRef.current.style.left = (x - 70) + 'px'
+        pillRef.current.style.top = (y - 18) + 'px'
+        pillRef.current.style.opacity = '0.5'
+        pillRef.current.style.transform = 'scale(0.8)'
+        pillRef.current.style.transition = 'all 280ms cubic-bezier(0.16,1,0.3,1)'
+      }
       if (navigator.vibrate) navigator.vibrate(8)
       setTick(n => n + 1)
       setTimeout(() => { cb(); setTimeout(() => onDoneRef.current(), 100) }, 280)
@@ -384,22 +409,20 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       {/* Bottom: actions OR lists */}
       {bottomZones.map((z, i) => renderZone(z, showingLists ? 0 : 60 + i * 30))}
 
-      {/* Pill */}
-      <div style={{
+      {/* Pill — position driven by DOM, not React state */}
+      <div ref={pillRef} style={{
         position: 'absolute',
         left: (flying ? flying.x : px.current) - 70,
         top: (flying ? flying.y : py.current) - 18,
         width: 140, padding: '9px 14px', borderRadius: 20,
-        background: isNearRight ? '#ff6b6b'
-          : isNearLeft ? '#60a5fa'
-          : hovered ? (allZonesRef.current.find(z => z.id === hovered)?.color || 'linear-gradient(135deg, #f472b6, #ff7b54)')
-          : 'linear-gradient(135deg, #f472b6, #ff7b54)',
+        background: 'linear-gradient(135deg, #f472b6, #ff7b54)',
         boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
         color: 'white', fontSize: 12, fontWeight: 600,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
-        transform: (hovered || flying) ? 'scale(0.8)' : 'scale(1)',
+        transform: 'scale(1)',
         opacity: flying ? 0.5 : 1,
-        transition: flying ? 'all 280ms cubic-bezier(0.16,1,0.3,1)' : 'transform 200ms, background 150ms',
+        transition: flying ? 'all 280ms cubic-bezier(0.16,1,0.3,1)' : 'transform 150ms, background 100ms',
+        willChange: 'left, top',
       }}>
         {todo.text}
       </div>
