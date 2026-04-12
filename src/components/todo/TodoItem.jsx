@@ -15,7 +15,7 @@ const DOTS = {
   3: { bg: 'radial-gradient(circle at 35% 35%, #6ee7b7, #4ade80)', shadow: 'none' },
 }
 
-export default function TodoItem({ todo, isChecklist = false, isLast = false }) {
+export default function TodoItem({ todo, isChecklist = false, isLast = false, onReorderStart, onReorderMove, onReorderEnd }) {
   const completeTodo = useTodoStore((s) => s.completeTodo)
   const uncompleteTodo = useTodoStore((s) => s.uncompleteTodo)
   const ghostTodo = useTodoStore((s) => s.ghostTodo)
@@ -199,7 +199,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       onMouseEnter={(e) => { if (!isDone && !phase && !isSelected) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' } }}
     >
-      {/* Multi-select indicator OR checkbox */}
+      {/* Left side: multi-select indicator / drag handle / checkbox */}
       {multiSelectMode ? (
         <div className="flex items-center justify-center flex-shrink-0 rounded-full"
           style={{
@@ -214,6 +214,25 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
             </svg>
           )}
         </div>
+      ) : isFocused && onReorderStart ? (
+        <div
+          onTouchStart={(e) => {
+            e.stopPropagation()
+            const t = e.touches[0]
+            onReorderStart(todo.id, t.clientY)
+          }}
+          onTouchMove={(e) => {
+            e.stopPropagation()
+            e.preventDefault()
+            onReorderMove?.(e.touches[0].clientY)
+          }}
+          onTouchEnd={(e) => {
+            e.stopPropagation()
+            onReorderEnd?.()
+          }}
+          className="flex items-center justify-center flex-shrink-0 animate-fade-in"
+          style={{ width: 22, height: 22, cursor: 'grab', touchAction: 'none', color: 'var(--text-ghost)', fontSize: 14, letterSpacing: '-2px' }}
+        >⋮⋮</div>
       ) : (
         <button ref={checkboxRef}
           onClick={(e) => { e.stopPropagation(); handleCheckbox() }}
