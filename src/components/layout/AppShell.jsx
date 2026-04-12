@@ -34,7 +34,7 @@ export default function AppShell({ children }) {
   })
 
   return (
-    <div className="fixed inset-0 flex justify-center" style={{ overflow: 'hidden' }}>
+    <div className="fixed inset-0 flex justify-center" style={{ overflow: 'hidden', touchAction: 'pan-y' }}>
       <div className="app-shell w-full max-w-[480px] flex flex-col" style={{ height: '100%', overflow: 'hidden' }}>
         <OfflineIndicator />
         <Sidebar />
