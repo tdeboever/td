@@ -8,15 +8,18 @@ const STORAGE_KEY = 'todos'
 const loadTodos = () => storage.get(STORAGE_KEY) || []
 
 // Push a single todo update to Supabase immediately (fire-and-forget)
+const SNAKE_MAP = { listId: 'list_id', spaceId: 'space_id', dueDate: 'due_date', dueTime: 'due_time', snoozedUntil: 'snoozed_until', completionCount: 'completion_count', lastCompletedAt: 'last_completed_at', lastNotifiedAt: 'last_notified_at', createdAt: 'created_at', updatedAt: 'updated_at', userId: 'user_id' }
+const VALID_COLS = new Set(['id', 'text', 'type', 'status', 'priority', 'list_id', 'space_id', 'due_date', 'due_time', 'subtasks', 'snoozed_until', 'position', 'completion_count', 'last_completed_at', 'last_notified_at', 'user_id', 'created_at', 'updated_at'])
+
 const pushToSupabase = (todo) => {
   if (!isSupabaseConfigured()) return
-  const map = { listId: 'list_id', spaceId: 'space_id', dueDate: 'due_date', dueTime: 'due_time', snoozedUntil: 'snoozed_until', completionCount: 'completion_count', lastCompletedAt: 'last_completed_at', lastNotifiedAt: 'last_notified_at', createdAt: 'created_at', updatedAt: 'updated_at', userId: 'user_id' }
   const snake = {}
   for (const [k, v] of Object.entries(todo)) {
-    snake[map[k] || k] = v
+    const col = SNAKE_MAP[k] || k
+    if (VALID_COLS.has(col)) snake[col] = v
   }
   supabase.from('todos').upsert(snake, { onConflict: 'id' }).then(({ error }) => {
-    if (error) console.error('Push todo error:', error.message)
+    if (error) console.error('Push todo error:', error.message, snake.id)
   })
 }
 
