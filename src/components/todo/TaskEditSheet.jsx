@@ -129,11 +129,11 @@ export default function TaskEditSheet({ todo, todos: todosArr, onClose }) {
             {todosArr.length} tasks selected
           </p>
         ) : (
-          <input ref={textRef} value={text} onChange={(e) => setText(e.target.value)}
+          <input ref={textRef} type="search" value={text} onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save() } }}
-            autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" data-form-type="other"
+            autoComplete="off"
             className="w-full bg-transparent outline-none"
-            style={{ fontSize: 18, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.4, borderBottom: '1px solid var(--accent-coral)', paddingBottom: 6, marginBottom: 4 }}
+            style={{ fontSize: 18, fontWeight: 500, color: 'var(--text-primary)', lineHeight: 1.4, borderBottom: '1px solid var(--accent-coral)', paddingBottom: 6, marginBottom: 4, WebkitAppearance: 'none' }}
             enterKeyHint="done"
           />
         )}
@@ -221,11 +221,11 @@ export default function TaskEditSheet({ todo, todos: todosArr, onClose }) {
 
             <form onSubmit={(e) => { e.preventDefault(); addSubtask() }} className="flex items-center gap-3" style={{ marginTop: 8 }}>
               <span style={{ color: 'var(--accent-coral)', fontSize: 14 }}>+</span>
-              <input value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)}
+              <input type="search" value={newSubtask} onChange={(e) => setNewSubtask(e.target.value)}
                 placeholder="Add subtask..."
-                autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck="false" data-form-type="other"
+                autoComplete="off"
                 className="flex-1 bg-transparent outline-none"
-                style={{ fontSize: 14, color: 'var(--text-primary)', border: 'none' }}
+                style={{ fontSize: 14, color: 'var(--text-primary)', border: 'none', WebkitAppearance: 'none' }}
                 enterKeyHint="done" />
             </form>
           </div>
