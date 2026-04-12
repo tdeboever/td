@@ -285,7 +285,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
             padding: '2px 8px', borderRadius: 10,
           }}>{showDate ? dateLabel : ''}{todo.dueTime && `${showDate ? ' ' : ''}${todo.dueTime}`}</span>
         )}
-        {!isDone && !isChecked && todo.subtasks?.length > 0 && (
+        {!isDone && !isChecked && todo.subtasks?.length > 0 && !isFocused && (
           <span style={{
             display: 'inline-block', marginTop: 6, marginLeft: showDate ? 6 : 0,
             fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.02em',
@@ -296,6 +296,36 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
           }}>
             {todo.subtasks.filter(s => s.done).length}/{todo.subtasks.length}
           </span>
+        )}
+        {/* Inline subtasks when focused */}
+        {isFocused && todo.subtasks?.length > 0 && (
+          <div className="animate-slide-down" style={{ marginTop: 8 }}>
+            {todo.subtasks.map(s => (
+              <button key={s.id}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const updated = todo.subtasks.map(st => st.id === s.id ? { ...st, done: !st.done } : st)
+                  updateTodo(todo.id, { subtasks: updated })
+                }}
+                onTouchStart={(e) => e.stopPropagation()}
+                className="flex items-center gap-2 w-full text-left"
+                style={{ padding: '4px 0' }}
+              >
+                <div style={{
+                  width: 14, height: 14, borderRadius: '50%', flexShrink: 0,
+                  border: s.done ? '1.5px solid transparent' : '1.5px solid rgba(255,255,255,0.2)',
+                  background: s.done ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'transparent',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {s.done && <svg width="7" height="7" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 5.5l2 2L8 3" /></svg>}
+                </div>
+                <span style={{
+                  fontSize: 13, color: s.done ? 'var(--text-done)' : 'var(--text-secondary)',
+                  textDecoration: s.done ? 'line-through' : 'none',
+                }}>{s.text}</span>
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
