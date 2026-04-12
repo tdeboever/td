@@ -1,6 +1,7 @@
 import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './pages/App'
+import { useTodoStore } from './stores/todoStore'
 import './styles/globals.css'
 
 // Prevent browser back gesture from leaving the app
@@ -36,6 +37,21 @@ checkForUpdate()
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') checkForUpdate()
 })
+
+// Service worker message handler — config requests + todo updates from notification actions
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data?.type === 'GET_SUPABASE_CONFIG' && event.ports?.[0]) {
+      event.ports[0].postMessage({
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
+        supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+      })
+    }
+    if (event.data?.type === 'TODO_UPDATED') {
+      useTodoStore.getState().reloadFromStorage()
+    }
+  })
+}
 
 class ErrorBoundary extends Component {
   state = { error: null }

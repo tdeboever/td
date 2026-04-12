@@ -100,6 +100,8 @@ Deno.serve(async (req) => {
           title: 'Whim',
           body: todo.text,
           tag: `todo-${todo.id}`,
+          todoId: todo.id,
+          userId: todo.user_id,
         })
 
         for (const sub of userSubs) {

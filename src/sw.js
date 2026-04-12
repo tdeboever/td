@@ -42,6 +42,14 @@ self.addEventListener('push', (event) => {
     if (event.data) data.body = event.data.text()
   }
 
+  const actions = []
+  if (data.todoId) {
+    actions.push(
+      { action: 'complete', title: '✓ Done' },
+      { action: 'snooze', title: '⏰ 1hr' },
+    )
+  }
+
   event.waitUntil(
     self.registration.showNotification(data.title || 'Whim', {
       body: data.body,
@@ -50,14 +58,103 @@ self.addEventListener('push', (event) => {
       tag: data.tag || 'whim-reminder',
       renotify: true,
       vibrate: [100, 50, 100],
-      data: data,
+      actions,
+      data,
     })
   )
 })
 
-// Notification click — focus or open the app
+// Helper: update a todo via Supabase REST API
+async function updateTodoViaApi(todoId, updates) {
+  // Try to get Supabase config from an open client
+  const clients = await self.clients.matchAll({ type: 'window' })
+  let supabaseUrl, supabaseKey
+
+  for (const client of clients) {
+    try {
+      const msg = await new Promise((resolve) => {
+        const ch = new MessageChannel()
+        ch.port1.onmessage = (e) => resolve(e.data)
+        client.postMessage({ type: 'GET_SUPABASE_CONFIG' }, [ch.port2])
+        setTimeout(() => resolve(null), 1000)
+      })
+      if (msg?.supabaseUrl) { supabaseUrl = msg.supabaseUrl; supabaseKey = msg.supabaseKey; break }
+    } catch {}
+  }
+
+  if (!supabaseUrl) {
+    // Fallback: read from a cached config file
+    try {
+      const res = await fetch('/supabase-config.json')
+      if (res.ok) {
+        const config = await res.json()
+        supabaseUrl = config.url
+        supabaseKey = config.key
+      }
+    } catch {}
+  }
+
+  if (!supabaseUrl) return false
+
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/todos?id=eq.${todoId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify(updates),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
+// Notification click — handle actions or focus app
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
+  const data = event.notification.data || {}
+  const action = event.action
+
+  if (action === 'complete' && data.todoId) {
+    event.waitUntil(
+      updateTodoViaApi(data.todoId, {
+        status: 'done',
+        updated_at: new Date().toISOString(),
+      }).then(() => {
+        // Notify open clients to refresh
+        return self.clients.matchAll({ type: 'window' }).then(clients => {
+          clients.forEach(c => c.postMessage({ type: 'TODO_UPDATED', todoId: data.todoId, status: 'done' }))
+        })
+      })
+    )
+    return
+  }
+
+  if (action === 'snooze' && data.todoId) {
+    // Snooze 1 hour from now
+    const snoozeTime = new Date()
+    snoozeTime.setHours(snoozeTime.getHours() + 1)
+    const h = String(snoozeTime.getHours()).padStart(2, '0')
+    const m = String(snoozeTime.getMinutes()).padStart(2, '0')
+
+    event.waitUntil(
+      updateTodoViaApi(data.todoId, {
+        due_time: `${h}:${m}`,
+        updated_at: new Date().toISOString(),
+      }).then(() => {
+        return self.clients.matchAll({ type: 'window' }).then(clients => {
+          clients.forEach(c => c.postMessage({ type: 'TODO_UPDATED', todoId: data.todoId, dueTime: `${h}:${m}` }))
+        })
+      })
+    )
+    return
+  }
+
+  // Default: focus or open app
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       if (clients.length > 0) {
