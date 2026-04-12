@@ -64,7 +64,7 @@ export default function Sidebar() {
             const sc = cnt((t) => t.spaceId === space.id)
             return (
               <div key={space.id} style={{ borderBottom: '1px solid var(--border-subtle)', marginBottom: 4, paddingBottom: 4 }}>
-                <div className="flex items-center" style={{ height: 48, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}`, margin: '0 8px', borderRadius: 16 }}>
+                <div className="flex items-center" style={{ minHeight: 48, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}`, margin: '0 8px', borderRadius: 16 }}>
                   {renamingSpace === space.id ? (
                     <div style={{ flex: 1, padding: '0 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: 48 }}>
