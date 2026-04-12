@@ -25,14 +25,43 @@ function datePresets() {
   const today = new Date()
   const tmrw = new Date(today); tmrw.setDate(tmrw.getDate() + 1)
   const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
-  const sat = new Date(today); sat.setDate(sat.getDate() + ((6 - sat.getDay() + 7) % 7 || 7))
-  const mon = new Date(today); mon.setDate(mon.getDate() + ((1 - mon.getDay() + 7) % 7 || 7))
-  return [
+
+  // Build smart day suggestions: skip days already covered by Today/Tmrw
+  const presets = [
     { value: toLocalDateStr(today), label: 'Today' },
     { value: toLocalDateStr(tmrw), label: 'Tmrw' },
-    { value: toLocalDateStr(sat), label: dayNames[sat.getDay()] },
-    { value: toLocalDateStr(mon), label: dayNames[mon.getDay()] },
   ]
+
+  // Add next useful days (start from day after tomorrow, pick 2 meaningful ones)
+  const used = new Set([toLocalDateStr(today), toLocalDateStr(tmrw)])
+  const candidates = []
+
+  // Next Saturday (if not today/tmrw)
+  const sat = new Date(today); sat.setDate(sat.getDate() + ((6 - sat.getDay() + 7) % 7 || 7))
+  if (!used.has(toLocalDateStr(sat))) candidates.push({ date: sat, label: dayNames[sat.getDay()] })
+
+  // Next Monday (if not today/tmrw)
+  const mon = new Date(today); mon.setDate(mon.getDate() + ((1 - mon.getDay() + 7) % 7 || 7))
+  if (!used.has(toLocalDateStr(mon))) candidates.push({ date: mon, label: dayNames[mon.getDay()] })
+
+  // If we don't have 2 candidates yet, fill with next sequential days
+  if (candidates.length < 2) {
+    for (let i = 2; i <= 7 && candidates.length < 2; i++) {
+      const d = new Date(today); d.setDate(d.getDate() + i)
+      const ds = toLocalDateStr(d)
+      if (!used.has(ds) && !candidates.some(c => toLocalDateStr(c.date) === ds)) {
+        candidates.push({ date: d, label: dayNames[d.getDay()] })
+      }
+    }
+  }
+
+  // Sort by date and take first 2
+  candidates.sort((a, b) => a.date - b.date)
+  for (const c of candidates.slice(0, 2)) {
+    presets.push({ value: toLocalDateStr(c.date), label: c.label })
+  }
+
+  return presets
 }
 
 const TIMES = [
