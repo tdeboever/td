@@ -209,26 +209,40 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
     if (listPicker) return
     setTimeout(() => setEntered(true), 20)
 
+    // Track last 4 positions for velocity (reuse array, no allocations)
+    const hist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] // x,y,t * 4
+    let histIdx = 0, histLen = 0
+
     const move = (e) => {
       e.preventDefault()
       const t = e.touches[0]
-      px.current = t.clientX; py.current = t.clientY
-      touchHistory.current.push({ x: t.clientX, y: t.clientY, t: Date.now() })
-      if (touchHistory.current.length > 5) touchHistory.current.shift()
+      px.current = t.clientX
+      py.current = t.clientY
 
-      // Move pill immediately via GPU-composited transform
-      if (pillRef.current) {
-        pillRef.current.style.transform = `translate3d(${px.current - 70}px, ${py.current - 18}px, 0) scale(${scaleRef.current})`
-      }
+      // Store in ring buffer (no object allocation)
+      const i = (histIdx % 4) * 3
+      hist[i] = t.clientX; hist[i + 1] = t.clientY; hist[i + 2] = Date.now()
+      histIdx++; if (histLen < 4) histLen++
 
-      // Throttle expensive computation to RAF
+      // Batch ALL visual updates into a single RAF
       if (rafRef.current) return
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null
-        const h = touchHistory.current
-        if (h.length >= 2) {
-          const f = h[0], l = h[h.length-1], dt = (l.t - f.t) / 1000
-          if (dt > 0) { velX.current = (l.x - f.x) / dt; velY.current = (l.y - f.y) / dt }
+
+        // Move pill
+        if (pillRef.current) {
+          pillRef.current.style.transform = `translate3d(${px.current - 70}px, ${py.current - 18}px, 0) scale(${scaleRef.current})`
+        }
+
+        // Velocity from ring buffer
+        if (histLen >= 2) {
+          const oldest = ((histIdx - histLen) % 4 + 4) % 4 * 3
+          const newest = ((histIdx - 1) % 4 + 4) % 4 * 3
+          const dt = (hist[newest + 2] - hist[oldest + 2]) / 1000
+          if (dt > 0) {
+            velX.current = (hist[newest] - hist[oldest]) / dt
+            velY.current = (hist[newest + 1] - hist[oldest + 1]) / dt
+          }
         }
 
         // Space lock detection
@@ -236,25 +250,25 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
         if (!lockedSpaceId.current && hasRisen) {
           let nearest = null, nearD = 80
           for (const z of spaceZonesRef.current) {
-            const d = Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2)
+            const dx = px.current - z.x, dy = py.current - z.y
+            const d = Math.sqrt(dx * dx + dy * dy)
             if (d < nearD) { nearest = z.id; nearD = d }
           }
           if (!nearest && velY.current < -100) {
             const projX = px.current + velX.current * 0.3
             const projY = py.current + velY.current * 0.3
-            let bestProj = null, bestProjD = 200
             for (const z of spaceZonesRef.current) {
-              const d = Math.sqrt((projX - z.x) ** 2 + (projY - z.y) ** 2)
-              if (d < bestProjD) { bestProj = z.id; bestProjD = d }
+              const dx = projX - z.x, dy = projY - z.y
+              const d = Math.sqrt(dx * dx + dy * dy)
+              if (d < 200 && (!nearest || d < nearD)) { nearest = z.id; nearD = d }
             }
-            if (bestProj) nearest = bestProj
           }
           if (nearest) lockedSpaceId.current = nearest
         } else if (lockedSpaceId.current) {
           for (const z of spaceZonesRef.current) {
             if (z.id === lockedSpaceId.current) continue
-            const d = Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2)
-            if (d < 50) { lockedSpaceId.current = z.id; break }
+            const dx = px.current - z.x, dy = py.current - z.y
+            if (Math.sqrt(dx * dx + dy * dy) < 50) { lockedSpaceId.current = z.id; break }
           }
         }
 
@@ -262,20 +276,11 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
         const prevHovered = hoveredRef.current
         hoveredRef.current = newHovered
 
-        // Update hover visuals via direct DOM — NO React re-render
         if (newHovered !== prevHovered) {
-          // Un-hover previous
-          if (prevHovered && prevHovered !== 'wall-del' && prevHovered !== 'wall-note') {
-            updateZoneHover(prevHovered, false)
-          }
-          // Hover new
-          if (newHovered && newHovered !== 'wall-del' && newHovered !== 'wall-note') {
-            updateZoneHover(newHovered, true)
-          }
-          // Update walls
+          if (prevHovered && prevHovered !== 'wall-del' && prevHovered !== 'wall-note') updateZoneHover(prevHovered, false)
+          if (newHovered && newHovered !== 'wall-del' && newHovered !== 'wall-note') updateZoneHover(newHovered, true)
           updateWalls(newHovered === 'wall-note', newHovered === 'wall-del')
 
-          // Update pill color
           if (pillRef.current) {
             const zone = newHovered ? allZonesRef.current.find(z => z.id === newHovered) : null
             pillRef.current.style.background = newHovered === 'wall-del' ? '#ff6b6b'
@@ -287,7 +292,6 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
           }
         }
 
-        // Only trigger React re-render when LOCK state changes (structural layout change)
         if (lockedSpaceId.current !== lastLockedRef.current) {
           lastLockedRef.current = lockedSpaceId.current
           setTick(n => n + 1)
@@ -357,13 +361,14 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
     onDone()
   }
 
+  const setZoneRef = (id) => (el) => { if (el) zoneRefs.current[id] = el }
+
   const renderZone = (z, delay = 0) => (
-    <div key={z.id} ref={el => { if (el) zoneRefs.current[z.id] = el }}
+    <div key={z.id} ref={setZoneRef(z.id)}
       className="absolute flex flex-col items-center" style={{
         left: z.x - 30, top: z.y - 30, width: 60,
         opacity: entered ? 1 : 0,
-        transform: entered ? 'scale(1)' : 'scale(0.4)',
-        transition: `opacity 350ms ${delay}ms, transform 350ms cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
+        transition: entered ? 'none' : `opacity 250ms ${delay}ms`,
       }}>
       <div style={{
         width: 50, height: 50,
@@ -371,13 +376,11 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
         background: 'rgba(255,255,255,0.12)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: typeof z.icon === 'string' ? 20 : 16, color: 'white',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-        transition: 'width 150ms, height 150ms, border-radius 150ms, background 150ms, box-shadow 150ms',
         border: '2px solid rgba(255,255,255,0.06)',
       }}>
-        {typeof z.icon === 'string' ? z.icon : z.icon}
+        {z.icon}
       </div>
-      <span style={{ fontSize: 12, fontWeight: 600, marginTop: 5, color: 'rgba(255,255,255,0.55)', transition: 'color 100ms', whiteSpace: 'nowrap' }}>{z.label}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, marginTop: 5, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap' }}>{z.label}</span>
     </div>
   )
 
@@ -472,10 +475,8 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
         transform: `translate3d(${px.current - 70}px, ${py.current - 18}px, 0)`,
         width: 140, padding: '9px 14px', borderRadius: 20,
         background: 'linear-gradient(135deg, #f472b6, #ff7b54)',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
         color: 'white', fontSize: 12, fontWeight: 600,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
-        transition: 'background 100ms',
         willChange: 'transform',
       }}>
         {isMulti ? `${todos.length} tasks` : primaryTodo.text}
