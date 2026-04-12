@@ -28,7 +28,11 @@ export default function Header() {
     }
   } else if (activeSpaceId) {
     const space = spaces.find(s => s.id === activeSpaceId)
-    if (space) title = space.name
+    if (space) {
+      title = space.name
+      if (activeView === 'today') breadcrumb = 'Today'
+      else if (activeView === 'upcoming') breadcrumb = 'Upcoming'
+    }
   }
   let activeCount = 0, doneCount = 0
   const c = (fn) => { const m = todos.filter(fn); activeCount = m.filter((t) => t.status === 'active').length; doneCount = m.filter((t) => t.status === 'done' || t.status === 'ghost').length }
@@ -55,7 +59,7 @@ export default function Header() {
   return (
     <header style={{ padding: `calc(env(safe-area-inset-top, 0px) + 16px) 20px 12px` }}>
       {breadcrumb && (
-        <button onClick={() => useUiStore.setState({ activeListId: null })}
+        <button onClick={() => useUiStore.setState({ activeSpaceId: null, activeListId: null })}
           style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
           ← {breadcrumb}
         </button>
