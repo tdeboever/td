@@ -80,12 +80,14 @@ export default function Header() {
               <div style={{ width: 24, height: 24, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.16)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--text-secondary)' }}>⁘</div>
             )}
           </button>
-          <div>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em', lineHeight: 1 }}>{title}</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em' }}>
+            {title}
             {contextLabel && (
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', letterSpacing: '0.04em' }}>{contextLabel}</span>
+              <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-ghost)', marginLeft: 8, verticalAlign: 'middle', opacity: 0.6 }}>
+                · {contextLabel.toLowerCase()}
+              </span>
             )}
-          </div>
+          </h1>
         </div>
         <div className="flex items-center gap-4">
           <button data-search-trigger onClick={() => setShowSearch(true)} style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1 }}>⌕</button>
