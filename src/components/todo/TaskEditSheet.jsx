@@ -28,12 +28,15 @@ export default function TaskEditSheet({ todo, todos: todosArr, onClose }) {
 
   const spaceLists = spaceId ? lists.filter(l => l.spaceId === spaceId) : []
 
-  // Auto-focus text input and place cursor at end
+  // Transfer focus from hidden input to real input — slight delay lets portal mount
   useEffect(() => {
-    if (textRef.current) {
-      textRef.current.focus()
-      const len = textRef.current.value.length
-      textRef.current.setSelectionRange(len, len)
+    if (!isMulti && textRef.current) {
+      const t = setTimeout(() => {
+        textRef.current.focus()
+        const len = textRef.current.value.length
+        textRef.current.setSelectionRange(len, len)
+      }, 50)
+      return () => clearTimeout(t)
     }
   }, [])
 

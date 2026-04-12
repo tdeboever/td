@@ -32,6 +32,11 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
   const lastLockedRef = useRef(null)
   const rafRef = useRef(null)
   const scaleRef = useRef(1)
+  const zoneRefs = useRef({})
+  const wallLeftRef = useRef(null)
+  const wallRightRef = useRef(null)
+  const labelLeftRef = useRef(null)
+  const labelRightRef = useRef(null)
   const [tick, setTick] = useState(0)
   const [entered, setEntered] = useState(false)
   const [listPicker, setListPicker] = useState(null)
@@ -64,7 +69,7 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
     action: act(`→ ${s.name}`, { spaceId: s.id, listId: null }),
   }))
 
-  // Derive lists from locked space — all based on ref, recalculated each render
+  // Derive lists from locked space
   const lockedId = lockedSpaceId.current
   const nearSpace = lockedId ? spaces.find(s => `sp-${s.id}` === lockedId) : null
   const spaceLists = nearSpace ? allLists.filter(l => l.spaceId === nearSpace.id) : []
@@ -162,6 +167,44 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
     return null
   }
 
+  // Direct DOM update for zone hover — no React re-render needed
+  const updateZoneHover = (zoneId, isHovered) => {
+    const el = zoneRefs.current[zoneId]
+    if (!el) return
+    const inner = el.firstChild
+    const label = el.lastChild
+    const zone = allZonesRef.current.find(z => z.id === zoneId)
+    if (!zone) return
+    if (isHovered) {
+      inner.style.width = '58px'; inner.style.height = '58px'
+      inner.style.borderRadius = '18px'
+      inner.style.background = zone.color
+      inner.style.boxShadow = `0 0 24px ${zone.color}50`
+      inner.style.borderColor = 'rgba(255,255,255,0.25)'
+      label.style.color = '#fff'
+    } else {
+      inner.style.width = '50px'; inner.style.height = '50px'
+      inner.style.borderRadius = '14px'
+      inner.style.background = 'rgba(255,255,255,0.12)'
+      inner.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'
+      inner.style.borderColor = 'rgba(255,255,255,0.06)'
+      label.style.color = 'rgba(255,255,255,0.55)'
+    }
+  }
+
+  const updateWalls = (nearLeft, nearRight) => {
+    if (wallLeftRef.current) {
+      wallLeftRef.current.style.background = nearLeft ? '#60a5fa' : 'rgba(96,165,250,0.1)'
+      wallLeftRef.current.style.boxShadow = nearLeft ? '0 0 14px rgba(96,165,250,0.5)' : 'none'
+    }
+    if (wallRightRef.current) {
+      wallRightRef.current.style.background = nearRight ? '#ff6b6b' : 'rgba(255,107,107,0.1)'
+      wallRightRef.current.style.boxShadow = nearRight ? '0 0 14px rgba(255,107,107,0.5)' : 'none'
+    }
+    if (labelLeftRef.current) labelLeftRef.current.style.opacity = nearLeft ? '1' : '0'
+    if (labelRightRef.current) labelRightRef.current.style.opacity = nearRight ? '1' : '0'
+  }
+
   useEffect(() => {
     if (listPicker) return
     setTimeout(() => setEntered(true), 20)
@@ -173,12 +216,12 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
       touchHistory.current.push({ x: t.clientX, y: t.clientY, t: Date.now() })
       if (touchHistory.current.length > 5) touchHistory.current.shift()
 
-      // Move pill immediately via GPU-composited transform — never wait for RAF
+      // Move pill immediately via GPU-composited transform
       if (pillRef.current) {
         pillRef.current.style.transform = `translate3d(${px.current - 70}px, ${py.current - 18}px, 0) scale(${scaleRef.current})`
       }
 
-      // Throttle expensive computation (velocity, hit test, space lock) to RAF
+      // Throttle expensive computation to RAF
       if (rafRef.current) return
       rafRef.current = requestAnimationFrame(() => {
         rafRef.current = null
@@ -188,7 +231,7 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
           if (dt > 0) { velX.current = (l.x - f.x) / dt; velY.current = (l.y - f.y) / dt }
         }
 
-        // Only check for space lock if finger has moved upward at least 40px from start
+        // Space lock detection
         const hasRisen = startPos.y - py.current > 40
         if (!lockedSpaceId.current && hasRisen) {
           let nearest = null, nearD = 80
@@ -219,19 +262,33 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
         const prevHovered = hoveredRef.current
         hoveredRef.current = newHovered
 
-        // Update pill appearance only when hover changes
-        if (newHovered !== prevHovered && pillRef.current) {
-          const zone = newHovered ? allZonesRef.current.find(z => z.id === newHovered) : null
-          pillRef.current.style.background = newHovered === 'wall-del' ? '#ff6b6b'
-            : newHovered === 'wall-note' ? '#60a5fa'
-            : zone ? zone.color
-            : 'linear-gradient(135deg, #f472b6, #ff7b54)'
-          scaleRef.current = newHovered ? 0.8 : 1
-          pillRef.current.style.transform = `translate3d(${px.current - 70}px, ${py.current - 18}px, 0) scale(${scaleRef.current})`
+        // Update hover visuals via direct DOM — NO React re-render
+        if (newHovered !== prevHovered) {
+          // Un-hover previous
+          if (prevHovered && prevHovered !== 'wall-del' && prevHovered !== 'wall-note') {
+            updateZoneHover(prevHovered, false)
+          }
+          // Hover new
+          if (newHovered && newHovered !== 'wall-del' && newHovered !== 'wall-note') {
+            updateZoneHover(newHovered, true)
+          }
+          // Update walls
+          updateWalls(newHovered === 'wall-note', newHovered === 'wall-del')
+
+          // Update pill color
+          if (pillRef.current) {
+            const zone = newHovered ? allZonesRef.current.find(z => z.id === newHovered) : null
+            pillRef.current.style.background = newHovered === 'wall-del' ? '#ff6b6b'
+              : newHovered === 'wall-note' ? '#60a5fa'
+              : zone ? zone.color
+              : 'linear-gradient(135deg, #f472b6, #ff7b54)'
+            scaleRef.current = newHovered ? 0.8 : 1
+            pillRef.current.style.transform = `translate3d(${px.current - 70}px, ${py.current - 18}px, 0) scale(${scaleRef.current})`
+          }
         }
 
-        // Only trigger React rerender when hover or lock state actually changes
-        if (newHovered !== prevHovered || lockedSpaceId.current !== lastLockedRef.current) {
+        // Only trigger React re-render when LOCK state changes (structural layout change)
+        if (lockedSpaceId.current !== lastLockedRef.current) {
           lastLockedRef.current = lockedSpaceId.current
           setTick(n => n + 1)
         }
@@ -246,7 +303,6 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
         pillRef.current.style.opacity = '0.5'
       }
       if (navigator.vibrate) navigator.vibrate(8)
-      setTick(n => n + 1)
       setTimeout(() => { cb(); setTimeout(() => onDoneRef.current(), 100) }, 280)
     }
 
@@ -301,44 +357,35 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
     onDone()
   }
 
-  // Read current state from refs for rendering
-  const hovered = hoveredRef.current
-  const flying = flyingRef.current
-  const isNearRight = hovered === 'wall-del'
-  const isNearLeft = hovered === 'wall-note'
-
-  const renderZone = (z, delay = 0) => {
-    const h = hovered === z.id
-    return (
-      <div key={z.id} className="absolute flex flex-col items-center" style={{
+  const renderZone = (z, delay = 0) => (
+    <div key={z.id} ref={el => { if (el) zoneRefs.current[z.id] = el }}
+      className="absolute flex flex-col items-center" style={{
         left: z.x - 30, top: z.y - 30, width: 60,
         opacity: entered ? 1 : 0,
         transform: entered ? 'scale(1)' : 'scale(0.4)',
-        transition: `all 350ms cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
+        transition: `opacity 350ms ${delay}ms, transform 350ms cubic-bezier(0.34,1.56,0.64,1) ${delay}ms`,
       }}>
-        <div style={{
-          width: h ? 58 : 50, height: h ? 58 : 50,
-          borderRadius: h ? 18 : 14,
-          background: h ? z.color : 'rgba(255,255,255,0.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: typeof z.icon === 'string' ? 20 : 16, color: 'white',
-          boxShadow: h ? `0 0 24px ${z.color}50` : '0 2px 8px rgba(0,0,0,0.2)',
-          transition: 'all 200ms cubic-bezier(0.16,1,0.3,1)',
-          border: `2px solid ${h ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.06)'}`,
-        }}>
-          {typeof z.icon === 'string' ? z.icon : z.icon}
-        </div>
-        <span style={{ fontSize: 12, fontWeight: 600, marginTop: 5, color: h ? '#fff' : 'rgba(255,255,255,0.55)', transition: 'color 150ms', whiteSpace: 'nowrap' }}>{z.label}</span>
+      <div style={{
+        width: 50, height: 50,
+        borderRadius: 14,
+        background: 'rgba(255,255,255,0.12)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: typeof z.icon === 'string' ? 20 : 16, color: 'white',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        transition: 'width 150ms, height 150ms, border-radius 150ms, background 150ms, box-shadow 150ms',
+        border: '2px solid rgba(255,255,255,0.06)',
+      }}>
+        {typeof z.icon === 'string' ? z.icon : z.icon}
       </div>
-    )
-  }
+      <span style={{ fontSize: 12, fontWeight: 600, marginTop: 5, color: 'rgba(255,255,255,0.55)', transition: 'color 100ms', whiteSpace: 'nowrap' }}>{z.label}</span>
+    </div>
+  )
 
   if (listPicker) {
     return createPortal(
       <div className="fixed inset-0 z-50" style={{ touchAction: 'none' }}>
         <div className="absolute inset-0 animate-fade-in" style={{
-          background: 'rgba(26,22,37,0.85)',
-          backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(26,22,37,0.92)',
         }} onClick={onDone} />
         <div className="absolute animate-slide-up" style={{
           bottom: 0, left: 0, right: 0,
@@ -369,42 +416,38 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
 
   return createPortal(
     <div className="fixed inset-0 z-50" style={{ touchAction: 'none', pointerEvents: 'none' }}>
+      {/* Overlay — solid dark, NO backdrop-filter blur (kills frame rate) */}
       <div style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(26,22,37,0.82)',
-        backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        background: 'rgba(20,16,30,0.88)',
         opacity: entered ? 1 : 0, transition: 'opacity 200ms',
       }} />
 
       {/* Left wall — Note */}
-      <div style={{
+      <div ref={wallLeftRef} style={{
         position: 'absolute', left: 0, top: '42%', bottom: '42%', width: 3, borderRadius: '0 3px 3px 0',
-        background: isNearLeft ? '#60a5fa' : 'rgba(96,165,250,0.1)',
-        boxShadow: isNearLeft ? '0 0 14px rgba(96,165,250,0.5)' : 'none',
-        transition: 'all 200ms', opacity: entered ? 1 : 0,
+        background: 'rgba(96,165,250,0.1)',
+        transition: 'background 150ms, box-shadow 150ms', opacity: entered ? 1 : 0,
       }} />
-      {isNearLeft && entered && (
-        <div className="animate-fade-in" style={{
-          position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 11, fontWeight: 600, color: '#60a5fa', letterSpacing: '0.05em',
-          writingMode: 'vertical-rl', textOrientation: 'mixed',
-        }}>Note</div>
-      )}
+      <div ref={labelLeftRef} style={{
+        position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+        fontSize: 11, fontWeight: 600, color: '#60a5fa', letterSpacing: '0.05em',
+        writingMode: 'vertical-rl', textOrientation: 'mixed',
+        opacity: 0, transition: 'opacity 100ms',
+      }}>Note</div>
 
       {/* Right wall — Delete */}
-      <div style={{
+      <div ref={wallRightRef} style={{
         position: 'absolute', right: 0, top: '42%', bottom: '42%', width: 3, borderRadius: '3px 0 0 3px',
-        background: isNearRight ? '#ff6b6b' : 'rgba(255,107,107,0.1)',
-        boxShadow: isNearRight ? '0 0 14px rgba(255,107,107,0.5)' : 'none',
-        transition: 'all 200ms', opacity: entered ? 1 : 0,
+        background: 'rgba(255,107,107,0.1)',
+        transition: 'background 150ms, box-shadow 150ms', opacity: entered ? 1 : 0,
       }} />
-      {isNearRight && entered && (
-        <div className="animate-fade-in" style={{
-          position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 11, fontWeight: 600, color: '#ff6b6b', letterSpacing: '0.05em',
-          writingMode: 'vertical-rl', textOrientation: 'mixed',
-        }}>Delete</div>
-      )}
+      <div ref={labelRightRef} style={{
+        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+        fontSize: 11, fontWeight: 600, color: '#ff6b6b', letterSpacing: '0.05em',
+        writingMode: 'vertical-rl', textOrientation: 'mixed',
+        opacity: 0, transition: 'opacity 100ms',
+      }}>Delete</div>
 
       {/* Top: Spaces */}
       {spaceZones.map((z, i) => renderZone(z, i * 40))}
@@ -423,17 +466,16 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
       {/* Bottom: actions OR lists */}
       {bottomZones.map((z, i) => renderZone(z, showingLists ? 0 : 60 + i * 30))}
 
-      {/* Pill — position driven by GPU-composited transform, not layout-triggering left/top */}
+      {/* Pill — GPU-composited transform only */}
       <div ref={pillRef} style={{
         position: 'absolute', left: 0, top: 0,
-        transform: `translate3d(${(flying ? flying.x : px.current) - 70}px, ${(flying ? flying.y : py.current) - 18}px, 0)`,
+        transform: `translate3d(${px.current - 70}px, ${py.current - 18}px, 0)`,
         width: 140, padding: '9px 14px', borderRadius: 20,
         background: 'linear-gradient(135deg, #f472b6, #ff7b54)',
-        boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
         color: 'white', fontSize: 12, fontWeight: 600,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
-        opacity: flying ? 0.5 : 1,
-        transition: flying ? 'all 280ms cubic-bezier(0.16,1,0.3,1)' : 'background 100ms',
+        transition: 'background 100ms',
         willChange: 'transform',
       }}>
         {isMulti ? `${todos.length} tasks` : primaryTodo.text}
