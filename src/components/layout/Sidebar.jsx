@@ -75,11 +75,11 @@ export default function Sidebar() {
                         <button onClick={(e) => { e.stopPropagation(); if (renameText.trim()) updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) }}
                           style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent-coral)', padding: '4px 6px', flexShrink: 0 }}>Done</button>
                       </div>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 8, paddingLeft: 34 }}>
-                        {SPACE_COLORS.slice(0, 10).map(c => (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8, paddingLeft: 34 }}>
+                        {SPACE_COLORS.map(c => (
                           <button key={c} onClick={(e) => { e.stopPropagation(); setRenameColor(c) }}
                             style={{
-                              width: 20, height: 20, borderRadius: '50%', background: c, flexShrink: 0,
+                              width: 22, height: 22, borderRadius: '50%', background: c,
                               border: renameColor === c ? '2px solid white' : '1px solid rgba(255,255,255,0.1)',
                               boxShadow: renameColor === c ? `0 0 6px ${c}60` : 'none',
                               transition: 'all 150ms',
