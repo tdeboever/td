@@ -116,8 +116,19 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
     }, 500)
   }
 
+  const [reordering, setReordering] = useState(false)
+
   const handleTouchMove = (e) => {
     if (!touchStart.current || dragging) return
+
+    // If reordering, forward movement to parent
+    if (reordering) {
+      e.preventDefault()
+      e.stopPropagation()
+      onReorderMove?.(e.touches[0].clientY)
+      return
+    }
+
     const t = e.touches[0]
     const dx = Math.abs(t.clientX - touchStart.current.x)
     const dy = Math.abs(t.clientY - touchStart.current.y)
@@ -130,10 +141,20 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
       if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
     }
 
+    // Focused item: vertical drag → reorder
+    if (isFocused && onReorderStart && dy > 15 && dy > dx * 1.5) {
+      e.preventDefault()
+      e.stopPropagation()
+      if (navigator.vibrate) navigator.vibrate(8)
+      onReorderStart(todo.id, t.clientY)
+      setReordering(true)
+      return
+    }
+
     // Stop view swipe on horizontal
     if (dx > 10 && dx > dy) e.stopPropagation()
 
-    // Detach into drag/fling mode
+    // Detach into horizontal drag/fling mode
     if (dx > 30 && dx > dy * 1.5) {
       if (navigator.vibrate) navigator.vibrate(8)
       if (multiSelectMode && isSelected) {
@@ -151,6 +172,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
     setTimeout(() => { isTouching.current = false }, 200)
 
+    if (reordering) { onReorderEnd?.(); setReordering(false); touchStart.current = null; return }
     if (longPressFired.current) { touchStart.current = null; return }
     if (!touchStart.current) return
 
@@ -199,7 +221,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
       onMouseEnter={(e) => { if (!isDone && !phase && !isSelected) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' } }}
     >
-      {/* Left side: multi-select indicator / drag handle / checkbox */}
+      {/* Checkbox / multi-select indicator */}
       {multiSelectMode ? (
         <div className="flex items-center justify-center flex-shrink-0 rounded-full"
           style={{
@@ -214,25 +236,6 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
             </svg>
           )}
         </div>
-      ) : isFocused && onReorderStart ? (
-        <div
-          onTouchStart={(e) => {
-            e.stopPropagation()
-            const t = e.touches[0]
-            onReorderStart(todo.id, t.clientY)
-          }}
-          onTouchMove={(e) => {
-            e.stopPropagation()
-            e.preventDefault()
-            onReorderMove?.(e.touches[0].clientY)
-          }}
-          onTouchEnd={(e) => {
-            e.stopPropagation()
-            onReorderEnd?.()
-          }}
-          className="flex items-center justify-center flex-shrink-0 animate-fade-in"
-          style={{ width: 22, height: 22, cursor: 'grab', touchAction: 'none', color: 'var(--text-ghost)', fontSize: 14, letterSpacing: '-2px' }}
-        >⋮⋮</div>
       ) : (
         <button ref={checkboxRef}
           onClick={(e) => { e.stopPropagation(); handleCheckbox() }}
@@ -329,16 +332,12 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
         )}
       </div>
 
-      {/* Complete + Edit icons for focused items */}
+      {/* Edit icon for focused items */}
       {isFocused && !isDone && (
-        <div className="flex items-center gap-1 flex-shrink-0 animate-fade-in">
-          <button onClick={(e) => { e.stopPropagation(); handleComplete() }}
-            onTouchStart={(e) => e.stopPropagation()}
-            style={{ padding: '6px 6px', color: 'var(--accent-mint)', fontSize: 14, opacity: 0.7 }}>✓</button>
-          <button onClick={(e) => { e.stopPropagation(); openEditSheet(); clearFocusedTodo() }}
-            onTouchStart={(e) => e.stopPropagation()}
-            style={{ padding: '6px 6px', color: 'var(--accent-coral)', fontSize: 15, opacity: 0.7 }}>✎</button>
-        </div>
+        <button onClick={(e) => { e.stopPropagation(); openEditSheet(); clearFocusedTodo() }}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="flex-shrink-0 animate-fade-in"
+          style={{ padding: '6px 4px', color: 'var(--accent-coral)', fontSize: 15, opacity: 0.8 }}>✎</button>
       )}
 
       {/* Delete button for completed items */}
