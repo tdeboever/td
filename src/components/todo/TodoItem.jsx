@@ -75,6 +75,9 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
     if (isDone || phase) return
     // Pre-focus a hidden input during the user gesture to claim the keyboard on mobile
     const tmp = document.createElement('input')
+    tmp.type = 'search'
+    tmp.enterKeyHint = 'done'
+    tmp.autocomplete = 'off'
     tmp.style.cssText = 'position:fixed;top:-100px;left:0;opacity:0;height:0;width:0;font-size:16px'
     document.body.appendChild(tmp)
     tmp.focus()
