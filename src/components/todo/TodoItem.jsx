@@ -276,6 +276,13 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
           </span>
         )}
       </div>
+
+      {/* Delete button for completed items */}
+      {isDone && (
+        <button onClick={(e) => { e.stopPropagation(); deleteTodo(todo.id) }}
+          className="flex-shrink-0"
+          style={{ padding: '0 4px', color: 'var(--text-ghost)', fontSize: 14, opacity: 0.4 }}>×</button>
+      )}
     </div>
   )
 
