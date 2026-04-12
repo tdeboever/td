@@ -45,11 +45,25 @@ async function subscribeToPush(userId) {
     }
 
     // Save/update subscription in Supabase
-    const subKey = `${SUB_SAVED_KEY}_tz_${subscription.endpoint.slice(-20)}`
+    const subKey = `${SUB_SAVED_KEY}_cleanup_${subscription.endpoint.slice(-20)}`
     if (localStorage.getItem(subKey)) return
 
     const subJson = subscription.toJSON()
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'
+
+    // Remove any stale subscriptions from other origins for this user
+    const origin = new URL(subscription.endpoint).origin
+    const { data: existing } = await supabase.from('push_subscriptions').select('id, endpoint').eq('user_id', userId)
+    if (existing) {
+      const stale = existing.filter(s => {
+        try { return new URL(s.endpoint).origin !== origin && s.endpoint !== subscription.endpoint }
+        catch { return false }
+      })
+      for (const s of stale) {
+        await supabase.from('push_subscriptions').delete().eq('id', s.id)
+      }
+    }
+
     const { error } = await supabase.from('push_subscriptions').upsert({
       user_id: userId,
       endpoint: subscription.endpoint,
