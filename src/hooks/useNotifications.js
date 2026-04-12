@@ -128,8 +128,13 @@ export function useNotifications(userId) {
               body: todo.text,
               icon: '/icons/icon-192.png',
               badge: '/icons/icon-192.png',
-              tag: todo.id,
+              tag: `todo-${todo.id}`,
               renotify: false,
+              actions: [
+                { action: 'complete', title: '✓ Done' },
+                { action: 'snooze', title: '⏰ 1hr' },
+              ],
+              data: { todoId: todo.id, userId: todo.userId },
             })
           }
           if (navigator.vibrate) navigator.vibrate([100, 50, 100])
