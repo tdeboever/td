@@ -276,7 +276,7 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
         const pX = px.current + velX.current * projT
         const pY = py.current + velY.current * projT
 
-        if (pX > W && velX.current > 200) { doFly(W + 50, py.current, () => wallDeleteRef.current()); return }
+        // Fling to note (left) still works, but delete requires drag-to-wall only
         if (pX < 0 && velX.current < -200) { doFly(-50, py.current, () => wallNoteRef.current()); return }
 
         let best = null, bestD = 150
