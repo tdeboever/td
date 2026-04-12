@@ -5,6 +5,32 @@ import { useSwipe } from '../../hooks/useSwipe'
 import { useAutocomplete } from '../../hooks/useAutocomplete'
 import ChipBar from './ChipBar'
 
+function parseSmartInput(text) {
+  const trimmed = text.trim()
+  const colonIdx = trimmed.indexOf(':')
+
+  // "task: sub1, sub2, sub3" → single task with subtasks
+  if (colonIdx > 0) {
+    const title = trimmed.slice(0, colonIdx).trim()
+    const rest = trimmed.slice(colonIdx + 1).trim()
+    const subs = rest.split(',').map(s => s.trim()).filter(Boolean)
+    if (title && subs.length > 1) {
+      return { type: 'subtasks', title, subtasks: subs }
+    }
+  }
+
+  // "task1, task2, task3" → multiple separate tasks
+  if (trimmed.includes(',')) {
+    const items = trimmed.split(',').map(s => s.trim()).filter(Boolean)
+    if (items.length > 1) {
+      return { type: 'multi', items }
+    }
+  }
+
+  // Single task
+  return { type: 'single', title: trimmed }
+}
+
 export default function TodoInput() {
   const addTodo = useTodoStore((s) => s.addTodo)
   const { activeView, activeSpaceId, activeListId, setInputFocused } = useUiStore()
@@ -18,7 +44,8 @@ export default function TodoInput() {
   const [listId, setListId] = useState(null)
   const [focused, _setFocused] = useState(false)
   const [sending, setSending] = useState(false)
-  const setFocused = (v) => { _setFocused(v); setInputFocused(v) }
+  const [showTip, setShowTip] = useState(false)
+  const setFocused = (v) => { _setFocused(v); setInputFocused(v); if (!v) setShowTip(false) }
   const inputRef = useRef(null)
   const containerRef = useRef(null)
 
@@ -26,18 +53,33 @@ export default function TodoInput() {
   const effectiveListId = listId ?? (activeView === 'list' ? activeListId : null)
   const suggestions = useAutocomplete(effectiveListId, text)
 
+  const updateTodo = useTodoStore((s) => s.updateTodo)
+
   const submit = useCallback(() => {
     if (!text.trim() || sending) return
     if (navigator.vibrate) navigator.vibrate(8)
     setSending(true)
     setTimeout(() => {
-      addTodo(text.trim(), { type: mode, listId: mode === 'note' ? null : effectiveListId, spaceId: mode === 'note' ? null : effectiveSpaceId, priority: mode === 'note' ? 0 : priority, dueDate: mode === 'note' ? null : dueDate, dueTime: mode === 'note' ? null : dueTime })
+      const opts = { type: mode, listId: mode === 'note' ? null : effectiveListId, spaceId: mode === 'note' ? null : effectiveSpaceId, priority: mode === 'note' ? 0 : priority, dueDate: mode === 'note' ? null : dueDate, dueTime: mode === 'note' ? null : dueTime }
+      const parsed = parseSmartInput(text)
+
+      if (parsed.type === 'multi') {
+        for (const item of parsed.items) addTodo(item, opts)
+      } else if (parsed.type === 'subtasks') {
+        const created = addTodo(parsed.title, opts)
+        if (created) {
+          const subs = parsed.subtasks.map(s => ({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text: s, done: false }))
+          updateTodo(created.id, { subtasks: subs })
+        }
+      } else {
+        addTodo(parsed.title, opts)
+      }
+
       setText(''); setPriority(0); setDueDate(null); setDueTime(null)
       setSending(false)
-      // Keep focused for rapid entry — re-focus the input
       inputRef.current?.focus()
     }, 250)
-  }, [text, sending, effectiveListId, effectiveSpaceId, priority, dueDate, dueTime, mode, addTodo])
+  }, [text, sending, effectiveListId, effectiveSpaceId, priority, dueDate, dueTime, mode, addTodo, updateTodo])
 
   const swipeHandlers = useSwipe({ onSwipeUp: submit })
   const handleKeyDown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit() } }
@@ -99,6 +141,21 @@ export default function TodoInput() {
 
       {hasText && (
         <p className="text-center animate-fade-in" style={{ fontSize: 11, color: 'var(--text-ghost)', marginTop: 8, opacity: 0.6 }}>swipe up to send</p>
+      )}
+
+      {focused && !hasText && mode === 'task' && (
+        <div className="animate-fade-in" style={{ marginTop: 6, textAlign: 'center' }}>
+          <button onMouseDown={(e) => e.preventDefault()} onClick={() => setShowTip(!showTip)}
+            style={{ fontSize: 11, color: 'var(--text-ghost)', opacity: 0.5 }}>
+            {showTip ? '×' : 'tips'}
+          </button>
+          {showTip && (
+            <div className="animate-slide-down" style={{ marginTop: 6, fontSize: 11, color: 'var(--text-ghost)', lineHeight: 1.6, opacity: 0.7 }}>
+              <span style={{ color: 'var(--accent-coral)' }}>a, b, c</span> creates 3 separate tasks<br />
+              <span style={{ color: 'var(--accent-coral)' }}>task: a, b, c</span> creates 1 task with subtasks
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
