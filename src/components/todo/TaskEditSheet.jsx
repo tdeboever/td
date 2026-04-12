@@ -223,24 +223,22 @@ export default function TaskEditSheet({ todo, todos: todosArr, onClose }) {
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex gap-3" style={{ marginTop: 24 }}>
-          <button onMouseDown={keepFocus} onClick={handleMakeNote} style={{ flex: 1, padding: '12px', borderRadius: 14, fontSize: 14, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--accent-sky)' }}>
+        {/* Actions + Save */}
+        <div className="flex gap-2" style={{ marginTop: 16 }}>
+          <button onMouseDown={keepFocus} onClick={handleMakeNote} style={{ padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--accent-sky)' }}>
             ✎ Note
           </button>
-          <button onMouseDown={keepFocus} onClick={handleDelete} style={{ flex: 1, padding: '12px', borderRadius: 14, fontSize: 14, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--color-danger)' }}>
+          <button onMouseDown={keepFocus} onClick={handleDelete} style={{ padding: '10px 14px', borderRadius: 12, fontSize: 12, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--color-danger)' }}>
             Delete{isMulti ? ` (${todosArr.length})` : ''}
           </button>
+          <button onMouseDown={keepFocus} onClick={save} style={{
+            flex: 1, padding: '10px 14px', borderRadius: 12, fontSize: 13, fontWeight: 600,
+            background: 'linear-gradient(135deg, var(--accent-coral), var(--accent-rose))',
+            color: 'white',
+          }}>
+            Save
+          </button>
         </div>
-
-        {/* Save */}
-        <button onMouseDown={keepFocus} onClick={save} style={{
-          width: '100%', marginTop: 12, padding: '14px', borderRadius: 14, fontSize: 15, fontWeight: 600,
-          background: 'linear-gradient(135deg, var(--accent-coral), var(--accent-rose))',
-          color: 'white', boxShadow: '0 2px 12px rgba(255,123,84,0.25)',
-        }}>
-          Save
-        </button>
       </div>
     </div>,
     document.body
