@@ -64,24 +64,16 @@ self.addEventListener('push', (event) => {
   )
 })
 
-// Supabase config injected at build time via Vite define
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
-// Helper: update a todo via Supabase REST API
-async function updateTodoViaApi(todoId, updates) {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return false
-
+// Helper: perform a todo action via edge function (uses service role key server-side)
+async function todoAction(todoId, action) {
+  if (!SUPABASE_URL) return false
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?id=eq.${todoId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify(updates),
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/todo-action`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ todoId, action }),
     })
     return res.ok
   } catch {
@@ -97,13 +89,9 @@ self.addEventListener('notificationclick', (event) => {
 
   if (action === 'complete' && data.todoId) {
     event.waitUntil(
-      updateTodoViaApi(data.todoId, {
-        status: 'done',
-        updated_at: new Date().toISOString(),
-      }).then(() => {
-        // Notify open clients to refresh
+      todoAction(data.todoId, 'complete').then(() => {
         return self.clients.matchAll({ type: 'window' }).then(clients => {
-          clients.forEach(c => c.postMessage({ type: 'TODO_UPDATED', todoId: data.todoId, status: 'done' }))
+          clients.forEach(c => c.postMessage({ type: 'TODO_UPDATED' }))
         })
       })
     )
@@ -111,19 +99,10 @@ self.addEventListener('notificationclick', (event) => {
   }
 
   if (action === 'snooze' && data.todoId) {
-    // Snooze 1 hour from now
-    const snoozeTime = new Date()
-    snoozeTime.setHours(snoozeTime.getHours() + 1)
-    const h = String(snoozeTime.getHours()).padStart(2, '0')
-    const m = String(snoozeTime.getMinutes()).padStart(2, '0')
-
     event.waitUntil(
-      updateTodoViaApi(data.todoId, {
-        due_time: `${h}:${m}`,
-        updated_at: new Date().toISOString(),
-      }).then(() => {
+      todoAction(data.todoId, 'snooze').then(() => {
         return self.clients.matchAll({ type: 'window' }).then(clients => {
-          clients.forEach(c => c.postMessage({ type: 'TODO_UPDATED', todoId: data.todoId, dueTime: `${h}:${m}` }))
+          clients.forEach(c => c.postMessage({ type: 'TODO_UPDATED' }))
         })
       })
     )
