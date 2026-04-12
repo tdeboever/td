@@ -93,7 +93,7 @@ function SpaceView() {
     const nowDate = new Date(new Date().toDateString())
 
     return {
-      overdue: active.filter(t => t.dueDate && new Date(t.dueDate) < nowDate).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
+      overdue: active.filter(t => t.dueDate && !isToday(t.dueDate) && new Date(t.dueDate + 'T23:59:59') < nowDate).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
       today: active.filter(t => !t.dueDate || isToday(t.dueDate)).sort((a, b) => a.position - b.position),
       upcoming: active.filter(t => t.dueDate && isFuture(t.dueDate) && !isToday(t.dueDate)).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
       done: t.filter(t => t.status === 'done'),
