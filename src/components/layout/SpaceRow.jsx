@@ -10,6 +10,7 @@ export default function SpaceRow() {
   const setState = useUiStore.setState
 
   if (spaces.length === 0) return null
+  if (activeView === 'notes') return null
 
   const handleSpaceTap = (id) => {
     if (activeSpaceId === id) {
