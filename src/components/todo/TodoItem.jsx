@@ -35,6 +35,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const [dragging, setDragging] = useState(null)
   const [showEditSheet, setShowEditSheet] = useState(false)
   const longPressTimer = useRef(null)
+  const longPressFired = useRef(false)
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
   const lastTapRef = useRef(0)
@@ -88,9 +89,11 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
     const t = e.touches[0]
     touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() }
+    longPressFired.current = false
 
     // Long-press → multi-select
     longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true
       if (navigator.vibrate) navigator.vibrate(15)
       if (multiSelectMode) {
         toggleSelect(todo.id)
@@ -170,7 +173,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onDoubleClick={() => { if (!phase && !isDone && !dragging && !multiSelectMode) openEditSheet() }}
-      onContextMenu={(e) => { e.preventDefault(); if (!isDone && !phase) openEditSheet() }}
+      onContextMenu={(e) => { e.preventDefault(); if (longPressFired.current) return; if (!isDone && !phase) openEditSheet() }}
       className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
