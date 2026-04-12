@@ -10,7 +10,7 @@ const loadTodos = () => storage.get(STORAGE_KEY) || []
 // Push a single todo update to Supabase immediately (fire-and-forget)
 const pushToSupabase = (todo) => {
   if (!isSupabaseConfigured()) return
-  const map = { listId: 'list_id', spaceId: 'space_id', dueDate: 'due_date', dueTime: 'due_time', snoozedUntil: 'snoozed_until', completionCount: 'completion_count', lastCompletedAt: 'last_completed_at', createdAt: 'created_at', updatedAt: 'updated_at', userId: 'user_id' }
+  const map = { listId: 'list_id', spaceId: 'space_id', dueDate: 'due_date', dueTime: 'due_time', snoozedUntil: 'snoozed_until', completionCount: 'completion_count', lastCompletedAt: 'last_completed_at', lastNotifiedAt: 'last_notified_at', createdAt: 'created_at', updatedAt: 'updated_at', userId: 'user_id' }
   const snake = {}
   for (const [k, v] of Object.entries(todo)) {
     snake[map[k] || k] = v
@@ -54,8 +54,10 @@ export const useTodoStore = create((set, get) => ({
 
   updateTodo: (id, updates) => {
     set((state) => {
+      // Clear last_notified_at when time changes so notifications re-fire
+      const extra = (updates.dueTime !== undefined) ? { lastNotifiedAt: null } : {}
       const todos = state.todos.map((t) =>
-        t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
+        t.id === id ? { ...t, ...updates, ...extra, updatedAt: new Date().toISOString() } : t
       )
       storage.set(STORAGE_KEY, todos)
       const updated = todos.find(t => t.id === id)
