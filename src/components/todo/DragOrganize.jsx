@@ -163,7 +163,9 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       }
       px.current = t.clientX; py.current = t.clientY
 
-      if (!lockedSpaceId.current) {
+      // Only check for space lock if finger has moved upward at least 40px from start
+      const hasRisen = startPos.y - py.current > 40
+      if (!lockedSpaceId.current && hasRisen) {
         // Method 1: Direct proximity (within 80px of a space)
         let nearest = null, nearD = 80
         for (const z of spaceZonesRef.current) {
@@ -172,7 +174,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         }
 
         // Method 2: Moving upward? Project trajectory to find target space
-        if (!nearest && velY.current < -100 && startPos.y - py.current > 30) {
+        if (!nearest && velY.current < -100) {
           const projT = 0.3
           const projX = px.current + velX.current * projT
           const projY = py.current + velY.current * projT
