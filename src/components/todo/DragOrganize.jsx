@@ -366,14 +366,14 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
       {/* Left wall — Note */}
       <div style={{
-        position: 'absolute', left: 0, top: '35%', bottom: '35%', width: 3, borderRadius: '0 3px 3px 0',
-        background: isNearLeft ? '#60a5fa' : 'rgba(96,165,250,0.15)',
-        boxShadow: isNearLeft ? '0 0 12px rgba(96,165,250,0.4)' : 'none',
+        position: 'absolute', left: 0, top: '42%', bottom: '42%', width: 3, borderRadius: '0 3px 3px 0',
+        background: isNearLeft ? '#60a5fa' : 'rgba(96,165,250,0.1)',
+        boxShadow: isNearLeft ? '0 0 14px rgba(96,165,250,0.5)' : 'none',
         transition: 'all 200ms', opacity: entered ? 1 : 0,
       }} />
       {isNearLeft && entered && (
-        <div style={{
-          position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
+        <div className="animate-fade-in" style={{
+          position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
           fontSize: 11, fontWeight: 600, color: '#60a5fa', letterSpacing: '0.05em',
           writingMode: 'vertical-rl', textOrientation: 'mixed',
         }}>Note</div>
@@ -381,14 +381,14 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
       {/* Right wall — Delete */}
       <div style={{
-        position: 'absolute', right: 0, top: '35%', bottom: '35%', width: 3, borderRadius: '3px 0 0 3px',
-        background: isNearRight ? '#ff6b6b' : 'rgba(255,107,107,0.15)',
-        boxShadow: isNearRight ? '0 0 12px rgba(255,107,107,0.4)' : 'none',
+        position: 'absolute', right: 0, top: '42%', bottom: '42%', width: 3, borderRadius: '3px 0 0 3px',
+        background: isNearRight ? '#ff6b6b' : 'rgba(255,107,107,0.1)',
+        boxShadow: isNearRight ? '0 0 14px rgba(255,107,107,0.5)' : 'none',
         transition: 'all 200ms', opacity: entered ? 1 : 0,
       }} />
       {isNearRight && entered && (
-        <div style={{
-          position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+        <div className="animate-fade-in" style={{
+          position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
           fontSize: 11, fontWeight: 600, color: '#ff6b6b', letterSpacing: '0.05em',
           writingMode: 'vertical-rl', textOrientation: 'mixed',
         }}>Delete</div>
