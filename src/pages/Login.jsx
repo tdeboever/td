@@ -106,17 +106,6 @@ export default function Login({ onSignIn }) {
           Sign in with Google
         </button>
 
-        <button
-          onClick={() => window.location.reload()}
-          className="animate-task-enter"
-          style={{
-            marginTop: 24, fontSize: 12, color: 'var(--text-ghost)',
-            letterSpacing: '0.02em',
-            animationDelay: '320ms',
-          }}
-        >
-          continue without account
-        </button>
       </div>
     </div>
   )
