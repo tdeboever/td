@@ -82,10 +82,6 @@ export default function Login({ onSignIn }) {
           }}>Whim</h1>
         </div>
 
-        <p className="animate-task-enter" style={{
-          fontSize: 14, color: 'var(--text-secondary)', marginTop: 6,
-          animationDelay: '160ms',
-        }}>Tasks that spark joy</p>
 
         <button
           onClick={handleSignIn}
