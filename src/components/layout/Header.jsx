@@ -40,6 +40,7 @@ export default function Header() {
 
   if (activeView === 'today') c((t) => filterFn(t) && (!t.dueDate || new Date(t.dueDate).toDateString() === new Date().toDateString()))
   else if (activeView === 'upcoming') { const n = new Date(); n.setHours(0,0,0,0); c((t) => filterFn(t) && t.dueDate && new Date(t.dueDate) > n) }
+  else if (activeView === 'space' || activeView === 'list') c((t) => filterFn(t) && t.type !== 'note')
   else if (activeView !== 'notes') c((t) => filterFn(t))
 
   if (inputFocused) {

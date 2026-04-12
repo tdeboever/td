@@ -42,7 +42,7 @@ export default function Sidebar() {
   }
   const cnt = (fn) => todos.filter((t) => t.status === 'active' && fn(t)).length
   const navigate = (v, o) => { setView(v, o); closeSidebar() }
-  const selectSpace = (id) => { useUiStore.setState({ activeSpaceId: id, activeListId: null }); closeSidebar() }
+  const selectSpace = (id) => { setView('space', { spaceId: id }); closeSidebar() }
   const handleAddSpace = (e) => { e.preventDefault(); if (!newSpaceName.trim()) return; addSpace(newSpaceName.trim()); setNewSpaceName('') }
   const handleAddList = (e, sid) => { e.preventDefault(); if (!newListName.trim()) return; addList(newListName.trim(), sid, newListType); setNewListName(''); setNewListType('tasks'); setAddingListForSpace(null) }
 

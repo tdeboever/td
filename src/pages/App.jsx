@@ -1,6 +1,8 @@
-import { useMemo, useEffect, useRef } from 'react'
+import { useMemo, useEffect, useRef, useState } from 'react'
 import AppShell from '../components/layout/AppShell'
 import TodoList from '../components/todo/TodoList'
+import TodoItem from '../components/todo/TodoItem'
+import EmptyState from '../components/common/EmptyState'
 import NotesList from '../components/todo/NotesList'
 import { useTodoStore } from '../stores/todoStore'
 import { useListStore } from '../stores/listStore'
@@ -10,7 +12,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useSync } from '../hooks/useSync'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { storage } from '../lib/storage'
-import { isToday, isFuture } from '../lib/utils'
+import { isToday, isFuture, formatRelativeDate } from '../lib/utils'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useNotifications } from '../hooks/useNotifications'
 import Login from './Login'
@@ -72,7 +74,90 @@ function NotesView() {
   return <NotesList notes={notes} />
 }
 
-const VIEWS = { today: TodayView, upcoming: UpcomingView, notes: NotesView }
+// Space = full picture: overdue + today + upcoming, grouped by date section
+function SpaceView() {
+  const todos = useTodoStore((s) => s.todos)
+  const lists = useListStore((s) => s.lists)
+  const { activeSpaceId, activeListId } = useUiStore()
+  const initialSynced = useUiStore((s) => s.initialSynced)
+
+  const checklistIds = useMemo(() => new Set(lists.filter(l => l.type === 'checklist').map(l => l.id)), [lists])
+
+  const { overdue, today, upcoming, done } = useMemo(() => {
+    let t = todos.filter(t => t.type !== 'note')
+    t = t.filter(t => !t.listId || !checklistIds.has(t.listId) || t.listId === activeListId || !!t.dueDate)
+    if (activeListId) t = t.filter(t => t.listId === activeListId)
+    else if (activeSpaceId) t = t.filter(t => t.spaceId === activeSpaceId)
+
+    const active = t.filter(t => t.status === 'active')
+    const nowDate = new Date(new Date().toDateString())
+
+    return {
+      overdue: active.filter(t => t.dueDate && new Date(t.dueDate) < nowDate).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
+      today: active.filter(t => !t.dueDate || isToday(t.dueDate)).sort((a, b) => a.position - b.position),
+      upcoming: active.filter(t => t.dueDate && isFuture(t.dueDate) && !isToday(t.dueDate)).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
+      done: t.filter(t => t.status === 'done'),
+    }
+  }, [todos, activeSpaceId, activeListId, checklistIds])
+
+  const total = overdue.length + today.length + upcoming.length
+  if (!initialSynced) return null
+  if (total === 0 && done.length === 0) return <EmptyState title="Empty space" subtitle="Add some tasks to get started" />
+
+  const SectionLabel = ({ label, count, color }) => (
+    <div className="flex items-center gap-3" style={{ padding: '16px 20px 6px' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: color || 'var(--text-secondary)' }}>{label}</span>
+      {count > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-ghost)' }}>{count}</span>}
+      <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+    </div>
+  )
+
+  return (
+    <div className="animate-view-enter">
+      {overdue.length > 0 && (
+        <>
+          <SectionLabel label="Overdue" count={overdue.length} color="var(--color-danger)" />
+          {overdue.map((t, i) => <TodoItem key={t.id} todo={t} isLast={i === overdue.length - 1} />)}
+        </>
+      )}
+
+      {today.length > 0 && (
+        <>
+          <SectionLabel label="Today" count={today.length} />
+          {today.map((t, i) => <TodoItem key={t.id} todo={t} isLast={i === today.length - 1} />)}
+        </>
+      )}
+
+      {upcoming.length > 0 && (
+        <>
+          <SectionLabel label="Upcoming" count={upcoming.length} />
+          {upcoming.map((t, i) => <TodoItem key={t.id} todo={t} isLast={i === upcoming.length - 1} />)}
+        </>
+      )}
+
+      {total === 0 && done.length > 0 && <EmptyState title="All clear" subtitle="Everything's done" />}
+
+      {done.length > 0 && <SpaceDone done={done} />}
+    </div>
+  )
+}
+
+function SpaceDone({ done }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div style={{ marginTop: 24 }}>
+      <button onClick={() => setShow(!show)} className="w-full flex items-center gap-3"
+        style={{ padding: '8px 20px', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)' }}>
+        <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+        <span style={{ letterSpacing: '0.08em' }}>Completed · {done.length} {show ? '▴' : '▾'}</span>
+        <div className="flex-1 h-px" style={{ background: 'var(--border-subtle)' }} />
+      </button>
+      {show && done.map((t, i) => <TodoItem key={t.id} todo={t} isLast={i === done.length - 1} />)}
+    </div>
+  )
+}
+
+const VIEWS = { today: TodayView, upcoming: UpcomingView, notes: NotesView, space: SpaceView, list: SpaceView }
 
 function AppContent({ userId = null }) {
   const activeView = useUiStore((s) => s.activeView)
