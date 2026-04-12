@@ -67,24 +67,19 @@ export default function Sidebar() {
                 <div className="flex items-center" style={{ height: 48, borderLeft: `3px solid ${a ? 'var(--accent-lavender)' : 'transparent'}`, margin: '0 8px', borderRadius: 16 }}>
                   {renamingSpace === space.id ? (
                     <div style={{ flex: 1, padding: '0 20px' }}>
-                      <form onSubmit={(e) => { e.preventDefault(); if (renameText.trim()) { updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) } }}
-                        style={{ display: 'flex', alignItems: 'center', gap: 12, height: 48 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: 48 }}>
                         <SpaceAvatar space={{ ...space, name: renameText || space.name, color: renameColor }} size={24} />
                         <input autoFocus value={renameText} onChange={(e) => setRenameText(e.target.value)}
-                          onBlur={() => {
-                            setTimeout(() => {
-                              if (colorTapRef.current) { colorTapRef.current = false; return }
-                              if (renameText.trim()) updateSpace(space.id, { name: renameText.trim(), color: renameColor })
-                              setRenamingSpace(null)
-                            }, 150)
-                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (renameText.trim()) { updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) } } }}
                           className="flex-1 bg-transparent outline-none" style={{ fontSize: 15, color: 'var(--text-primary)' }} />
-                      </form>
-                      <div className="flex gap-2 pb-2" style={{ paddingLeft: 36 }}>
+                        <button onClick={() => { if (renameText.trim()) updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) }}
+                          style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-coral)', padding: '4px 8px' }}>Done</button>
+                      </div>
+                      <div className="flex gap-2 pb-3" style={{ paddingLeft: 36 }}>
                         {SPACE_COLORS.map(c => (
-                          <button key={c} onMouseDown={(e) => e.preventDefault()} onTouchStart={() => { colorTapRef.current = true }} onClick={() => setRenameColor(c)}
+                          <button key={c} onClick={() => setRenameColor(c)}
                             style={{
-                              width: 20, height: 20, borderRadius: '50%', background: c, flexShrink: 0,
+                              width: 22, height: 22, borderRadius: '50%', background: c, flexShrink: 0,
                               border: renameColor === c ? '2px solid white' : '2px solid transparent',
                               boxShadow: renameColor === c ? `0 0 8px ${c}60` : 'none',
                               transition: 'all 150ms',
