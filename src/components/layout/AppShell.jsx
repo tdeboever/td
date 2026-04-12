@@ -7,6 +7,7 @@ import TodoInput from '../todo/TodoInput'
 import ParticleCanvas from '../todo/ParticleCanvas'
 import FallenBall from '../todo/FallenBall'
 import SpaceRow from './SpaceRow'
+import MultiSelectBar from '../todo/MultiSelectBar'
 import InstallPrompt from '../common/InstallPrompt'
 import OfflineIndicator from '../common/OfflineIndicator'
 import { useUiStore } from '../../stores/uiStore'
@@ -16,6 +17,7 @@ const VIEW_ORDER = ['today', 'upcoming', 'notes']
 
 export default function AppShell({ children }) {
   const inputFocused = useUiStore((s) => s.inputFocused)
+  const multiSelectMode = useUiStore((s) => s.multiSelectMode)
   const { activeView, setView, toggleSidebar } = useUiStore()
 
   const swipeToView = useCallback((direction) => {
@@ -49,6 +51,7 @@ export default function AppShell({ children }) {
         <FallenBall />
         <ParticleCanvas />
         <InstallPrompt />
+        {multiSelectMode && <MultiSelectBar />}
       </div>
     </div>
   )

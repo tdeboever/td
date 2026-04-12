@@ -55,4 +55,24 @@ export const useUiStore = create((set, get) => ({
     if (undoTimer) clearTimeout(undoTimer)
     set({ undoAction: null, undoTimer: null })
   },
+
+  // Multi-select
+  selectedIds: {},
+  multiSelectMode: false,
+
+  enterMultiSelect: (todoId) => set({
+    multiSelectMode: true,
+    selectedIds: { [todoId]: true },
+  }),
+
+  toggleSelect: (todoId) => {
+    const { selectedIds } = get()
+    const next = { ...selectedIds }
+    if (next[todoId]) delete next[todoId]
+    else next[todoId] = true
+    if (Object.keys(next).length === 0) set({ multiSelectMode: false, selectedIds: {} })
+    else set({ selectedIds: next })
+  },
+
+  clearMultiSelect: () => set({ multiSelectMode: false, selectedIds: {} }),
 }))

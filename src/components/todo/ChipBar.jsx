@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
+import { useTodoStore } from '../../stores/todoStore'
 import { toLocalDateStr } from '../../lib/utils'
 
 function Opt({ children, active, onClick, small }) {
@@ -71,9 +72,27 @@ const TIMES = [
   { label: '6pm', value: '18:00', icon: '🌙' },
 ]
 
+function nextFreeTime(baseTime, date, todos) {
+  if (!date) return baseTime
+  const taken = new Set(todos.filter(t => t.status === 'active' && t.dueDate === date).map(t => t.dueTime).filter(Boolean))
+  let [h, m] = baseTime.split(':').map(Number)
+  while (taken.has(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)) {
+    m += 15; if (m >= 60) { h++; m = 0 }; if (h > 23) return baseTime
+  }
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`
+}
+
+function formatTimeLabel(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number)
+  const suffix = h >= 12 ? 'pm' : 'am'
+  const h12 = h % 12 || 12
+  return m === 0 ? `${h12}${suffix}` : `${h12}:${String(m).padStart(2,'0')}${suffix}`
+}
+
 export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChange, onListChange, onDueDateChange, onDueTimeChange }) {
   const spaces = useSpaceStore((s) => s.spaces)
   const lists = useListStore((s) => s.lists)
+  const todos = useTodoStore((s) => s.todos)
   const dateInputRef = useRef(null)
   const [showTime, setShowTime] = useState(false)
   const dates = datePresets()
@@ -113,14 +132,17 @@ export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChan
         </Opt>
       </div>
 
-      {/* Time */}
+      {/* Time — smart: bumps by 15min if slot is taken */}
       {showTime && dueDate && (
         <div style={{ display: 'flex', gap: 6 }} className="animate-slide-down">
-          {TIMES.map((t) => (
-            <Opt key={t.value} active={dueTime === t.value} small onClick={() => onDueTimeChange?.(dueTime === t.value ? null : t.value)}>
-              <span style={{ fontSize: 10 }}>{t.icon}</span> {t.label}
-            </Opt>
-          ))}
+          {TIMES.map((t) => {
+            const smart = nextFreeTime(t.value, dueDate, todos)
+            return (
+              <Opt key={t.value} active={dueTime === smart} small onClick={() => onDueTimeChange?.(dueTime === smart ? null : smart)}>
+                <span style={{ fontSize: 10 }}>{t.icon}</span> {formatTimeLabel(smart)}
+              </Opt>
+            )
+          })}
         </div>
       )}
 

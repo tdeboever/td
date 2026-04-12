@@ -37,7 +37,7 @@ export default function TodoInput() {
       // Keep focused for rapid entry — re-focus the input
       inputRef.current?.focus()
     }, 250)
-  }, [text, sending, effectiveListId, effectiveSpaceId, priority, dueDate, addTodo])
+  }, [text, sending, effectiveListId, effectiveSpaceId, priority, dueDate, dueTime, mode, addTodo])
 
   const swipeHandlers = useSwipe({ onSwipeUp: submit })
   const handleKeyDown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit() } }

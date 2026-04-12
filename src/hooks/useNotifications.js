@@ -84,9 +84,18 @@ export function useNotifications(userId) {
       }
     }
 
-    // Local fallback: check for due tasks while app is open
-    const check = () => {
+    // Local fallback: check for due tasks while app is open (only if no push subscription)
+    const check = async () => {
       if (!('Notification' in window) || Notification.permission !== 'granted') return
+
+      // Skip if push notifications are active — server handles it
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const reg = await navigator.serviceWorker.ready
+          const sub = await reg.pushManager.getSubscription()
+          if (sub) return // push is active, server will notify
+        } catch {}
+      }
 
       const todos = useTodoStore.getState().todos
       const now = new Date()
@@ -105,13 +114,16 @@ export function useNotifications(userId) {
 
         if (nowMinutes >= dueMinutes && nowMinutes <= dueMinutes + 5) {
           addNotified(todo.id)
-          new Notification('Whim', {
-            body: todo.text,
-            icon: '/icons/icon-192.png',
-            badge: '/icons/icon-192.png',
-            tag: todo.id,
-            renotify: false,
-          })
+          const reg = await navigator.serviceWorker?.ready
+          if (reg) {
+            reg.showNotification('Whim', {
+              body: todo.text,
+              icon: '/icons/icon-192.png',
+              badge: '/icons/icon-192.png',
+              tag: todo.id,
+              renotify: false,
+            })
+          }
           if (navigator.vibrate) navigator.vibrate([100, 50, 100])
         }
       }

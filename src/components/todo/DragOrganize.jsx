@@ -7,7 +7,11 @@ import { useUiStore } from '../../stores/uiStore'
 import { toLocalDateStr } from '../../lib/utils'
 import SpaceAvatar from '../common/SpaceAvatar'
 
-export default function DragOrganize({ todo, startPos, onDone }) {
+export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }) {
+  const todos = todosArr || (todo ? [todo] : [])
+  const isMulti = todos.length > 1
+  const primaryTodo = todos[0]
+
   const spaces = useSpaceStore((s) => s.spaces)
   const allLists = useListStore((s) => s.lists)
   const allTodos = useTodoStore((s) => s.todos)
@@ -26,6 +30,8 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const flyingRef = useRef(null)
   const pillRef = useRef(null)
   const lastLockedRef = useRef(null)
+  const rafRef = useRef(null)
+  const scaleRef = useRef(1)
   const [tick, setTick] = useState(0)
   const [entered, setEntered] = useState(false)
   const [listPicker, setListPicker] = useState(null)
@@ -34,10 +40,10 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   const H = window.innerHeight
 
   const act = useCallback((label, data) => () => {
-    const old = { spaceId: todo.spaceId, listId: todo.listId, dueDate: todo.dueDate, dueTime: todo.dueTime, type: todo.type }
-    updateTodo(todo.id, data)
-    showUndo(label, () => updateTodo(todo.id, old))
-  }, [todo, updateTodo, showUndo])
+    const olds = todos.map(t => ({ id: t.id, spaceId: t.spaceId, listId: t.listId, dueDate: t.dueDate, dueTime: t.dueTime, type: t.type }))
+    for (const t of todos) updateTodo(t.id, data)
+    showUndo(isMulti ? `${todos.length} tasks: ${label}` : label, () => { for (const o of olds) updateTodo(o.id, o) })
+  }, [todos, isMulti, updateTodo, showUndo])
 
   const arcY = (baseY, i, count, arcHeight, smileDown = true) => {
     if (count <= 1) return baseY
@@ -81,7 +87,14 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
   const actionZones = [
     { id: 'later', label: 'Later', r: 35, color: '#60a5fa', icon: '⏰',
-      action: act('Later', (() => { const n=new Date(); return { dueDate: toLocalDateStr(n), dueTime: `${String(Math.min(n.getHours()+3,21)).padStart(2,'0')}:00` } })()) },
+      action: act('Later', (() => {
+        const n = new Date(); const date = toLocalDateStr(n)
+        let h = Math.min(n.getHours() + 3, 21), m = 0
+        const todoIds = new Set(todos.map(t => t.id))
+        const taken = new Set(allTodos.filter(t => t.status === 'active' && t.dueDate === date && !todoIds.has(t.id)).map(t => t.dueTime).filter(Boolean))
+        while (taken.has(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`)) { m += 15; if (m >= 60) { h++; m = 0 }; if (h > 23) break }
+        return { dueDate: date, dueTime: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}` }
+      })()) },
     { id: 'tmrw', label: 'Tmrw', r: 35, color: '#a78bfa', icon: '📅',
       action: act('Tomorrow', (() => { const d=new Date(); d.setDate(d.getDate()+1); return { dueDate: toLocalDateStr(d), dueTime: null } })()) },
     { id: 'week', label: 'Next wk', r: 35, color: '#34d399', icon: '📆',
@@ -89,14 +102,16 @@ export default function DragOrganize({ todo, startPos, onDone }) {
   ]
 
   const wallDelete = () => {
-    const saved = { ...todo }
-    deleteTodo(todo.id)
-    showUndo('Deleted', () => {
-      const restored = addTodo(saved.text, {
-        type: saved.type, listId: saved.listId, spaceId: saved.spaceId,
-        priority: saved.priority, dueDate: saved.dueDate, dueTime: saved.dueTime,
-      })
-      if (saved.subtasks?.length) updateTodo(restored.id, { subtasks: saved.subtasks })
+    const savedAll = todos.map(t => ({ ...t }))
+    for (const t of todos) deleteTodo(t.id)
+    showUndo(isMulti ? `Deleted ${todos.length}` : 'Deleted', () => {
+      for (const saved of savedAll) {
+        const restored = addTodo(saved.text, {
+          type: saved.type, listId: saved.listId, spaceId: saved.spaceId,
+          priority: saved.priority, dueDate: saved.dueDate, dueTime: saved.dueTime,
+        })
+        if (saved.subtasks?.length) updateTodo(restored.id, { subtasks: saved.subtasks })
+      }
     })
   }
   const wallNote = act('→ Note', { type: 'note' })
@@ -153,84 +168,82 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
     const move = (e) => {
       e.preventDefault()
-      const t = e.touches[0]; const now = Date.now()
-      touchHistory.current.push({ x: t.clientX, y: t.clientY, t: now })
-      if (touchHistory.current.length > 5) touchHistory.current.shift()
-      const h = touchHistory.current
-      if (h.length >= 2) {
-        const f = h[0], l = h[h.length-1], dt = (l.t - f.t) / 1000
-        if (dt > 0) { velX.current = (l.x - f.x) / dt; velY.current = (l.y - f.y) / dt }
-      }
+      const t = e.touches[0]
       px.current = t.clientX; py.current = t.clientY
+      touchHistory.current.push({ x: t.clientX, y: t.clientY, t: Date.now() })
+      if (touchHistory.current.length > 5) touchHistory.current.shift()
 
-      // Only check for space lock if finger has moved upward at least 40px from start
-      const hasRisen = startPos.y - py.current > 40
-      if (!lockedSpaceId.current && hasRisen) {
-        // Method 1: Direct proximity (within 80px of a space)
-        let nearest = null, nearD = 80
-        for (const z of spaceZonesRef.current) {
-          const d = Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2)
-          if (d < nearD) { nearest = z.id; nearD = d }
-        }
-
-        // Method 2: Moving upward? Project trajectory to find target space
-        if (!nearest && velY.current < -100) {
-          const projT = 0.3
-          const projX = px.current + velX.current * projT
-          const projY = py.current + velY.current * projT
-          let bestProj = null, bestProjD = 200
-          for (const z of spaceZonesRef.current) {
-            const d = Math.sqrt((projX - z.x) ** 2 + (projY - z.y) ** 2)
-            if (d < bestProjD) { bestProj = z.id; bestProjD = d }
-          }
-          if (bestProj) nearest = bestProj
-        }
-
-        if (nearest) lockedSpaceId.current = nearest
-      } else {
-        // Already locked — only switch if finger directly touches a different space (within 50px)
-        for (const z of spaceZonesRef.current) {
-          if (z.id === lockedSpaceId.current) continue
-          const d = Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2)
-          if (d < 50) { lockedSpaceId.current = z.id; break }
-        }
+      // Move pill immediately via GPU-composited transform — never wait for RAF
+      if (pillRef.current) {
+        pillRef.current.style.transform = `translate3d(${px.current - 70}px, ${py.current - 18}px, 0) scale(${scaleRef.current})`
       }
 
-      const newHovered = hitTest(px.current, py.current)
-      const prevHovered = hoveredRef.current
-      hoveredRef.current = newHovered
+      // Throttle expensive computation (velocity, hit test, space lock) to RAF
+      if (rafRef.current) return
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null
+        const h = touchHistory.current
+        if (h.length >= 2) {
+          const f = h[0], l = h[h.length-1], dt = (l.t - f.t) / 1000
+          if (dt > 0) { velX.current = (l.x - f.x) / dt; velY.current = (l.y - f.y) / dt }
+        }
 
-      // Move pill directly via DOM — no React rerender needed
-      if (pillRef.current) {
-        pillRef.current.style.left = (px.current - 70) + 'px'
-        pillRef.current.style.top = (py.current - 18) + 'px'
+        // Only check for space lock if finger has moved upward at least 40px from start
+        const hasRisen = startPos.y - py.current > 40
+        if (!lockedSpaceId.current && hasRisen) {
+          let nearest = null, nearD = 80
+          for (const z of spaceZonesRef.current) {
+            const d = Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2)
+            if (d < nearD) { nearest = z.id; nearD = d }
+          }
+          if (!nearest && velY.current < -100) {
+            const projX = px.current + velX.current * 0.3
+            const projY = py.current + velY.current * 0.3
+            let bestProj = null, bestProjD = 200
+            for (const z of spaceZonesRef.current) {
+              const d = Math.sqrt((projX - z.x) ** 2 + (projY - z.y) ** 2)
+              if (d < bestProjD) { bestProj = z.id; bestProjD = d }
+            }
+            if (bestProj) nearest = bestProj
+          }
+          if (nearest) lockedSpaceId.current = nearest
+        } else if (lockedSpaceId.current) {
+          for (const z of spaceZonesRef.current) {
+            if (z.id === lockedSpaceId.current) continue
+            const d = Math.sqrt((px.current - z.x) ** 2 + (py.current - z.y) ** 2)
+            if (d < 50) { lockedSpaceId.current = z.id; break }
+          }
+        }
 
-        // Update pill color for hover
-        if (newHovered !== prevHovered) {
+        const newHovered = hitTest(px.current, py.current)
+        const prevHovered = hoveredRef.current
+        hoveredRef.current = newHovered
+
+        // Update pill appearance only when hover changes
+        if (newHovered !== prevHovered && pillRef.current) {
           const zone = newHovered ? allZonesRef.current.find(z => z.id === newHovered) : null
           pillRef.current.style.background = newHovered === 'wall-del' ? '#ff6b6b'
             : newHovered === 'wall-note' ? '#60a5fa'
             : zone ? zone.color
             : 'linear-gradient(135deg, #f472b6, #ff7b54)'
-          pillRef.current.style.transform = newHovered ? 'scale(0.8)' : 'scale(1)'
+          scaleRef.current = newHovered ? 0.8 : 1
+          pillRef.current.style.transform = `translate3d(${px.current - 70}px, ${py.current - 18}px, 0) scale(${scaleRef.current})`
         }
-      }
 
-      // Only trigger React rerender when hover or lock state actually changes
-      if (newHovered !== prevHovered || lockedSpaceId.current !== lastLockedRef.current) {
-        lastLockedRef.current = lockedSpaceId.current
-        setTick(n => n + 1)
-      }
+        // Only trigger React rerender when hover or lock state actually changes
+        if (newHovered !== prevHovered || lockedSpaceId.current !== lastLockedRef.current) {
+          lastLockedRef.current = lockedSpaceId.current
+          setTick(n => n + 1)
+        }
+      })
     }
 
     const doFly = (x, y, cb) => {
       flyingRef.current = { x, y }
       if (pillRef.current) {
-        pillRef.current.style.left = (x - 70) + 'px'
-        pillRef.current.style.top = (y - 18) + 'px'
-        pillRef.current.style.opacity = '0.5'
-        pillRef.current.style.transform = 'scale(0.8)'
         pillRef.current.style.transition = 'all 280ms cubic-bezier(0.16,1,0.3,1)'
+        pillRef.current.style.transform = `translate3d(${x - 70}px, ${y - 18}px, 0) scale(0.8)`
+        pillRef.current.style.opacity = '0.5'
       }
       if (navigator.vibrate) navigator.vibrate(8)
       setTick(n => n + 1)
@@ -242,14 +255,13 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       const az = allZonesRef.current
       const cur = hoveredRef.current
 
-      // Wall zones
-      if (cur === 'wall-del' && velX.current > 200) {
+      // Wall zones — works on hover release OR fling
+      if (cur === 'wall-del') {
         doFly(W + 50, py.current, () => wallDeleteRef.current()); return
       }
-      if (cur === 'wall-note' && velX.current < -200) {
+      if (cur === 'wall-note') {
         doFly(-50, py.current, () => wallNoteRef.current()); return
       }
-      if (cur === 'wall-del' || cur === 'wall-note') { onDoneRef.current(); return }
 
       // Regular zones — direct hover
       if (cur) {
@@ -279,13 +291,13 @@ export default function DragOrganize({ todo, startPos, onDone }) {
 
     document.addEventListener('touchmove', move, { passive: false })
     document.addEventListener('touchend', end)
-    return () => { document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end) }
+    return () => { document.removeEventListener('touchmove', move); document.removeEventListener('touchend', end); if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [listPicker])
 
   const handlePickList = (list) => {
-    const old = { spaceId: todo.spaceId, listId: todo.listId }
-    updateTodo(todo.id, { spaceId: listPicker.spaceId, listId: list.id })
-    showUndo(`→ ${list.name}`, () => updateTodo(todo.id, old))
+    const olds = todos.map(t => ({ id: t.id, spaceId: t.spaceId, listId: t.listId }))
+    for (const t of todos) updateTodo(t.id, { spaceId: listPicker.spaceId, listId: list.id })
+    showUndo(`→ ${list.name}`, () => { for (const o of olds) updateTodo(o.id, o) })
     onDone()
   }
 
@@ -411,22 +423,20 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       {/* Bottom: actions OR lists */}
       {bottomZones.map((z, i) => renderZone(z, showingLists ? 0 : 60 + i * 30))}
 
-      {/* Pill — position driven by DOM, not React state */}
+      {/* Pill — position driven by GPU-composited transform, not layout-triggering left/top */}
       <div ref={pillRef} style={{
-        position: 'absolute',
-        left: (flying ? flying.x : px.current) - 70,
-        top: (flying ? flying.y : py.current) - 18,
+        position: 'absolute', left: 0, top: 0,
+        transform: `translate3d(${(flying ? flying.x : px.current) - 70}px, ${(flying ? flying.y : py.current) - 18}px, 0)`,
         width: 140, padding: '9px 14px', borderRadius: 20,
         background: 'linear-gradient(135deg, #f472b6, #ff7b54)',
         boxShadow: '0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1)',
         color: 'white', fontSize: 12, fontWeight: 600,
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center',
-        transform: 'scale(1)',
         opacity: flying ? 0.5 : 1,
-        transition: flying ? 'all 280ms cubic-bezier(0.16,1,0.3,1)' : 'transform 150ms, background 100ms',
-        willChange: 'left, top',
+        transition: flying ? 'all 280ms cubic-bezier(0.16,1,0.3,1)' : 'background 100ms',
+        willChange: 'transform',
       }}>
-        {todo.text}
+        {isMulti ? `${todos.length} tasks` : primaryTodo.text}
       </div>
     </div>,
     document.body

@@ -1,8 +1,7 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState } from 'react'
 import TodoItem from './TodoItem'
 import GhostItem from './GhostItem'
 import EmptyState from '../common/EmptyState'
-import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 
 export default function TodoList({ todos, isChecklist = false, emptyTitle, emptySubtitle }) {
@@ -10,33 +9,8 @@ export default function TodoList({ todos, isChecklist = false, emptyTitle, empty
   const done = todos.filter((t) => t.status === 'done')
   const ghost = todos.filter((t) => t.status === 'ghost').sort((a, b) => b.completionCount - a.completionCount)
   const [showDone, setShowDone] = useState(false)
-  const reorderTodos = useTodoStore((s) => s.reorderTodos)
 
-  // Drag reorder state
-  const [dragIdx, setDragIdx] = useState(null)
-  const [overIdx, setOverIdx] = useState(null)
-  const longPressTimer = useRef(null)
   const sorted = active.sort((a, b) => a.position - b.position)
-
-  const handleLongPressStart = useCallback((idx, e) => {
-    longPressTimer.current = setTimeout(() => {
-      setDragIdx(idx)
-      if (navigator.vibrate) navigator.vibrate(15)
-    }, 400)
-  }, [])
-
-  const handleLongPressEnd = useCallback(() => {
-    if (longPressTimer.current) clearTimeout(longPressTimer.current)
-
-    if (dragIdx !== null && overIdx !== null && dragIdx !== overIdx) {
-      const reordered = [...sorted]
-      const [moved] = reordered.splice(dragIdx, 1)
-      reordered.splice(overIdx, 0, moved)
-      reorderTodos(reordered.map((t) => t.id))
-    }
-    setDragIdx(null)
-    setOverIdx(null)
-  }, [dragIdx, overIdx, sorted, reorderTodos])
 
   const initialSynced = useUiStore((s) => s.initialSynced)
   if (todos.length === 0 && !initialSynced) return null
@@ -54,32 +28,7 @@ export default function TodoList({ todos, isChecklist = false, emptyTitle, empty
         <div
           key={todo.id}
           className="animate-task-enter"
-          style={{
-            animationDelay: `${i * 50}ms`,
-            opacity: dragIdx === i ? 0.4 : 1,
-            background: overIdx === i && dragIdx !== null ? 'var(--surface-card)' : 'transparent',
-            borderRadius: overIdx === i ? 16 : 0,
-            transition: 'background 150ms, opacity 150ms',
-          }}
-          onTouchStart={(e) => handleLongPressStart(i, e)}
-          onTouchEnd={handleLongPressEnd}
-          onTouchMove={(e) => {
-            if (dragIdx === null) {
-              if (longPressTimer.current) clearTimeout(longPressTimer.current)
-              return
-            }
-            // Find which item we're over
-            const touch = e.touches[0]
-            const elements = document.querySelectorAll('[data-reorder-item]')
-            for (let j = 0; j < elements.length; j++) {
-              const rect = elements[j].getBoundingClientRect()
-              if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-                setOverIdx(j)
-                break
-              }
-            }
-          }}
-          data-reorder-item
+          style={{ animationDelay: `${i * 50}ms` }}
         >
           <TodoItem todo={todo} isChecklist={isChecklist} isLast={i === sorted.length - 1} />
         </div>

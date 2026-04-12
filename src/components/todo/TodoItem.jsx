@@ -5,7 +5,7 @@ import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import SpaceAvatar from '../common/SpaceAvatar'
 import { useUiStore } from '../../stores/uiStore'
-import { formatRelativeDate, toLocalDateStr } from '../../lib/utils'
+import { formatRelativeDate } from '../../lib/utils'
 import DragOrganize from './DragOrganize'
 import TaskEditSheet from './TaskEditSheet'
 
@@ -20,23 +20,27 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const uncompleteTodo = useTodoStore((s) => s.uncompleteTodo)
   const ghostTodo = useTodoStore((s) => s.ghostTodo)
   const deleteTodo = useTodoStore((s) => s.deleteTodo)
+  const allTodos = useTodoStore((s) => s.todos)
   const showUndo = useUiStore((s) => s.showUndo)
   const spawnBall = useUiStore((s) => s.spawnBall)
   const activeView = useUiStore((s) => s.activeView)
+  const multiSelectMode = useUiStore((s) => s.multiSelectMode)
+  const selectedIds = useUiStore((s) => s.selectedIds)
+  const enterMultiSelect = useUiStore((s) => s.enterMultiSelect)
+  const toggleSelect = useUiStore((s) => s.toggleSelect)
+  const clearMultiSelect = useUiStore((s) => s.clearMultiSelect)
   const spaces = useSpaceStore((s) => s.spaces)
   const lists = useListStore((s) => s.lists)
   const updateTodo = useTodoStore((s) => s.updateTodo)
-  const [showActions, setShowActions] = useState(false)
-  const [showMoveMenu, setShowMoveMenu] = useState(false)
-  const [editing, setEditing] = useState(false)
-  const [editText, setEditText] = useState('')
   const [dragging, setDragging] = useState(null)
   const [showEditSheet, setShowEditSheet] = useState(false)
   const longPressTimer = useRef(null)
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
+  const lastTapRef = useRef(0)
 
   const isDone = todo.status === 'done' || todo.status === 'ghost'
+  const isSelected = !!selectedIds[todo.id]
   const taskSpace = todo.spaceId ? spaces.find(s => s.id === todo.spaceId) : null
   const spaceColor = taskSpace?.color || null
   const dot = DOTS[todo.priority]
@@ -50,7 +54,6 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     const cx = rect ? rect.left + rect.width / 2 : 30
     const cy = rect ? rect.top + rect.height / 2 : 100
     if (navigator.vibrate) navigator.vibrate(10)
-    // Particle burst from checkbox
     emitExplosion(cx, cy, 300, 10)
     setPhase('checked')
     setTimeout(() => { setPhase('collapsing'); spawnBall(cx, cy) }, 150)
@@ -63,131 +66,111 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
   const handleCheckbox = () => isDone ? uncompleteTodo(todo.id) : handleComplete()
 
-  const handleLater = () => {
-    const now = new Date()
-    const laterHour = Math.min(now.getHours() + 3, 21)
-    const time = `${String(laterHour).padStart(2, '0')}:00`
-    const oldDate = todo.dueDate
-    const oldTime = todo.dueTime
-    updateTodo(todo.id, { dueDate: toLocalDateStr(now), dueTime: time })
-    setShowActions(false)
-    showUndo(`Set to ${time}`, () => updateTodo(todo.id, { dueDate: oldDate, dueTime: oldTime }))
+  const openEditSheet = () => {
+    if (isDone || phase) return
+    setShowEditSheet(true)
   }
 
-  const handleTomorrow = () => {
-    const tmrw = new Date(); tmrw.setDate(tmrw.getDate() + 1)
-    const oldDate = todo.dueDate
-    const oldTime = todo.dueTime
-    updateTodo(todo.id, { dueDate: toLocalDateStr(tmrw), dueTime: null })
-    setShowActions(false)
-    showUndo('Moved to tomorrow', () => updateTodo(todo.id, { dueDate: oldDate, dueTime: oldTime }))
-  }
-
-  if (showActions) {
-    return (
-      <div className="animate-slide-up" style={{
-        margin: '4px 20px', padding: '12px 16px', borderRadius: 16,
-        background: 'var(--surface-glass)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-        boxShadow: '0 0 0 1px var(--border-subtle)',
-      }}>
-        {editing ? (
-          <form onSubmit={(e) => { e.preventDefault(); if (editText.trim()) { updateTodo(todo.id, { text: editText.trim() }); setEditing(false) } }} style={{ marginBottom: 10 }}>
-            <input autoFocus value={editText} onChange={(e) => setEditText(e.target.value)}
-              onBlur={() => { if (editText.trim() && editText !== todo.text) updateTodo(todo.id, { text: editText.trim() }); setEditing(false) }}
-              className="w-full bg-transparent outline-none"
-              style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-primary)', borderBottom: '1px solid var(--border-visible)', paddingBottom: 4 }} />
-          </form>
-        ) : (
-          <p onClick={() => { setEditText(todo.text); setEditing(true) }}
-            style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, cursor: 'text' }} className="truncate">{todo.text}</p>
-        )}
-
-        {/* Move to space/list */}
-        {showMoveMenu ? (
-          <div className="animate-slide-down" style={{ marginBottom: 10 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Move to</p>
-            <div className="flex gap-2 flex-wrap">
-              {todo.spaceId && (
-                <button onClick={() => { updateTodo(todo.id, { spaceId: null, listId: null }); setShowActions(false); showUndo('Removed from space', () => updateTodo(todo.id, { spaceId: todo.spaceId, listId: todo.listId })) }}
-                  style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, background: 'var(--surface-card)', color: 'var(--text-secondary)' }}>
-                  No space
-                </button>
-              )}
-              {spaces.map((s) => {
-                const spaceLists = lists.filter((l) => l.spaceId === s.id)
-                const isCurrentSpace = todo.spaceId === s.id
-                return (
-                  <div key={s.id} className="flex gap-1.5 flex-wrap">
-                    <button onClick={() => { updateTodo(todo.id, { spaceId: s.id, listId: null }); setShowActions(false); showUndo(`Moved to ${s.name}`, () => updateTodo(todo.id, { spaceId: todo.spaceId, listId: todo.listId })) }}
-                      className="flex items-center gap-2"
-                      style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500, background: isCurrentSpace && !todo.listId ? 'var(--surface-active)' : 'var(--surface-card)', color: 'var(--text-secondary)' }}>
-                      <SpaceAvatar space={s} size={16} /> {s.name}
-                    </button>
-                    {spaceLists.map((l) => (
-                      <button key={l.id} onClick={() => { updateTodo(todo.id, { spaceId: s.id, listId: l.id }); setShowActions(false); showUndo(`Moved to ${l.name}`, () => updateTodo(todo.id, { spaceId: todo.spaceId, listId: todo.listId })) }}
-                        style={{ padding: '6px 12px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: todo.listId === l.id ? 'var(--surface-active)' : 'var(--surface-card)', color: 'var(--text-ghost)' }}>
-                        {l.name}
-                      </button>
-                    ))}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="flex gap-5">
-          {!isDone && <button onClick={handleLater} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Later</button>}
-          {!isDone && <button onClick={handleTomorrow} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Tmrw</button>}
-          {spaces.length > 0 && <button onClick={() => setShowMoveMenu(!showMoveMenu)} style={{ fontSize: 13, color: 'var(--accent-lavender)' }}>Move</button>}
-          <button onClick={() => { updateTodo(todo.id, { type: 'note' }); setShowActions(false); showUndo('Made a note', () => updateTodo(todo.id, { type: 'task' })) }} style={{ fontSize: 13, color: 'var(--accent-sky)' }}>Note</button>
-          <button onClick={() => { deleteTodo(todo.id); setShowActions(false) }} style={{ fontSize: 13, color: 'var(--color-danger)', opacity: 0.6 }}>Delete</button>
-          <button onClick={() => { setShowActions(false); setShowMoveMenu(false) }} style={{ fontSize: 13, color: 'var(--text-ghost)', marginLeft: 'auto' }}>✕</button>
-        </div>
-      </div>
-    )
-  }
-
-  const isChecked = phase === 'checked' || phase === 'collapsing'
-  const isCollapsing = phase === 'collapsing'
-
-  // Horizontal swipe detection — detaches task into drag mode
+  // --- Touch gesture handling ---
   const touchStart = useRef(null)
-  const handleTouchStart2 = (e) => {
-    if (isDone || phase || editing) return
+
+  const handleTouchStart = (e) => {
+    if (isDone || phase) return
+
+    // Two-finger tap → edit sheet
+    if (e.touches.length >= 2) {
+      e.preventDefault()
+      if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+      touchStart.current = null
+      openEditSheet()
+      return
+    }
+
     const t = e.touches[0]
-    touchStart.current = { x: t.clientX, y: t.clientY }
-    // Long-press timer for edit sheet
+    touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() }
+
+    // Long-press → multi-select
     longPressTimer.current = setTimeout(() => {
       if (navigator.vibrate) navigator.vibrate(15)
-      setShowEditSheet(true)
+      if (multiSelectMode) {
+        toggleSelect(todo.id)
+      } else {
+        enterMultiSelect(todo.id)
+      }
       touchStart.current = null
+      longPressTimer.current = null
     }, 500)
   }
-  const handleTouchMove2 = (e) => {
+
+  const handleTouchMove = (e) => {
     if (!touchStart.current || dragging) return
     const t = e.touches[0]
     const dx = Math.abs(t.clientX - touchStart.current.x)
     const dy = Math.abs(t.clientY - touchStart.current.y)
+
     // Any movement cancels long-press
-    if (dx > 8 || dy > 8) { if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }
-    // If vertical > horizontal, it's a scroll
+    if (dx > 8 || dy > 8) {
+      if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+    }
+
+    // Vertical scroll
     if (dy > 15 && dy > dx) { touchStart.current = null; return }
-    // Horizontal movement — stop view swipe
-    if (dx > 10 && dx > dy) { e.stopPropagation() }
-    // Horizontal threshold to detach into drag mode
+
+    // Stop view swipe on horizontal
+    if (dx > 10 && dx > dy) e.stopPropagation()
+
+    // Detach into drag/fling mode
     if (dx > 30 && dx > dy * 1.5) {
       if (navigator.vibrate) navigator.vibrate(8)
-      setDragging({ x: t.clientX, y: t.clientY })
+      if (multiSelectMode && isSelected) {
+        // Multi-select fling: pass all selected todos
+        const selectedTodos = allTodos.filter(t => selectedIds[t.id])
+        setDragging({ x: t.clientX, y: t.clientY, todos: selectedTodos })
+      } else if (!multiSelectMode) {
+        setDragging({ x: t.clientX, y: t.clientY })
+      }
       touchStart.current = null
       if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
     }
   }
 
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+    if (!touchStart.current) return
+
+    const dt = Date.now() - touchStart.current.time
+    touchStart.current = null
+    if (dt > 400) return // Was a long press attempt
+
+    if (multiSelectMode) {
+      toggleSelect(todo.id)
+    } else {
+      // Double-tap detection
+      const now = Date.now()
+      if (now - lastTapRef.current < 300) {
+        lastTapRef.current = 0
+        openEditSheet()
+      } else {
+        lastTapRef.current = now
+      }
+    }
+  }
+
+  const handleDragDone = () => {
+    setDragging(null)
+    if (multiSelectMode) clearMultiSelect()
+  }
+
+  const isChecked = phase === 'checked' || phase === 'collapsing'
+  const isCollapsing = phase === 'collapsing'
+
   const taskRow = (
     <div
-      onTouchStart={handleTouchStart2}
-      onTouchMove={handleTouchMove2}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onDoubleClick={() => { if (!phase && !isDone && !dragging && !multiSelectMode) openEditSheet() }}
+      onContextMenu={(e) => { e.preventDefault(); if (!isDone && !phase) openEditSheet() }}
       className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
@@ -196,35 +179,52 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         transform: isCollapsing ? 'scaleY(0)' : 'scaleY(1)',
         maxHeight: isCollapsing ? 0 : 200, overflow: 'hidden', transformOrigin: 'top',
         transition: isCollapsing ? 'opacity 200ms, max-height 200ms, transform 200ms' : 'all 200ms',
-        background: 'transparent', borderRadius: 16,
+        background: isSelected ? 'rgba(244,114,182,0.10)' : 'transparent',
+        borderRadius: 16,
+        boxShadow: isSelected ? 'inset 0 0 0 1.5px rgba(244,114,182,0.25)' : 'none',
       }}
-      onTouchEnd={() => { touchStart.current = null; if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null } }}
-      onDoubleClick={() => { if (!phase && !isDone && !dragging) { setEditText(todo.text); setEditing(true) } }}
-      onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' }}
-      onContextMenu={(e) => e.preventDefault()}
+      onMouseEnter={(e) => { if (!isDone && !phase && !isSelected) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
+      onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' } }}
     >
-      {/* Checkbox — celebration on check */}
-      <button ref={checkboxRef} onClick={(e) => { e.stopPropagation(); handleCheckbox() }}
-        className="flex items-center justify-center flex-shrink-0 rounded-full"
-        style={{
-          width: 22, height: 22,
-          transition: 'all 250ms cubic-bezier(0.34,1.56,0.64,1)',
-          border: isChecked ? '2px solid transparent' : isDone ? '2px solid transparent' : `2px solid ${spaceColor ? spaceColor + '50' : 'rgba(255,255,255,0.22)'}`,
-          background: isChecked ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : isDone ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'transparent',
-          transform: isChecked && !isCollapsing ? 'scale(1.3)' : 'scale(1)',
-          boxShadow: (isChecked || isDone) ? '0 0 12px rgba(244,114,182,0.30)' : 'none',
-        }}
-        onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'var(--accent-rose)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(244,114,182,0.12)'; e.currentTarget.style.transform = 'scale(1.08)' } }}
-        onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = spaceColor ? spaceColor + '50' : 'rgba(255,255,255,0.22)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)' } }}
-      >
-        {(isDone || isChecked) && (
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"
-            style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}>
-            <path d="M2 5.5l2 2L8 3" />
-          </svg>
-        )}
-      </button>
+      {/* Multi-select indicator OR checkbox */}
+      {multiSelectMode ? (
+        <div className="flex items-center justify-center flex-shrink-0 rounded-full"
+          style={{
+            width: 22, height: 22,
+            border: isSelected ? '2px solid transparent' : '2px solid rgba(255,255,255,0.22)',
+            background: isSelected ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'transparent',
+            transition: 'all 200ms',
+          }}>
+          {isSelected && (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round">
+              <path d="M2 5.5l2 2L8 3" />
+            </svg>
+          )}
+        </div>
+      ) : (
+        <button ref={checkboxRef}
+          onClick={(e) => { e.stopPropagation(); handleCheckbox() }}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="flex items-center justify-center flex-shrink-0 rounded-full"
+          style={{
+            width: 22, height: 22,
+            transition: 'all 250ms cubic-bezier(0.34,1.56,0.64,1)',
+            border: isChecked ? '2px solid transparent' : isDone ? '2px solid transparent' : `2px solid ${spaceColor ? spaceColor + '50' : 'rgba(255,255,255,0.22)'}`,
+            background: isChecked ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : isDone ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-coral))' : 'transparent',
+            transform: isChecked && !isCollapsing ? 'scale(1.3)' : 'scale(1)',
+            boxShadow: (isChecked || isDone) ? '0 0 12px rgba(244,114,182,0.30)' : 'none',
+          }}
+          onMouseEnter={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = 'var(--accent-rose)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(244,114,182,0.12)'; e.currentTarget.style.transform = 'scale(1.08)' } }}
+          onMouseLeave={(e) => { if (!isDone && !phase) { e.currentTarget.style.borderColor = spaceColor ? spaceColor + '50' : 'rgba(255,255,255,0.22)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'scale(1)' } }}
+        >
+          {(isDone || isChecked) && (
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"
+              style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}>
+              <path d="M2 5.5l2 2L8 3" />
+            </svg>
+          )}
+        </button>
+      )}
 
       {/* Content */}
       <div className="flex-1 min-w-0" style={{
@@ -236,22 +236,12 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
           {!isDone && !isChecked && dot && (
             <span className="inline-block rounded-full flex-shrink-0" style={{ width: 6, height: 6, background: dot.bg, boxShadow: dot.shadow }} />
           )}
-          {editing ? (
-            <form onSubmit={(e) => { e.preventDefault(); if (editText.trim()) updateTodo(todo.id, { text: editText.trim() }); setEditing(false) }}
-              onClick={(e) => e.stopPropagation()}>
-              <input autoFocus value={editText} onChange={(e) => setEditText(e.target.value)}
-                onBlur={() => { if (editText.trim() && editText !== todo.text) updateTodo(todo.id, { text: editText.trim() }); setEditing(false) }}
-                className="w-full bg-transparent outline-none"
-                style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text-primary)', borderBottom: '1px solid var(--accent-coral)', paddingBottom: 2 }} />
-            </form>
-          ) : (
-            <p style={{
-              fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.4,
-              color: isDone ? 'var(--text-done)' : 'var(--text-primary)',
-              textDecoration: (isDone || isChecked) ? 'line-through' : 'none',
-              textDecorationColor: 'rgba(244,240,237,0.1)',
-            }}>{todo.text}</p>
-          )}
+          <p style={{
+            fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', lineHeight: 1.4,
+            color: isDone ? 'var(--text-done)' : 'var(--text-primary)',
+            textDecoration: (isDone || isChecked) ? 'line-through' : 'none',
+            textDecorationColor: 'rgba(244,240,237,0.1)',
+          }}>{todo.text}</p>
         </div>
         {!isDone && !isChecked && (showDate || todo.dueTime) && (
           <span style={{
@@ -280,6 +270,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       {/* Delete button for completed items */}
       {isDone && (
         <button onClick={(e) => { e.stopPropagation(); deleteTodo(todo.id) }}
+          onTouchStart={(e) => e.stopPropagation()}
           className="flex-shrink-0"
           style={{ padding: '0 4px', color: 'var(--text-ghost)', fontSize: 14, opacity: 0.4 }}>×</button>
       )}
@@ -289,7 +280,13 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   return (
     <>
       {taskRow}
-      {dragging && <DragOrganize todo={todo} startPos={dragging} onDone={() => setDragging(null)} />}
+      {dragging && (
+        <DragOrganize
+          todos={dragging.todos || [todo]}
+          startPos={{ x: dragging.x, y: dragging.y }}
+          onDone={handleDragDone}
+        />
+      )}
       {showEditSheet && <TaskEditSheet todo={todo} onClose={() => setShowEditSheet(false)} />}
     </>
   )
