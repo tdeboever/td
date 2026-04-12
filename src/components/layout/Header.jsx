@@ -45,7 +45,7 @@ export default function Header() {
 
   if (inputFocused) {
     return (
-      <header className="flex items-center safe-top" style={{ padding: '6px 20px' }}>
+      <header className="flex items-center" style={{ padding: `calc(env(safe-area-inset-top, 0px) + 6px) 20px 6px` }}>
         <span style={{ fontSize: 14, fontWeight: 600 }} className="flex-1">{title}</span>
         {activeCount > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-secondary)' }}>{activeCount}</span>}
       </header>
@@ -53,7 +53,7 @@ export default function Header() {
   }
 
   return (
-    <header className="safe-top" style={{ padding: '16px 20px 12px' }}>
+    <header style={{ padding: `calc(env(safe-area-inset-top, 0px) + 16px) 20px 12px` }}>
       {breadcrumb && (
         <button onClick={() => useUiStore.setState({ activeListId: null })}
           style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 2 }}>
