@@ -46,9 +46,10 @@ function parseNaturalDateTime(text) {
 
   // --- TIME ---
   // "at 6pm", "6:30pm", "at 6:30 pm", "6:30 p.m.", "at 6 pm"
-  const timeAmPm = /\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)\b/i
-  // "at 18:00" (24h, requires "at")
-  const time24 = /\bat\s+(\d{1,2}):(\d{2})\b/
+  // No trailing \b — "p.m." ends with "." which breaks word boundary
+  const timeAmPm = /\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)(?:\s|$)/i
+  // "at 18:00" (24h, requires "at") — only match if NOT followed by am/pm
+  const time24 = /\bat\s+(\d{1,2}):(\d{2})(?!\s*(?:am|pm|a\.m\.|p\.m\.))\b/i
   // "at noon", "at midnight"
   const timeWord = /\b(?:at\s+)?(noon|midnight)\b/i
 
