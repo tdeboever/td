@@ -19,6 +19,7 @@ export default function Header() {
   const [showSearch, setShowSearch] = useState(false)
   let title = VIEW_TITLES[activeView] || 'Today'
   let breadcrumb = null
+  let contextLabel = null
   if (activeListId) {
     const list = lists.find(l => l.id === activeListId)
     if (list) {
@@ -29,6 +30,10 @@ export default function Header() {
   } else if (activeSpaceId) {
     const space = spaces.find(s => s.id === activeSpaceId)
     if (space) title = space.name
+    // Show context when filtering a space within Today/Upcoming
+    if (activeView === 'today') contextLabel = 'Today'
+    else if (activeView === 'upcoming') contextLabel = 'Upcoming'
+    else if (activeView === 'space') contextLabel = 'All tasks'
   }
   let activeCount = 0, doneCount = 0
   const c = (fn) => { const m = todos.filter(fn); activeCount = m.filter((t) => t.status === 'active').length; doneCount = m.filter((t) => t.status === 'done' || t.status === 'ghost').length }
@@ -75,7 +80,12 @@ export default function Header() {
               <div style={{ width: 24, height: 24, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.16)', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--text-secondary)' }}>⁘</div>
             )}
           </button>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em' }}>{title}</h1>
+          <div>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 28, letterSpacing: '-0.02em', lineHeight: 1 }}>{title}</h1>
+            {contextLabel && (
+              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', letterSpacing: '0.04em' }}>{contextLabel}</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-4">
           <button data-search-trigger onClick={() => setShowSearch(true)} style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1 }}>⌕</button>
