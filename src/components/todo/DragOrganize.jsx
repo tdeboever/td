@@ -316,7 +316,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         }}>
           {typeof z.icon === 'string' ? z.icon : z.icon}
         </div>
-        <span style={{ fontSize: 9, fontWeight: 600, marginTop: 4, color: h ? '#fff' : 'var(--text-ghost)', transition: 'color 150ms', whiteSpace: 'nowrap' }}>{z.label}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, marginTop: 5, color: h ? '#fff' : 'var(--text-ghost)', transition: 'color 150ms', whiteSpace: 'nowrap' }}>{z.label}</span>
       </div>
     )
   }
@@ -374,7 +374,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       {isNearLeft && entered && (
         <div style={{
           position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 9, fontWeight: 600, color: '#60a5fa', letterSpacing: '0.05em',
+          fontSize: 11, fontWeight: 600, color: '#60a5fa', letterSpacing: '0.05em',
           writingMode: 'vertical-rl', textOrientation: 'mixed',
         }}>Note</div>
       )}
@@ -389,7 +389,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
       {isNearRight && entered && (
         <div style={{
           position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-          fontSize: 9, fontWeight: 600, color: '#ff6b6b', letterSpacing: '0.05em',
+          fontSize: 11, fontWeight: 600, color: '#ff6b6b', letterSpacing: '0.05em',
           writingMode: 'vertical-rl', textOrientation: 'mixed',
         }}>Delete</div>
       )}
