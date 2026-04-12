@@ -7,6 +7,19 @@ const STORAGE_KEY = 'todos'
 
 const loadTodos = () => storage.get(STORAGE_KEY) || []
 
+// Push a single todo update to Supabase immediately (fire-and-forget)
+const pushToSupabase = (todo) => {
+  if (!isSupabaseConfigured()) return
+  const map = { listId: 'list_id', spaceId: 'space_id', dueDate: 'due_date', dueTime: 'due_time', snoozedUntil: 'snoozed_until', completionCount: 'completion_count', lastCompletedAt: 'last_completed_at', createdAt: 'created_at', updatedAt: 'updated_at', userId: 'user_id' }
+  const snake = {}
+  for (const [k, v] of Object.entries(todo)) {
+    snake[map[k] || k] = v
+  }
+  supabase.from('todos').upsert(snake, { onConflict: 'id' }).then(({ error }) => {
+    if (error) console.error('Push todo error:', error.message)
+  })
+}
+
 export const useTodoStore = create((set, get) => ({
   todos: loadTodos(),
 
@@ -35,6 +48,7 @@ export const useTodoStore = create((set, get) => ({
       storage.set(STORAGE_KEY, todos)
       return { todos }
     })
+    pushToSupabase(todo)
     return todo
   },
 
@@ -44,6 +58,8 @@ export const useTodoStore = create((set, get) => ({
         t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
       )
       storage.set(STORAGE_KEY, todos)
+      const updated = todos.find(t => t.id === id)
+      if (updated) pushToSupabase(updated)
       return { todos }
     })
   },
