@@ -9,6 +9,16 @@ import './styles/globals.css'
 initSentry()
 injectAnalytics()
 
+// Handle PWA shortcut ?view= param
+;(() => {
+  const viewParam = new URLSearchParams(window.location.search).get('view')
+  if (viewParam && ['today', 'upcoming', 'notes'].includes(viewParam)) {
+    // Store in sessionStorage, picked up by App on mount
+    sessionStorage.setItem('whim_initial_view', viewParam)
+    window.history.replaceState(null, '', '/')
+  }
+})()
+
 // Prevent browser back gesture from leaving the app
 window.history.pushState(null, '', window.location.href)
 window.addEventListener('popstate', () => {

@@ -22,11 +22,17 @@ export default defineConfig({
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
+        categories: ['productivity', 'utilities'],
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           { src: '/icons/icon-192-maskable.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
           { src: '/icons/icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        shortcuts: [
+          { name: 'Today', short_name: 'Today', url: '/?view=today', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Upcoming', short_name: 'Upcoming', url: '/?view=upcoming', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
+          { name: 'Notes', short_name: 'Notes', url: '/?view=notes', icons: [{ src: '/icons/icon-192.png', sizes: '192x192' }] },
         ],
       },
       injectManifest: {

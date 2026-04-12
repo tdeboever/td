@@ -166,6 +166,12 @@ function AppContent({ userId = null }) {
   useKeyboardShortcuts()
   useNotifications(userId)
 
+  // Handle PWA shortcut initial view
+  useEffect(() => {
+    const v = sessionStorage.getItem('whim_initial_view')
+    if (v) { sessionStorage.removeItem('whim_initial_view'); useUiStore.getState().setView(v) }
+  }, [])
+
   return <AppShell><ViewComponent /></AppShell>
 }
 
