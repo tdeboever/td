@@ -113,8 +113,15 @@ export default function TaskEditSheet({ todo, todos: todosArr, onClose }) {
         maxHeight: '70vh', overflowY: 'auto',
         boxShadow: '0 8px 40px rgba(0,0,0,0.3)',
       }}>
-        {/* Grab handle */}
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-visible)', margin: '0 auto 16px' }} />
+        {/* Top bar: cancel + handle */}
+        <div className="flex items-center" style={{ marginBottom: 12 }}>
+          <button onMouseDown={keepFocus} onClick={onClose}
+            style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-ghost)', padding: '4px 0' }}>Cancel</button>
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-visible)' }} />
+          </div>
+          <div style={{ width: 45 }} />
+        </div>
 
         {/* Task text — focused by default */}
         {isMulti ? (
