@@ -56,6 +56,11 @@ export const useUiStore = create((set, get) => ({
     set({ undoAction: null, undoTimer: null })
   },
 
+  // Focused todo (shows edit icon)
+  focusedTodoId: null,
+  setFocusedTodo: (id) => set((s) => ({ focusedTodoId: s.focusedTodoId === id ? null : id })),
+  clearFocusedTodo: () => set({ focusedTodoId: null }),
+
   // Multi-select
   selectedIds: {},
   multiSelectMode: false,

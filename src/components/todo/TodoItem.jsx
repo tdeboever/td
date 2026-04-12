@@ -29,6 +29,9 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const enterMultiSelect = useUiStore((s) => s.enterMultiSelect)
   const toggleSelect = useUiStore((s) => s.toggleSelect)
   const clearMultiSelect = useUiStore((s) => s.clearMultiSelect)
+  const focusedTodoId = useUiStore((s) => s.focusedTodoId)
+  const setFocusedTodo = useUiStore((s) => s.setFocusedTodo)
+  const clearFocusedTodo = useUiStore((s) => s.clearFocusedTodo)
   const spaces = useSpaceStore((s) => s.spaces)
   const lists = useListStore((s) => s.lists)
   const updateTodo = useTodoStore((s) => s.updateTodo)
@@ -39,10 +42,10 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const isTouching = useRef(false)
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
-  const lastTapRef = useRef(0)
 
   const isDone = todo.status === 'done' || todo.status === 'ghost'
   const isSelected = !!selectedIds[todo.id]
+  const isFocused = focusedTodoId === todo.id && !multiSelectMode
   const taskSpace = todo.spaceId ? spaces.find(s => s.id === todo.spaceId) : null
   const spaceColor = taskSpace?.color || null
   const dot = DOTS[todo.priority]
@@ -119,7 +122,6 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     const dx = Math.abs(t.clientX - touchStart.current.x)
     const dy = Math.abs(t.clientY - touchStart.current.y)
 
-    // Track max movement for tap-vs-scroll detection in touchEnd
     touchStart.current.maxDx = Math.max(touchStart.current.maxDx, dx)
     touchStart.current.maxDy = Math.max(touchStart.current.maxDy, dy)
 
@@ -131,7 +133,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     // Stop view swipe on horizontal
     if (dx > 10 && dx > dy) e.stopPropagation()
 
-    // Detach into drag/fling mode (horizontal swipe only)
+    // Detach into drag/fling mode
     if (dx > 30 && dx > dy * 1.5) {
       if (navigator.vibrate) navigator.vibrate(8)
       if (multiSelectMode && isSelected) {
@@ -156,25 +158,19 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     const maxMove = Math.max(touchStart.current.maxDx, touchStart.current.maxDy)
     touchStart.current = null
 
-    // Not a tap if held too long or finger moved too much (was scrolling)
     if (dt > 400 || maxMove > 25) return
 
     if (multiSelectMode) {
       toggleSelect(todo.id)
     } else {
-      // Double-tap detection
-      const now = Date.now()
-      if (now - lastTapRef.current < 500) {
-        lastTapRef.current = 0
-        openEditSheet()
-      } else {
-        lastTapRef.current = now
-      }
+      // Single tap → focus (show edit icon)
+      setFocusedTodo(todo.id)
     }
   }
 
   const handleDragDone = () => {
     setDragging(null)
+    clearFocusedTodo()
     if (multiSelectMode) clearMultiSelect()
   }
 
@@ -186,7 +182,6 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      onDoubleClick={() => { if (!phase && !isDone && !dragging && !multiSelectMode) openEditSheet() }}
       onContextMenu={(e) => { e.preventDefault(); if (isTouching.current) return; if (!isDone && !phase) openEditSheet() }}
       className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
@@ -197,9 +192,9 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
         transform: isCollapsing ? 'scaleY(0)' : 'scaleY(1)',
         maxHeight: isCollapsing ? 0 : 200, overflow: 'hidden', transformOrigin: 'top',
         transition: isCollapsing ? 'opacity 200ms, max-height 200ms, transform 200ms' : 'all 200ms',
-        background: isSelected ? 'rgba(244,114,182,0.10)' : 'transparent',
+        background: isSelected ? 'rgba(244,114,182,0.10)' : isFocused ? 'rgba(255,255,255,0.03)' : 'transparent',
         borderRadius: 16,
-        boxShadow: isSelected ? 'inset 0 0 0 1.5px rgba(244,114,182,0.25)' : 'none',
+        boxShadow: isSelected ? 'inset 0 0 0 1.5px rgba(244,114,182,0.25)' : isFocused ? 'inset 0 0 0 1px rgba(255,255,255,0.06)' : 'none',
       }}
       onMouseEnter={(e) => { if (!isDone && !phase && !isSelected) { e.currentTarget.style.background = 'var(--surface-card)'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05)' } }}
       onMouseLeave={(e) => { if (!isSelected) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.boxShadow = 'none' } }}
@@ -284,6 +279,14 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
           </span>
         )}
       </div>
+
+      {/* Edit icon for focused items */}
+      {isFocused && !isDone && (
+        <button onClick={(e) => { e.stopPropagation(); openEditSheet(); clearFocusedTodo() }}
+          onTouchStart={(e) => e.stopPropagation()}
+          className="flex-shrink-0 animate-fade-in"
+          style={{ padding: '6px 4px', color: 'var(--accent-coral)', fontSize: 15, opacity: 0.8 }}>✎</button>
+      )}
 
       {/* Delete button for completed items */}
       {isDone && (
