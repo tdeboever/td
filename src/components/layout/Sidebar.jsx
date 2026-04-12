@@ -5,7 +5,7 @@ import { useTodoStore } from '../../stores/todoStore'
 import { useAuth } from '../../hooks/useAuth'
 import { useSwipe } from '../../hooks/useSwipe'
 import SpaceAvatar from '../common/SpaceAvatar'
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 
 const SMART_VIEWS = [
   { id: 'today', label: 'Today', icon: '◉' },
@@ -33,6 +33,10 @@ export default function Sidebar() {
   const [renameText, setRenameText] = useState('')
   const [renameColor, setRenameColor] = useState(null)
   const SPACE_COLORS = ['#ff7b54', '#f472b6', '#60a5fa', '#4ade80', '#fbbf24', '#a78bfa', '#f87171', '#38bdf8', '#c084fc', '#fb923c']
+  const longPressRef = useRef(null)
+  const startEditSpace = (space) => {
+    setRenamingSpace(space.id); setRenameText(space.name); setRenameColor(space.color || '#a78bfa')
+  }
   const cnt = (fn) => todos.filter((t) => t.status === 'active' && fn(t)).length
   const navigate = (v, o) => { setView(v, o); closeSidebar() }
   const selectSpace = (id) => { useUiStore.setState({ activeSpaceId: id, activeListId: null }); closeSidebar() }
@@ -81,7 +85,10 @@ export default function Sidebar() {
                     </div>
                   ) : (
                     <button onClick={() => selectSpace(space.id)}
-                      onDoubleClick={() => { setRenamingSpace(space.id); setRenameText(space.name); setRenameColor(space.color || '#a78bfa') }}
+                      onDoubleClick={() => startEditSpace(space)}
+                      onTouchStart={() => { longPressRef.current = setTimeout(() => { if (navigator.vibrate) navigator.vibrate(10); startEditSpace(space) }, 500) }}
+                      onTouchEnd={() => { if (longPressRef.current) clearTimeout(longPressRef.current) }}
+                      onTouchMove={() => { if (longPressRef.current) clearTimeout(longPressRef.current) }}
                       className="flex-1 flex items-center gap-4 text-left transition-colors"
                       style={{ padding: '0 0 0 20px', fontSize: 15, color: a ? 'var(--accent-lavender)' : 'var(--text-primary)', fontWeight: a ? 600 : 400, height: '100%' }}>
                       <SpaceAvatar space={space} size={24} />
