@@ -89,8 +89,8 @@ Deno.serve(async (req) => {
         const [h, m] = t.due_time.split(':').map(Number)
         const dueMinutes = h * 60 + m
 
-        // Within 1 minute window
-        return userMinutes >= dueMinutes && userMinutes <= dueMinutes + 1
+        // Within 3 minute window (cron may not hit the exact minute)
+        return userMinutes >= dueMinutes && userMinutes <= dueMinutes + 3
       })
 
       if (userTodos.length === 0) continue

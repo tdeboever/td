@@ -98,18 +98,10 @@ export function useNotifications(userId) {
       }
     }
 
-    // Local fallback: check for due tasks while app is open (only if no push subscription)
+    // Local check: fires while app is open as a safety net
+    // Notification `tag` deduplicates with server push — safe to run both
     const check = async () => {
       if (!('Notification' in window) || Notification.permission !== 'granted') return
-
-      // Skip if push notifications are active — server handles it
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        try {
-          const reg = await navigator.serviceWorker.ready
-          const sub = await reg.pushManager.getSubscription()
-          if (sub) return // push is active, server will notify
-        } catch {}
-      }
 
       const todos = useTodoStore.getState().todos
       const now = new Date()
