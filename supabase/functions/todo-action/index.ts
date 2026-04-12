@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { todoId, action } = await req.json()
+    const { todoId, action, userId: requestUserId } = await req.json()
     if (!todoId || !action) {
       return json({ error: 'Missing todoId or action' }, 400)
     }
@@ -34,6 +34,13 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    // Verify todo exists
+    const { data: todoRow } = await supabase.from('todos').select('user_id').eq('id', todoId).single()
+    if (!todoRow) return json({ error: 'Not found' }, 404)
+
+    // If userId provided, verify ownership
+    if (requestUserId && requestUserId !== todoRow.user_id) return json({ error: 'Forbidden' }, 403)
 
     if (action === 'complete') {
       const { error } = await supabase.from('todos').update({
@@ -46,10 +53,9 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'snooze') {
-      const { data: todo } = await supabase.from('todos').select('user_id').eq('id', todoId).single()
       let tz = 'America/New_York'
-      if (todo?.user_id) {
-        const { data: sub } = await supabase.from('push_subscriptions').select('timezone').eq('user_id', todo.user_id).limit(1).single()
+      if (todoRow.user_id) {
+        const { data: sub } = await supabase.from('push_subscriptions').select('timezone').eq('user_id', todoRow.user_id).limit(1).single()
         if (sub?.timezone) tz = sub.timezone
       }
 

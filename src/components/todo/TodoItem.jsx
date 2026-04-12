@@ -341,6 +341,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
         <button onClick={(e) => { e.stopPropagation(); openEditSheet(); clearFocusedTodo() }}
           onTouchStart={(e) => e.stopPropagation()}
           className="flex-shrink-0 animate-fade-in"
+          aria-label="Edit task"
           style={{ padding: '6px 4px', color: 'var(--accent-coral)', fontSize: 15, opacity: 0.8 }}>✎</button>
       )}
 
@@ -349,6 +350,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
         <button onClick={(e) => { e.stopPropagation(); deleteTodo(todo.id) }}
           onTouchStart={(e) => e.stopPropagation()}
           className="flex-shrink-0"
+          aria-label="Delete task"
           style={{ padding: '0 4px', color: 'var(--text-ghost)', fontSize: 14, opacity: 0.4 }}>×</button>
       )}
     </div>

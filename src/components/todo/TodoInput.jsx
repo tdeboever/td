@@ -213,7 +213,7 @@ export default function TodoInput() {
           <input ref={inputRef} type="search" value={text}
             onChange={(e) => setText(e.target.value)} onKeyDown={handleKeyDown}
             onFocus={() => setFocused(true)} onBlur={handleBlur}
-            placeholder={mode === 'note' ? 'Capture a thought...' : 'What needs doing?'} autoComplete="off" enterKeyHint="done"
+            placeholder={mode === 'note' ? 'Capture a thought...' : 'What needs doing?'} autoComplete="off" enterKeyHint="done" maxLength={500}
             className="w-full bg-transparent"
             style={{ fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em', color: 'var(--text-primary)', outline: 'none', border: 'none', boxShadow: 'none', WebkitAppearance: 'none', ...(sending ? { transform: 'translateY(-20px)', opacity: 0, transition: 'all 200ms' } : {}) }}
           />

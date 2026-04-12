@@ -174,9 +174,11 @@ export function useSync(userId) {
       setLastSynced(now)
       storage.set(LAST_SYNC_KEY, now)
       useUiStore.setState({ initialSynced: true })
+      window.dispatchEvent(new Event('whim-sync-ok'))
     } catch (e) {
       console.error('Sync error:', e)
       setError(e.message)
+      window.dispatchEvent(new Event('whim-sync-error'))
     } finally {
       setSyncing(false)
     }
