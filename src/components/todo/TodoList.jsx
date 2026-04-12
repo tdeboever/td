@@ -5,7 +5,7 @@ import EmptyState from '../common/EmptyState'
 import { useUiStore } from '../../stores/uiStore'
 import { useTodoStore } from '../../stores/todoStore'
 
-export default function TodoList({ todos, isChecklist = false, emptyTitle, emptySubtitle }) {
+export default function TodoList({ todos, isChecklist = false, emptyTitle, emptySubtitle, preserveOrder = false }) {
   const active = todos.filter((t) => t.status === 'active')
   const done = todos.filter((t) => t.status === 'done')
   const ghost = todos.filter((t) => t.status === 'ghost').sort((a, b) => b.completionCount - a.completionCount)
@@ -19,7 +19,7 @@ export default function TodoList({ todos, isChecklist = false, emptyTitle, empty
   const [overIndex, setOverIndex] = useState(null)
   const itemRects = useRef([])
   const dragStartY = useRef(0)
-  const sorted = active.sort((a, b) => a.position - b.position)
+  const sorted = preserveOrder ? active : active.sort((a, b) => a.position - b.position)
 
   const handleReorderStart = useCallback((todoId, touchY) => {
     // Capture all item rects at drag start

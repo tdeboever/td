@@ -58,7 +58,7 @@ function UpcomingView() {
     return t.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
   }, [todos, activeSpaceId, activeListId])
 
-  return <TodoList todos={filtered} emptyTitle="Horizon is clear" emptySubtitle="Future tasks will show up here" />
+  return <TodoList todos={filtered} preserveOrder emptyTitle="Horizon is clear" emptySubtitle="Future tasks will show up here" />
 }
 
 // Notes = all notes, newest first, optionally filtered by space
