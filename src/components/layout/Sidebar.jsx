@@ -72,12 +72,12 @@ export default function Sidebar() {
                         <input autoFocus value={renameText} onChange={(e) => setRenameText(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (renameText.trim()) { updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) } } }}
                           className="flex-1 bg-transparent outline-none" style={{ fontSize: 15, color: 'var(--text-primary)' }} />
-                        <button onClick={() => { if (renameText.trim()) updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) }}
+                        <button onClick={(e) => { e.stopPropagation(); if (renameText.trim()) updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) }}
                           style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-coral)', padding: '4px 8px' }}>Done</button>
                       </div>
                       <div className="flex gap-2 pb-3" style={{ paddingLeft: 36 }}>
                         {SPACE_COLORS.map(c => (
-                          <button key={c} onClick={() => setRenameColor(c)}
+                          <button key={c} onClick={(e) => { e.stopPropagation(); setRenameColor(c) }}
                             style={{
                               width: 22, height: 22, borderRadius: '50%', background: c, flexShrink: 0,
                               border: renameColor === c ? '2px solid white' : '2px solid transparent',
