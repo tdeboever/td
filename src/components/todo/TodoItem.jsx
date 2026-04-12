@@ -36,6 +36,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
   const [showEditSheet, setShowEditSheet] = useState(false)
   const longPressTimer = useRef(null)
   const longPressFired = useRef(false)
+  const isTouching = useRef(false)
   const [phase, setPhase] = useState(null)
   const checkboxRef = useRef(null)
   const lastTapRef = useRef(0)
@@ -83,6 +84,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
   const handleTouchStart = (e) => {
     if (isDone || phase) return
+    isTouching.current = true
 
     // Two-finger tap → edit sheet
     if (e.touches.length >= 2) {
@@ -145,6 +147,9 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
   const handleTouchEnd = () => {
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
+    // Clear touch flag after a short delay (so contextmenu is still blocked)
+    setTimeout(() => { isTouching.current = false }, 200)
+
     if (!touchStart.current) return
 
     const dt = Date.now() - touchStart.current.time
@@ -154,9 +159,9 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     if (multiSelectMode) {
       toggleSelect(todo.id)
     } else {
-      // Double-tap detection
+      // Double-tap detection (450ms window for natural tapping speed)
       const now = Date.now()
-      if (now - lastTapRef.current < 300) {
+      if (now - lastTapRef.current < 450) {
         lastTapRef.current = 0
         openEditSheet()
       } else {
@@ -179,7 +184,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onDoubleClick={() => { if (!phase && !isDone && !dragging && !multiSelectMode) openEditSheet() }}
-      onContextMenu={(e) => { e.preventDefault(); if (longPressFired.current) return; if (!isDone && !phase) openEditSheet() }}
+      onContextMenu={(e) => { e.preventDefault(); if (isTouching.current) return; if (!isDone && !phase) openEditSheet() }}
       className={`flex items-center gap-3 ${isDone ? '' : 'active:scale-[0.98]'}`}
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
