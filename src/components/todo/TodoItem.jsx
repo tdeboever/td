@@ -96,7 +96,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     }
 
     const t = e.touches[0]
-    touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now() }
+    touchStart.current = { x: t.clientX, y: t.clientY, time: Date.now(), maxDx: 0, maxDy: 0 }
     longPressFired.current = false
 
     // Long-press → multi-select
@@ -119,22 +119,22 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
     const dx = Math.abs(t.clientX - touchStart.current.x)
     const dy = Math.abs(t.clientY - touchStart.current.y)
 
+    // Track max movement for tap-vs-scroll detection in touchEnd
+    touchStart.current.maxDx = Math.max(touchStart.current.maxDx, dx)
+    touchStart.current.maxDy = Math.max(touchStart.current.maxDy, dy)
+
     // Any movement cancels long-press
     if (dx > 8 || dy > 8) {
       if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
     }
 
-    // Vertical scroll
-    if (dy > 15 && dy > dx) { touchStart.current = null; return }
-
     // Stop view swipe on horizontal
     if (dx > 10 && dx > dy) e.stopPropagation()
 
-    // Detach into drag/fling mode
+    // Detach into drag/fling mode (horizontal swipe only)
     if (dx > 30 && dx > dy * 1.5) {
       if (navigator.vibrate) navigator.vibrate(8)
       if (multiSelectMode && isSelected) {
-        // Multi-select fling: pass all selected todos
         const selectedTodos = allTodos.filter(t => selectedIds[t.id])
         setDragging({ x: t.clientX, y: t.clientY, todos: selectedTodos })
       } else if (!multiSelectMode) {
@@ -147,21 +147,24 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false }) 
 
   const handleTouchEnd = () => {
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null }
-    // Clear touch flag after a short delay (so contextmenu is still blocked)
     setTimeout(() => { isTouching.current = false }, 200)
 
+    if (longPressFired.current) { touchStart.current = null; return }
     if (!touchStart.current) return
 
     const dt = Date.now() - touchStart.current.time
+    const maxMove = Math.max(touchStart.current.maxDx, touchStart.current.maxDy)
     touchStart.current = null
-    if (dt > 400) return // Was a long press attempt
+
+    // Not a tap if held too long or finger moved too much (was scrolling)
+    if (dt > 400 || maxMove > 25) return
 
     if (multiSelectMode) {
       toggleSelect(todo.id)
     } else {
-      // Double-tap detection (450ms window for natural tapping speed)
+      // Double-tap detection
       const now = Date.now()
-      if (now - lastTapRef.current < 450) {
+      if (now - lastTapRef.current < 500) {
         lastTapRef.current = 0
         openEditSheet()
       } else {
