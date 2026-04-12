@@ -34,7 +34,9 @@ export default function Sidebar() {
   const [renameColor, setRenameColor] = useState(null)
   const SPACE_COLORS = ['#ff7b54', '#f472b6', '#60a5fa', '#4ade80', '#fbbf24', '#a78bfa', '#f87171', '#38bdf8', '#c084fc', '#fb923c']
   const longPressRef = useRef(null)
+  const longPressFired = useRef(false)
   const startEditSpace = (space) => {
+    longPressFired.current = true
     setRenamingSpace(space.id); setRenameText(space.name); setRenameColor(space.color || '#a78bfa')
   }
   const cnt = (fn) => todos.filter((t) => t.status === 'active' && fn(t)).length
@@ -84,9 +86,9 @@ export default function Sidebar() {
                       </div>
                     </div>
                   ) : (
-                    <button onClick={() => selectSpace(space.id)}
+                    <button onClick={() => { if (longPressFired.current) { longPressFired.current = false; return } selectSpace(space.id) }}
                       onDoubleClick={() => startEditSpace(space)}
-                      onTouchStart={() => { longPressRef.current = setTimeout(() => { if (navigator.vibrate) navigator.vibrate(10); startEditSpace(space) }, 500) }}
+                      onTouchStart={() => { longPressFired.current = false; longPressRef.current = setTimeout(() => { if (navigator.vibrate) navigator.vibrate(10); startEditSpace(space) }, 500) }}
                       onTouchEnd={() => { if (longPressRef.current) clearTimeout(longPressRef.current) }}
                       onTouchMove={() => { if (longPressRef.current) clearTimeout(longPressRef.current) }}
                       className="flex-1 flex items-center gap-4 text-left transition-colors"
