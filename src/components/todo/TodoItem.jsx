@@ -209,6 +209,7 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
       style={{
         padding: isDone ? '10px 20px' : '14px 20px',
         WebkitUserSelect: 'none', userSelect: 'none',
+        touchAction: isFocused ? 'none' : undefined,
         borderBottom: isLast ? 'none' : '1px solid rgba(255,255,255,0.025)',
         opacity: isDone ? 0.3 : isCollapsing ? 0 : 1,
         transform: isCollapsing ? 'scaleY(0)' : 'scaleY(1)',
