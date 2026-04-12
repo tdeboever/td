@@ -47,7 +47,7 @@ export default function Login({ onSignIn }) {
       }, 60)
     }, 480)
 
-    setTimeout(() => onSignIn(), 1400)
+    setTimeout(() => onSignIn(), 1050)
   }
 
   return (

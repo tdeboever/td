@@ -35,6 +35,7 @@ export default function Sidebar() {
   const SPACE_COLORS = ['#ff7b54', '#f472b6', '#60a5fa', '#4ade80', '#fbbf24', '#a78bfa', '#f87171', '#38bdf8', '#c084fc', '#fb923c']
   const longPressRef = useRef(null)
   const longPressFired = useRef(false)
+  const colorTapRef = useRef(false)
   const startEditSpace = (space) => {
     longPressFired.current = true
     setRenamingSpace(space.id); setRenameText(space.name); setRenameColor(space.color || '#a78bfa')
@@ -70,12 +71,18 @@ export default function Sidebar() {
                         style={{ display: 'flex', alignItems: 'center', gap: 12, height: 48 }}>
                         <SpaceAvatar space={{ ...space, name: renameText || space.name, color: renameColor }} size={24} />
                         <input autoFocus value={renameText} onChange={(e) => setRenameText(e.target.value)}
-                          onBlur={() => { if (renameText.trim()) updateSpace(space.id, { name: renameText.trim(), color: renameColor }); setRenamingSpace(null) }}
+                          onBlur={() => {
+                            setTimeout(() => {
+                              if (colorTapRef.current) { colorTapRef.current = false; return }
+                              if (renameText.trim()) updateSpace(space.id, { name: renameText.trim(), color: renameColor })
+                              setRenamingSpace(null)
+                            }, 150)
+                          }}
                           className="flex-1 bg-transparent outline-none" style={{ fontSize: 15, color: 'var(--text-primary)' }} />
                       </form>
                       <div className="flex gap-2 pb-2" style={{ paddingLeft: 36 }}>
                         {SPACE_COLORS.map(c => (
-                          <button key={c} onMouseDown={(e) => e.preventDefault()} onClick={() => setRenameColor(c)}
+                          <button key={c} onMouseDown={(e) => e.preventDefault()} onTouchStart={() => { colorTapRef.current = true }} onClick={() => setRenameColor(c)}
                             style={{
                               width: 20, height: 20, borderRadius: '50%', background: c, flexShrink: 0,
                               border: renameColor === c ? '2px solid white' : '2px solid transparent',
