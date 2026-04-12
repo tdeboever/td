@@ -329,12 +329,16 @@ export default function TodoItem({ todo, isChecklist = false, isLast = false, on
         )}
       </div>
 
-      {/* Edit icon for focused items */}
+      {/* Complete + Edit icons for focused items */}
       {isFocused && !isDone && (
-        <button onClick={(e) => { e.stopPropagation(); openEditSheet(); clearFocusedTodo() }}
-          onTouchStart={(e) => e.stopPropagation()}
-          className="flex-shrink-0 animate-fade-in"
-          style={{ padding: '6px 4px', color: 'var(--accent-coral)', fontSize: 15, opacity: 0.8 }}>✎</button>
+        <div className="flex items-center gap-1 flex-shrink-0 animate-fade-in">
+          <button onClick={(e) => { e.stopPropagation(); handleComplete() }}
+            onTouchStart={(e) => e.stopPropagation()}
+            style={{ padding: '6px 6px', color: 'var(--accent-mint)', fontSize: 14, opacity: 0.7 }}>✓</button>
+          <button onClick={(e) => { e.stopPropagation(); openEditSheet(); clearFocusedTodo() }}
+            onTouchStart={(e) => e.stopPropagation()}
+            style={{ padding: '6px 6px', color: 'var(--accent-coral)', fontSize: 15, opacity: 0.7 }}>✎</button>
+        </div>
       )}
 
       {/* Delete button for completed items */}
