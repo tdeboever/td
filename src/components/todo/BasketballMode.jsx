@@ -72,18 +72,27 @@ export default function BasketballMode({ origin, onComplete, onCancel }) {
         py.current += vy.current
         spin.current += vx.current * 3
 
-        // Score check — falling through hoop
-        if (Math.abs(py.current - (hoopY + 24)) < 14 && vy.current > 0 && Math.abs(px.current - hoopX) < RIM_WIDTH / 2.2) {
+        // Score check — falling through hoop (generous scoring zone)
+        if (Math.abs(py.current - (hoopY + 24)) < 16 && vy.current > 0 && Math.abs(px.current - hoopX) < RIM_WIDTH / 2) {
           phase.current = 'swish'
           setTimeout(() => doScore(px.current, hoopY + 30), 250)
           rerender(); return
         }
 
-        // Rim bounce — livelier
+        // Rim bounce — friendly: close shots get nudged in, far shots bounce out
         const nearRim = Math.abs(py.current - hoopY) < 15
-        if (nearRim && vy.current > 0 && Math.abs(px.current - hoopX) > RIM_WIDTH / 2.5 && Math.abs(px.current - hoopX) < RIM_WIDTH / 1.5) {
-          vy.current = -vy.current * 0.7 // more bounce off rim
-          vx.current += (px.current > hoopX ? 3 : -3)
+        if (nearRim && vy.current > 0 && Math.abs(px.current - hoopX) > RIM_WIDTH / 2 && Math.abs(px.current - hoopX) < RIM_WIDTH / 1.5) {
+          const distFromCenter = Math.abs(px.current - hoopX)
+          const isCloseShot = distFromCenter < RIM_WIDTH / 1.8
+          if (isCloseShot) {
+            // Friendly rim — soft bounce, nudge toward center
+            vy.current = -vy.current * 0.35
+            vx.current = (hoopX - px.current) * 0.15
+          } else {
+            // Hard rim — bounces out
+            vy.current = -vy.current * 0.65
+            vx.current += (px.current > hoopX ? 3 : -3)
+          }
           if (navigator.vibrate) navigator.vibrate(6)
         }
 
