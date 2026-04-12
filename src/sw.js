@@ -64,45 +64,21 @@ self.addEventListener('push', (event) => {
   )
 })
 
+// Supabase config injected at build time via Vite define
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+
 // Helper: update a todo via Supabase REST API
 async function updateTodoViaApi(todoId, updates) {
-  // Try to get Supabase config from an open client
-  const clients = await self.clients.matchAll({ type: 'window' })
-  let supabaseUrl, supabaseKey
-
-  for (const client of clients) {
-    try {
-      const msg = await new Promise((resolve) => {
-        const ch = new MessageChannel()
-        ch.port1.onmessage = (e) => resolve(e.data)
-        client.postMessage({ type: 'GET_SUPABASE_CONFIG' }, [ch.port2])
-        setTimeout(() => resolve(null), 1000)
-      })
-      if (msg?.supabaseUrl) { supabaseUrl = msg.supabaseUrl; supabaseKey = msg.supabaseKey; break }
-    } catch {}
-  }
-
-  if (!supabaseUrl) {
-    // Fallback: read from a cached config file
-    try {
-      const res = await fetch('/supabase-config.json')
-      if (res.ok) {
-        const config = await res.json()
-        supabaseUrl = config.url
-        supabaseKey = config.key
-      }
-    } catch {}
-  }
-
-  if (!supabaseUrl) return false
+  if (!SUPABASE_URL || !SUPABASE_KEY) return false
 
   try {
-    const res = await fetch(`${supabaseUrl}/rest/v1/todos?id=eq.${todoId}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/todos?id=eq.${todoId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
         'Prefer': 'return=minimal',
       },
       body: JSON.stringify(updates),
