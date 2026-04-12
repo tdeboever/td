@@ -69,13 +69,23 @@ export default function Login({ onSignIn }) {
         }
       `}</style>
       <div className="text-center" style={{ marginTop: -60 }}>
+        {/* Logo */}
+        <div className="animate-task-enter" style={{ marginBottom: 16, animationDelay: '0ms' }}>
+          <img src="/icons/icon-192.png" alt="Whim" style={{ width: 80, height: 80, margin: '0 auto', borderRadius: 20 }} />
+        </div>
+
         <div ref={containerRef} style={{ position: 'relative', display: 'inline-block' }}>
           <h1 ref={titleRef} className="animate-task-enter" style={{
-            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 52,
+            fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 44,
             letterSpacing: '-0.04em', color: 'var(--text-primary)',
-            animationDelay: '0ms',
+            animationDelay: '80ms',
           }}>Whim</h1>
         </div>
+
+        <p className="animate-task-enter" style={{
+          fontSize: 14, color: 'var(--text-secondary)', marginTop: 6,
+          animationDelay: '160ms',
+        }}>Tasks that spark joy</p>
 
         <button
           onClick={handleSignIn}
@@ -87,7 +97,7 @@ export default function Login({ onSignIn }) {
             fontSize: 15, fontWeight: 500, color: 'var(--text-primary)',
             boxShadow: '0 0 0 1px var(--border-visible), 0 1px 2px rgba(0,0,0,0.15)',
             transition: 'all 200ms',
-            animationDelay: '160ms',
+            animationDelay: '240ms',
             opacity: revving ? 0.5 : 1,
           }}
         >
@@ -106,7 +116,7 @@ export default function Login({ onSignIn }) {
           style={{
             marginTop: 24, fontSize: 12, color: 'var(--text-ghost)',
             letterSpacing: '0.02em',
-            animationDelay: '240ms',
+            animationDelay: '320ms',
           }}
         >
           continue without account
