@@ -418,7 +418,7 @@ export default function DragOrganize({ todo, todos: todosArr, startPos, onDone }
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-50" style={{ touchAction: 'none', pointerEvents: 'none' }}>
+    <div className="fixed inset-0 z-50" style={{ touchAction: 'none' }}>
       {/* Overlay — solid dark, NO backdrop-filter blur (kills frame rate) */}
       <div style={{
         position: 'absolute', inset: 0,

@@ -94,6 +94,7 @@ export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChan
   const lists = useListStore((s) => s.lists)
   const todos = useTodoStore((s) => s.todos)
   const dateInputRef = useRef(null)
+  const timeInputRef = useRef(null)
   const [showTime, setShowTime] = useState(false)
   const dates = datePresets()
   const customActive = dueDate && !dates.some((d) => d.value === dueDate)
@@ -133,18 +134,26 @@ export default function ChipBar({ spaceId, listId, dueDate, dueTime, onSpaceChan
       </div>
 
       {/* Time — smart: bumps by 15min if slot is taken */}
-      {showTime && dueDate && (
-        <div style={{ display: 'flex', gap: 6 }} className="animate-slide-down">
-          {TIMES.map((t) => {
-            const smart = nextFreeTime(t.value, dueDate, todos)
-            return (
-              <Opt key={t.value} active={dueTime === smart} small onClick={() => onDueTimeChange?.(dueTime === smart ? null : smart)}>
-                <span style={{ fontSize: 10 }}>{t.icon}</span> {formatTimeLabel(smart)}
-              </Opt>
-            )
-          })}
-        </div>
-      )}
+      {showTime && dueDate && (() => {
+        const customTimeActive = dueTime && !TIMES.some(t => nextFreeTime(t.value, dueDate, todos) === dueTime)
+        return (
+          <div style={{ display: 'flex', gap: 6 }} className="animate-slide-down">
+            {TIMES.map((t) => {
+              const smart = nextFreeTime(t.value, dueDate, todos)
+              return (
+                <Opt key={t.value} active={dueTime === smart} small onClick={() => onDueTimeChange?.(dueTime === smart ? null : smart)}>
+                  <span style={{ fontSize: 10 }}>{t.icon}</span> {formatTimeLabel(smart)}
+                </Opt>
+              )
+            })}
+            <Opt active={customTimeActive} small onClick={() => timeInputRef.current?.showPicker()}>
+              {customTimeActive ? formatTimeLabel(dueTime) : '···'}
+              <input ref={timeInputRef} type="time" className="absolute opacity-0 w-0 h-0"
+                value={dueTime || ''} onChange={(e) => onDueTimeChange?.(e.target.value || null)} />
+            </Opt>
+          </div>
+        )
+      })()}
 
       {/* Spaces */}
       {spaces.length > 0 && (
