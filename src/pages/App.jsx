@@ -52,7 +52,7 @@ function UpcomingView() {
   const { activeSpaceId, activeListId } = useUiStore()
 
   const filtered = useMemo(() => {
-    let t = todos.filter((t) => t.type !== 'note' && t.status === 'active' && isFuture(t.dueDate) && !isToday(t.dueDate))
+    let t = todos.filter((t) => t.type !== 'note' && isFuture(t.dueDate) && !isToday(t.dueDate))
     if (activeListId) t = t.filter((t) => t.listId === activeListId)
     else if (activeSpaceId) t = t.filter((t) => t.spaceId === activeSpaceId)
     return t.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
