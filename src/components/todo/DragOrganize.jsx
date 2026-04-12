@@ -307,7 +307,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         <div style={{
           width: h ? 58 : 50, height: h ? 58 : 50,
           borderRadius: h ? 18 : 14,
-          background: h ? z.color : 'rgba(255,255,255,0.07)',
+          background: h ? z.color : 'rgba(255,255,255,0.12)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: typeof z.icon === 'string' ? 20 : 16, color: 'white',
           boxShadow: h ? `0 0 24px ${z.color}50` : '0 2px 8px rgba(0,0,0,0.2)',
@@ -316,7 +316,7 @@ export default function DragOrganize({ todo, startPos, onDone }) {
         }}>
           {typeof z.icon === 'string' ? z.icon : z.icon}
         </div>
-        <span style={{ fontSize: 12, fontWeight: 600, marginTop: 5, color: h ? '#fff' : 'var(--text-ghost)', transition: 'color 150ms', whiteSpace: 'nowrap' }}>{z.label}</span>
+        <span style={{ fontSize: 12, fontWeight: 600, marginTop: 5, color: h ? '#fff' : 'rgba(255,255,255,0.55)', transition: 'color 150ms', whiteSpace: 'nowrap' }}>{z.label}</span>
       </div>
     )
   }
