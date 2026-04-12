@@ -10,7 +10,6 @@ export default function SpaceRow() {
   const setState = useUiStore.setState
 
   if (spaces.length === 0) return null
-  if (activeView === 'notes') return null
 
   const handleSpaceTap = (id) => {
     if (activeSpaceId === id) {
@@ -63,8 +62,8 @@ export default function SpaceRow() {
         </div>
       )}
 
-      {/* List chips — show when inside a space or viewing a list */}
-      {spaceLists.length > 1 && isInsideSpace && (
+      {/* List chips — show when inside a space or viewing a list, not on Notes */}
+      {spaceLists.length > 1 && isInsideSpace && activeView !== 'notes' && (
         <div className="flex gap-2 overflow-x-auto no-scrollbar">
           <button onClick={() => setState({ activeListId: null })}
             style={{

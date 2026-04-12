@@ -58,14 +58,16 @@ function UpcomingView() {
   return <TodoList todos={filtered} emptyTitle="Horizon is clear" emptySubtitle="Future tasks will show up here" />
 }
 
-// Notes = all notes, newest first
+// Notes = all notes, newest first, optionally filtered by space
 function NotesView() {
   const todos = useTodoStore((s) => s.todos)
+  const { activeSpaceId } = useUiStore()
 
-  const notes = useMemo(() =>
-    todos.filter((t) => t.type === 'note').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
-    [todos]
-  )
+  const notes = useMemo(() => {
+    let n = todos.filter((t) => t.type === 'note')
+    if (activeSpaceId) n = n.filter((t) => t.spaceId === activeSpaceId)
+    return n.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  }, [todos, activeSpaceId])
 
   return <NotesList notes={notes} />
 }
