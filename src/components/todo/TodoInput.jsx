@@ -3,6 +3,7 @@ import { useTodoStore } from '../../stores/todoStore'
 import { useUiStore } from '../../stores/uiStore'
 import { useSwipe } from '../../hooks/useSwipe'
 import { useAutocomplete } from '../../hooks/useAutocomplete'
+import { toLocalDateStr } from '../../lib/utils'
 import ChipBar from './ChipBar'
 
 function parseSmartInput(text) {
@@ -10,12 +11,18 @@ function parseSmartInput(text) {
   const colonIdx = trimmed.indexOf(':')
 
   // "task: sub1, sub2, sub3" → single task with subtasks
+  // Skip if the colon is part of a time pattern like "6:00"
   if (colonIdx > 0) {
-    const title = trimmed.slice(0, colonIdx).trim()
-    const rest = trimmed.slice(colonIdx + 1).trim()
-    const subs = rest.split(',').map(s => s.trim()).filter(Boolean)
-    if (title && subs.length > 1) {
-      return { type: 'subtasks', title, subtasks: subs }
+    const charBefore = trimmed[colonIdx - 1]
+    const charAfter = trimmed[colonIdx + 1]
+    const isTimeLike = /\d/.test(charBefore) && charAfter && /\d/.test(charAfter)
+    if (!isTimeLike) {
+      const title = trimmed.slice(0, colonIdx).trim()
+      const rest = trimmed.slice(colonIdx + 1).trim()
+      const subs = rest.split(',').map(s => s.trim()).filter(Boolean)
+      if (title && subs.length > 1) {
+        return { type: 'subtasks', title, subtasks: subs }
+      }
     }
   }
 
@@ -29,6 +36,79 @@ function parseSmartInput(text) {
 
   // Single task
   return { type: 'single', title: trimmed }
+}
+
+function parseNaturalDateTime(text) {
+  let title = text
+  let dueDate = null
+  let dueTime = null
+  const today = new Date()
+
+  // --- TIME ---
+  // "at 6pm", "6:30pm", "at 6:30 pm", "6:30 p.m.", "at 6 pm"
+  const timeAmPm = /\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)\b/i
+  // "at 18:00" (24h, requires "at")
+  const time24 = /\bat\s+(\d{1,2}):(\d{2})\b/
+  // "at noon", "at midnight"
+  const timeWord = /\b(?:at\s+)?(noon|midnight)\b/i
+
+  let m = title.match(timeAmPm)
+  if (m) {
+    let h = parseInt(m[1])
+    const min = m[2] ? parseInt(m[2]) : 0
+    const p = m[3].toLowerCase().replace(/\./g, '')
+    if (p === 'pm' && h < 12) h += 12
+    if (p === 'am' && h === 12) h = 0
+    dueTime = `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+    title = title.replace(m[0], ' ')
+  } else if ((m = title.match(time24))) {
+    dueTime = `${String(parseInt(m[1])).padStart(2, '0')}:${m[2]}`
+    title = title.replace(m[0], ' ')
+  } else if ((m = title.match(timeWord))) {
+    dueTime = m[1].toLowerCase() === 'noon' ? '12:00' : '00:00'
+    title = title.replace(m[0], ' ')
+  }
+
+  // --- DAY ---
+  const dayNames = { sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6,
+    sun: 0, mon: 1, tue: 2, tues: 2, wed: 3, thu: 4, thur: 4, thurs: 4, fri: 5, sat: 6 }
+
+  if ((m = title.match(/\b(tomorrow|tmrw|tmw)\b/i))) {
+    const d = new Date(today); d.setDate(d.getDate() + 1)
+    dueDate = toLocalDateStr(d)
+    title = title.replace(m[0], ' ')
+  } else if ((m = title.match(/\btoday\b/i))) {
+    dueDate = toLocalDateStr(today)
+    title = title.replace(m[0], ' ')
+  } else if ((m = title.match(/\bnext\s+week\b/i))) {
+    const d = new Date(today); d.setDate(d.getDate() + 7)
+    dueDate = toLocalDateStr(d)
+    title = title.replace(m[0], ' ')
+  } else if ((m = title.match(/\b(next\s+|this\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|tues|wed|thu|thur|thurs|fri|sat|sun)\b/i))) {
+    const isNext = m[1] && /next/i.test(m[1])
+    const dayKey = m[2].toLowerCase()
+    const target = dayNames[dayKey]
+    if (target !== undefined) {
+      const current = today.getDay()
+      let ahead = (target - current + 7) % 7
+      if (ahead === 0) ahead = 7
+      if (isNext && ahead <= 7) ahead += 7
+      const d = new Date(today); d.setDate(d.getDate() + ahead)
+      dueDate = toLocalDateStr(d)
+      title = title.replace(m[0], ' ')
+    }
+  }
+
+  // If we found a time but no day, default to today
+  if (dueTime && !dueDate) {
+    dueDate = toLocalDateStr(today)
+  }
+
+  // Clean up: trailing prepositions, double spaces
+  title = title.replace(/\s+(at|on|by)\s*$/i, '')
+  title = title.replace(/\s{2,}/g, ' ').trim()
+
+  return { title, dueDate, dueTime }
 }
 
 export default function TodoInput() {
@@ -60,19 +140,25 @@ export default function TodoInput() {
     if (navigator.vibrate) navigator.vibrate(8)
     setSending(true)
     setTimeout(() => {
-      const opts = { type: mode, listId: mode === 'note' ? null : effectiveListId, spaceId: mode === 'note' ? null : effectiveSpaceId, priority: mode === 'note' ? 0 : priority, dueDate: mode === 'note' ? null : dueDate, dueTime: mode === 'note' ? null : dueTime }
+      const baseOpts = { type: mode, listId: mode === 'note' ? null : effectiveListId, spaceId: mode === 'note' ? null : effectiveSpaceId, priority: mode === 'note' ? 0 : priority, dueDate: mode === 'note' ? null : dueDate, dueTime: mode === 'note' ? null : dueTime }
       const parsed = parseSmartInput(text)
 
+      // Apply NLP date/time extraction to a task title, merging with chip selections
+      const addWithNlp = (rawTitle, opts) => {
+        const { title, dueDate: nlpDate, dueTime: nlpTime } = parseNaturalDateTime(rawTitle)
+        return addTodo(title, { ...opts, dueDate: opts.dueDate || nlpDate, dueTime: opts.dueTime || nlpTime })
+      }
+
       if (parsed.type === 'multi') {
-        for (const item of parsed.items) addTodo(item, opts)
+        for (const item of parsed.items) addWithNlp(item, baseOpts)
       } else if (parsed.type === 'subtasks') {
-        const created = addTodo(parsed.title, opts)
+        const created = addWithNlp(parsed.title, baseOpts)
         if (created) {
           const subs = parsed.subtasks.map(s => ({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), text: s, done: false }))
           updateTodo(created.id, { subtasks: subs })
         }
       } else {
-        addTodo(parsed.title, opts)
+        addWithNlp(parsed.title, baseOpts)
       }
 
       setText(''); setPriority(0); setDueDate(null); setDueTime(null)
@@ -150,9 +236,10 @@ export default function TodoInput() {
             {showTip ? '×' : 'tips'}
           </button>
           {showTip && (
-            <div className="animate-slide-down" style={{ marginTop: 6, fontSize: 11, color: 'var(--text-ghost)', lineHeight: 1.6, opacity: 0.7 }}>
+            <div className="animate-slide-down" style={{ marginTop: 6, fontSize: 11, color: 'var(--text-ghost)', lineHeight: 1.8, opacity: 0.7 }}>
               <span style={{ color: 'var(--accent-coral)' }}>a, b, c</span> creates 3 separate tasks<br />
-              <span style={{ color: 'var(--accent-coral)' }}>task: a, b, c</span> creates 1 task with subtasks
+              <span style={{ color: 'var(--accent-coral)' }}>task: a, b, c</span> creates 1 task with subtasks<br />
+              <span style={{ color: 'var(--accent-coral)' }}>...at 3pm tomorrow</span> auto-sets date & time
             </div>
           )}
         </div>
