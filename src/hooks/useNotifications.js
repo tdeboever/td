@@ -110,16 +110,18 @@ export function useNotifications(userId) {
 
       for (const todo of todos) {
         if (todo.status !== 'active') continue
-        if (!todo.dueDate || !todo.dueTime) continue
-        if (todo.dueDate !== todayStr) continue
-        if (notified.includes(todo.id)) continue
+        if (!todo.dueTime) continue
+        // No date or today's date = due today
+        if (todo.dueDate && todo.dueDate !== todayStr) continue
+        const notifyKey = `${todo.id}_${todo.dueTime}`
+        if (notified.includes(notifyKey)) continue
 
         const [dueH, dueM] = todo.dueTime.split(':').map(Number)
         const dueMinutes = dueH * 60 + dueM
         const nowMinutes = now.getHours() * 60 + now.getMinutes()
 
         if (nowMinutes >= dueMinutes && nowMinutes <= dueMinutes + 5) {
-          addNotified(todo.id)
+          addNotified(notifyKey)
           const reg = await navigator.serviceWorker?.ready
           if (reg) {
             reg.showNotification('Whim', {
