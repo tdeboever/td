@@ -2,7 +2,12 @@ import { StrictMode, Component } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './pages/App'
 import { useTodoStore } from './stores/todoStore'
+import { initSentry, Sentry } from './lib/sentry'
+import { inject as injectAnalytics } from '@vercel/analytics'
 import './styles/globals.css'
+
+initSentry()
+injectAnalytics()
 
 // Prevent browser back gesture from leaving the app
 window.history.pushState(null, '', window.location.href)
@@ -56,6 +61,7 @@ if ('serviceWorker' in navigator) {
 class ErrorBoundary extends Component {
   state = { error: null }
   static getDerivedStateFromError(e) { return { error: e } }
+  componentDidCatch(error, info) { Sentry.captureException(error, { extra: { componentStack: info?.componentStack } }) }
   render() {
     if (this.state.error) {
       return (

@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 
-export default function Login({ onSignIn }) {
+export default function Login({ onSignIn, onLegal }) {
   const [revving, setRevving] = useState(false)
   const titleRef = useRef(null)
   const containerRef = useRef(null)
@@ -106,6 +106,12 @@ export default function Login({ onSignIn }) {
           Sign in with Google
         </button>
 
+        {onLegal && (
+          <button onClick={onLegal} className="animate-task-enter"
+            style={{ marginTop: 32, fontSize: 11, color: 'var(--text-ghost)', animationDelay: '320ms' }}>
+            Privacy & Terms
+          </button>
+        )}
       </div>
     </div>
   )

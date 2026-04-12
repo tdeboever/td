@@ -8,7 +8,24 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 webPush.setVapidDetails('mailto:whim@whim.app', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
 
+// Rate limit: max 5 requests per minute per IP (cron only needs 1/min)
+const rateMap = new Map<string, { count: number; reset: number }>()
+function rateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateMap.get(ip)
+  if (!entry || now > entry.reset) {
+    rateMap.set(ip, { count: 1, reset: now + 60000 })
+    return true
+  }
+  entry.count++
+  return entry.count <= 5
+}
+
 Deno.serve(async (req) => {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
+  if (!rateLimit(ip)) {
+    return json({ error: 'Too many requests' }, 429)
+  }
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -127,7 +144,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ sent, expired, debug })
+    return json({ sent, expired })
   } catch (err) {
     console.error('Function error:', err)
     return json({ error: String(err) }, 500)

@@ -16,6 +16,7 @@ import { isToday, isFuture, formatRelativeDate } from '../lib/utils'
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
 import { useNotifications } from '../hooks/useNotifications'
 import Login from './Login'
+import Legal from './Legal'
 
 // Today = tasks (not notes) due today + unscheduled, filtered by space
 function TodayView() {
@@ -170,6 +171,7 @@ function AppContent({ userId = null }) {
 
 export default function App() {
   const { user, loading, signIn } = useAuth()
+  const [showLegal, setShowLegal] = useState(false)
   const scopedRef = useRef(null)
 
   // Scope localStorage by user ID BEFORE useSync runs
@@ -186,6 +188,7 @@ export default function App() {
   useEffect(() => { if (!isSupabaseConfigured()) useUiStore.setState({ initialSynced: true }) }, [])
   if (!isSupabaseConfigured()) return <AppContent />
   if (loading) return <div className="h-full flex items-center justify-center" style={{ background: 'var(--bg-deep)' }}><div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Loading...</div></div>
-  if (!user) return <Login onSignIn={signIn} />
+  if (showLegal) return <Legal onBack={() => setShowLegal(false)} />
+  if (!user) return <Login onSignIn={signIn} onLegal={() => setShowLegal(true)} />
   return <AppContent userId={user.id} />
 }
