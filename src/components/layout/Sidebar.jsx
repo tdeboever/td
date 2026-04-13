@@ -3,6 +3,7 @@ import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
 import { useShareStore } from '../../stores/shareStore'
+import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../hooks/useAuth'
 import { useSwipe } from '../../hooks/useSwipe'
 import SpaceAvatar from '../common/SpaceAvatar'
@@ -14,6 +15,48 @@ const SMART_VIEWS = [
   { id: 'today', label: 'Today', icon: '◉' },
   { id: 'upcoming', label: 'Upcoming', icon: '→' },
 ]
+
+function SharedListRow({ list, share, la, onNavigate, spaces, onAssignSpace }) {
+  const [showPicker, setShowPicker] = useState(false)
+  return (
+    <>
+      <div className="flex items-center" style={{ height: 40 }}>
+        <button onClick={onNavigate}
+          className="flex-1 flex items-center gap-2 text-left transition-colors"
+          style={{ padding: '0 0 0 52px', fontSize: 13, color: la ? 'var(--accent-lavender)' : 'var(--text-secondary)', fontWeight: la ? 500 : 400, height: '100%' }}>
+          <span className="flex-1">{list.name} <span style={{ fontSize: 10, opacity: 0.4 }}>↗</span></span>
+          {share?.owner?.display_name && (
+            <span style={{ fontSize: 10, color: 'var(--text-ghost)' }}>{share.owner.display_name.split(' ')[0]}</span>
+          )}
+        </button>
+        {spaces.length > 0 && (
+          <button onClick={() => setShowPicker(!showPicker)}
+            style={{ padding: '0 12px', color: 'var(--text-ghost)', fontSize: 11, opacity: 0.4 }}>
+            {share?.recipient_space_id ? '⟳' : '+'}
+          </button>
+        )}
+      </div>
+      {showPicker && (
+        <div className="animate-slide-down" style={{ padding: '4px 20px 8px 52px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {share?.recipient_space_id && (
+            <button onClick={() => { onAssignSpace(share.id, null); setShowPicker(false) }}
+              style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11, background: 'var(--surface-card)', color: 'var(--text-ghost)' }}>
+              None
+            </button>
+          )}
+          {spaces.map(s => (
+            <button key={s.id} onClick={() => { onAssignSpace(share.id, s.id); setShowPicker(false) }}
+              style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11,
+                background: share?.recipient_space_id === s.id ? s.color : 'var(--surface-card)',
+                color: share?.recipient_space_id === s.id ? 'white' : 'var(--text-secondary)' }}>
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
 
 export default function Sidebar() {
   const { sidebarOpen, closeSidebar, setView, activeView, activeSpaceId, activeListId } = useUiStore()
@@ -34,7 +77,14 @@ export default function Sidebar() {
   const updateSpace = useSpaceStore((s) => s.updateSpace)
   const sharedLists = useShareStore((s) => s.sharedLists)
   const acceptedShares = useShareStore((s) => s.incoming).filter(s => s.status === 'accepted')
+  const fetchShares = useShareStore((s) => s.fetchShares)
   const [shareListId, setShareListId] = useState(null)
+
+  const assignSharedListToSpace = async (shareId, spaceId) => {
+    if (!supabase) return
+    await supabase.from('list_shares').update({ recipient_space_id: spaceId }).eq('id', shareId)
+    fetchShares()
+  }
   const [renamingSpace, setRenamingSpace] = useState(null)
   const [renameText, setRenameText] = useState('')
   const [renameColor, setRenameColor] = useState(null)
@@ -130,6 +180,19 @@ export default function Sidebar() {
                     </div>
                   )
                 })}
+                {/* Shared lists assigned to this space */}
+                {sharedLists.filter(sl => {
+                  const share = acceptedShares.find(s => s.list_id === sl.id)
+                  return share?.recipient_space_id === space.id
+                }).map(list => {
+                  const share = acceptedShares.find(s => s.list_id === list.id)
+                  const la = activeView === 'list' && activeListId === list.id
+                  return (
+                    <SharedListRow key={list.id} list={list} share={share} la={la}
+                      onNavigate={() => navigate('list', { spaceId: space.id, listId: list.id })}
+                      spaces={spaces} onAssignSpace={assignSharedListToSpace} />
+                  )
+                })}
                 {addingListForSpace === space.id ? (
                   <form onSubmit={(e) => handleAddList(e, space.id)} style={{ padding: '4px 20px 4px 52px' }}>
                     <input autoFocus value={newListName} onChange={(e) => setNewListName(e.target.value)}
@@ -158,31 +221,30 @@ export default function Sidebar() {
           {/* Pending invites */}
           <InviteBanner />
 
-          {/* Shared lists */}
-          {sharedLists.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12, marginTop: 4 }}>
-              <p style={{ padding: '0 20px 8px', fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                Shared with me
-              </p>
-              {sharedLists.map(list => {
-                const share = acceptedShares.find(s => s.list_id === list.id)
-                const la = activeView === 'list' && activeListId === list.id
-                return (
-                  <div key={list.id} className="flex items-center" style={{ height: 40 }}>
-                    <button onClick={() => navigate('list', { spaceId: list.space_id, listId: list.id })}
-                      className="flex-1 flex items-center gap-2 text-left transition-colors"
-                      style={{ padding: '0 0 0 20px', fontSize: 13, color: la ? 'var(--accent-lavender)' : 'var(--text-secondary)', fontWeight: la ? 500 : 400, height: '100%' }}>
-                      <span style={{ fontSize: 10, opacity: 0.5 }}>↗</span>
-                      <span className="flex-1">{list.name}</span>
-                      {share?.owner?.display_name && (
-                        <span style={{ fontSize: 10, color: 'var(--text-ghost)' }}>{share.owner.display_name.split(' ')[0]}</span>
-                      )}
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {/* Shared lists — unassigned ones */}
+          {(() => {
+            const unassigned = sharedLists.filter(list => {
+              const share = acceptedShares.find(s => s.list_id === list.id)
+              return !share?.recipient_space_id
+            })
+            if (unassigned.length === 0) return null
+            return (
+              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12, marginTop: 4 }}>
+                <p style={{ padding: '0 20px 8px', fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  Shared with me
+                </p>
+                {unassigned.map(list => {
+                  const share = acceptedShares.find(s => s.list_id === list.id)
+                  const la = activeView === 'list' && activeListId === list.id
+                  return (
+                    <SharedListRow key={list.id} list={list} share={share} la={la}
+                      onNavigate={() => navigate('list', { spaceId: list.space_id, listId: list.id })}
+                      spaces={spaces} onAssignSpace={assignSharedListToSpace} />
+                  )
+                })}
+              </div>
+            )
+          })()}
 
         </nav>
 
