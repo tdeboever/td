@@ -2,9 +2,12 @@ import { useUiStore } from '../../stores/uiStore'
 import { useSpaceStore } from '../../stores/spaceStore'
 import { useListStore } from '../../stores/listStore'
 import { useTodoStore } from '../../stores/todoStore'
+import { useShareStore } from '../../stores/shareStore'
 import { useAuth } from '../../hooks/useAuth'
 import { useSwipe } from '../../hooks/useSwipe'
 import SpaceAvatar from '../common/SpaceAvatar'
+import InviteBanner from '../sharing/InviteBanner'
+import ShareSheet from '../sharing/ShareSheet'
 import { useState, useRef, useCallback } from 'react'
 
 const SMART_VIEWS = [
@@ -29,6 +32,9 @@ export default function Sidebar() {
   const deleteList = useListStore((s) => s.deleteList)
   const { user, signOut } = useAuth()
   const updateSpace = useSpaceStore((s) => s.updateSpace)
+  const sharedLists = useShareStore((s) => s.sharedLists)
+  const acceptedShares = useShareStore((s) => s.incoming).filter(s => s.status === 'accepted')
+  const [shareListId, setShareListId] = useState(null)
   const [renamingSpace, setRenamingSpace] = useState(null)
   const [renameText, setRenameText] = useState('')
   const [renameColor, setRenameColor] = useState(null)
@@ -114,6 +120,10 @@ export default function Sidebar() {
                         <span className="flex-1">{list.name}{list.type === 'checklist' && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.4 }}>☑</span>}</span>
                         {lc > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-ghost)' }}>{lc}</span>}
                       </button>
+                      {list.type === 'checklist' && (
+                        <button onClick={() => setShareListId(list.id)}
+                          style={{ padding: '0 6px', color: 'var(--text-ghost)', fontSize: 12, opacity: 0.35 }}>↗</button>
+                      )}
                       <button onClick={() => { if (confirm(`Delete "${list.name}"?`)) { deleteList(list.id); if (la) navigate('space', { spaceId: space.id }) } }}
                         className="active:opacity-100"
                         style={{ padding: '0 20px', color: 'var(--text-ghost)', fontSize: 14, opacity: 0.25, height: '100%' }}>×</button>
@@ -145,6 +155,35 @@ export default function Sidebar() {
               style={{ fontSize: 14, color: 'var(--text-ghost)', padding: '8px 0' }} />
           </form>
 
+          {/* Pending invites */}
+          <InviteBanner />
+
+          {/* Shared lists */}
+          {sharedLists.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12, marginTop: 4 }}>
+              <p style={{ padding: '0 20px 8px', fontSize: 11, fontWeight: 600, color: 'var(--text-ghost)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                Shared with me
+              </p>
+              {sharedLists.map(list => {
+                const share = acceptedShares.find(s => s.list_id === list.id)
+                const la = activeView === 'list' && activeListId === list.id
+                return (
+                  <div key={list.id} className="flex items-center" style={{ height: 40 }}>
+                    <button onClick={() => navigate('list', { spaceId: list.space_id, listId: list.id })}
+                      className="flex-1 flex items-center gap-2 text-left transition-colors"
+                      style={{ padding: '0 0 0 20px', fontSize: 13, color: la ? 'var(--accent-lavender)' : 'var(--text-secondary)', fontWeight: la ? 500 : 400, height: '100%' }}>
+                      <span style={{ fontSize: 10, opacity: 0.5 }}>↗</span>
+                      <span className="flex-1">{list.name}</span>
+                      {share?.owner?.display_name && (
+                        <span style={{ fontSize: 10, color: 'var(--text-ghost)' }}>{share.owner.display_name.split(' ')[0]}</span>
+                      )}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
         </nav>
 
         {/* Sign out — fixed at bottom */}
@@ -157,6 +196,12 @@ export default function Sidebar() {
           </div>
         )}
       </aside>
+
+      {/* Share sheet */}
+      {shareListId && (() => {
+        const list = lists.find(l => l.id === shareListId)
+        return list ? <ShareSheet listId={list.id} listName={list.name} onClose={() => setShareListId(null)} /> : null
+      })()}
     </>
   )
 }

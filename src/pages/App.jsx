@@ -172,6 +172,15 @@ function AppContent({ userId = null }) {
     if (v) { sessionStorage.removeItem('whim_initial_view'); useUiStore.getState().setView(v) }
   }, [])
 
+  // Fetch shared lists
+  useEffect(() => {
+    if (userId) {
+      import('../stores/shareStore').then(({ useShareStore }) => {
+        useShareStore.getState().fetchShares()
+      })
+    }
+  }, [userId])
+
   return <AppShell><ViewComponent /></AppShell>
 }
 
